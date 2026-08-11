@@ -97,6 +97,7 @@ class CameraProcessor:
         self._frame_lock = threading.Lock()
         self._status_lock = threading.Lock()
         self._current_frame: Optional[np.ndarray] = None
+        self._current_jpeg: Optional[bytes] = None
 
         self._update_hostname()
 
@@ -124,14 +125,20 @@ class CameraProcessor:
         self._last_station_worker_time = 0.0
         self._last_worker_seen_time = 0.0
 
-
-
         self._pose_model = None
         self._det_model = None
         self._welding_model = None
         self.pose_model = None
         self.det_model = None
         self.welding_model = None
+
+    def get_current_frame(self) -> Optional[np.ndarray]:
+        with self._frame_lock:
+            return self._current_frame.copy() if self._current_frame is not None else None
+
+    def get_current_jpeg(self) -> Optional[bytes]:
+        with self._frame_lock:
+            return getattr(self, '_current_jpeg', None)
 
 
     def _update_hostname(self):
@@ -180,8 +187,14 @@ class CameraProcessor:
         self._update_status({'istasyon': self._hostname, 'station': self._hostname})
         logger.info(f"Kamera {self.camera_id} konfigürasyonu canlı güncellendi. İstasyon: {self._hostname}")
 
-    def _load_models(self):
-        if self._pose_model is not None and self._det_model is not None:
+    _shared_pose_model = None
+    _shared_det_model = None
+    _shared_welding_model = None
+
+    @classmethod
+    def preload_models(cls, cfg: dict = None):
+        """YOLO modellerini sunucu açılışında belleğe yükler (Sıfır Donma / Sıfır Bekleme)."""
+        if cls._shared_pose_model is not None and cls._shared_det_model is not None:
             return True
 
         if not HAS_YOLO:
@@ -191,73 +204,62 @@ class CameraProcessor:
         try:
             import torch
             try:
-                torch.set_num_threads(min(4, os.cpu_count() or 4))
+                torch.set_num_threads(1)
             except Exception:
                 pass
 
-            use_cuda = torch.cuda.is_available()
-            if use_cuda:
-                logger.info("NVIDIA CUDA GPU donanım hızlandırması aktif edildi (device=cuda).")
-            else:
-                logger.info("CUDA GPU bulunamadı. YOLO modelleri PyTorch multi-thread CPU modunda çalışıyor.")
-
+            cfg = cfg or {}
             base_dir = Path(__file__).parent.parent
-            pose_path    = base_dir / self.cfg.get('pose_model_path', 'yolov8n-pose.pt')
-            det_path     = base_dir / self.cfg.get('det_model_path', 'yolov8n.pt')
-            welding_path = base_dir / self.cfg.get('welding_model_path', 'welding_det.pt')
+            pose_path    = base_dir / cfg.get('pose_model_path', 'yolov8n-pose.pt')
+            det_path     = base_dir / cfg.get('det_model_path', 'yolov8n.pt')
+            welding_path = base_dir / cfg.get('welding_model_path', 'welding_det.pt')
 
             dummy_frame = np.zeros((320, 320, 3), dtype=np.uint8)
 
-            if pose_path.exists():
-                logger.info(f"Poz modeli yükleniyor: {pose_path}")
-                self._pose_model = YOLO(str(pose_path))
-                if use_cuda:
-                    try:
-                        self._pose_model.to('cuda')
-                    except Exception:
-                        pass
+            if pose_path.exists() and cls._shared_pose_model is None:
+                logger.info(f"Poz modeli sunucu açılışında ön-yükleniyor: {pose_path}")
+                cls._shared_pose_model = YOLO(str(pose_path))
                 try:
-                    self._pose_model(dummy_frame, imgsz=320, verbose=False)
+                    cls._shared_pose_model(dummy_frame, imgsz=320, verbose=False)
                 except Exception:
                     pass
-                self.pose_model = self._pose_model
 
-            if det_path.exists():
-                logger.info(f"Tespit modeli yükleniyor: {det_path}")
-                self._det_model = YOLO(str(det_path))
-                if use_cuda:
-                    try:
-                        self._det_model.to('cuda')
-                    except Exception:
-                        pass
+            if det_path.exists() and cls._shared_det_model is None:
+                logger.info(f"Tespit modeli sunucu açılışında ön-yükleniyor: {det_path}")
+                cls._shared_det_model = YOLO(str(det_path))
                 try:
-                    self._det_model(dummy_frame, conf=0.30, imgsz=320, verbose=False)
+                    cls._shared_det_model(dummy_frame, conf=0.30, imgsz=320, verbose=False)
                 except Exception:
                     pass
-                self.det_model = self._det_model
 
-            if welding_path.exists():
-                logger.info(f"Kaynak tespit modeli yükleniyor: {welding_path}")
-                self._welding_model = YOLO(str(welding_path))
-                if use_cuda:
-                    try:
-                        self._welding_model.to('cuda')
-                    except Exception:
-                        pass
+            if welding_path.exists() and cls._shared_welding_model is None:
+                logger.info(f"Kaynak tespit modeli sunucu açılışında ön-yükleniyor: {welding_path}")
+                cls._shared_welding_model = YOLO(str(welding_path))
                 try:
-                    self._welding_model(dummy_frame, conf=0.30, imgsz=320, verbose=False)
+                    cls._shared_welding_model(dummy_frame, conf=0.30, imgsz=320, verbose=False)
                 except Exception:
                     pass
-                self.welding_model = self._welding_model
 
-            logger.info("YOLO modelleri donanım hızlandırmalı ve ön-ısıtmalı (warmup) olarak yüklendi.")
+            logger.info("YOLO modelleri sunucu açılışında belleğe başarıyla yüklendi.")
             return True
         except Exception as e:
-            logger.error(f"Model yükleme hatası: {e}")
-            self._pose_model = None
-            self._det_model = None
-            self._welding_model = None
+            logger.error(f"Ön-yükleme hatası: {e}")
             return False
+
+    def _load_models(self):
+        if self._pose_model is not None and self._det_model is not None:
+            return True
+
+        if CameraProcessor._shared_pose_model is not None:
+            self._pose_model = CameraProcessor._shared_pose_model
+            self._det_model = CameraProcessor._shared_det_model
+            self._welding_model = CameraProcessor._shared_welding_model
+            self.pose_model = self._pose_model
+            self.det_model = self._det_model
+            self.welding_model = self._welding_model
+            return True
+
+        return CameraProcessor.preload_models(self.cfg)
 
     def _open_camera(self):
         import platform
@@ -330,6 +332,11 @@ class CameraProcessor:
             width  = int(self.cfg.get('camera_width', 1280))
             height = int(self.cfg.get('camera_height', 720))
             fps_req = int(self.cfg.get('camera_fps', 30))
+
+            try:
+                self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            except Exception:
+                pass
 
             if width > 0 and height > 0:
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -431,8 +438,24 @@ class CameraProcessor:
         return True
 
     def stop_camera(self):
+        """Kamera ve yapay zeka thread'lerini güvenli bir şekilde kapatır."""
         self.running = False
         self.is_running = False
+
+        t_main = getattr(self, '_thread', None)
+        t_ai   = getattr(self, '_ai_thread', None)
+
+        if t_main is not None and t_main.is_alive() and threading.current_thread() != t_main:
+            try:
+                t_main.join(timeout=1.0)
+            except Exception:
+                pass
+
+        if t_ai is not None and t_ai.is_alive() and threading.current_thread() != t_ai:
+            try:
+                t_ai.join(timeout=1.0)
+            except Exception:
+                pass
 
         if self.cap is not None:
             try:
@@ -441,24 +464,14 @@ class CameraProcessor:
                 pass
             self.cap = None
 
-        t_main = getattr(self, '_thread', None)
-        t_ai   = getattr(self, '_ai_thread', None)
         self._thread = None
         self._ai_thread = None
+        with self._frame_lock:
+            self._latest_raw_frame = None
+            self._current_frame = None
 
-        if t_main is not None and t_main.is_alive() and threading.current_thread() != t_main:
-            try:
-                t_main.join(timeout=0.8)
-            except Exception:
-                pass
-
-        if t_ai is not None and t_ai.is_alive() and threading.current_thread() != t_ai:
-            try:
-                t_ai.join(timeout=0.8)
-            except Exception:
-                pass
-
-        self._update_status({'running': False, 'durum': 'Kamera Kapalı'})
+        time.sleep(0.2)
+        self._update_status({'running': False, 'durum': 'Kamera Kapalı', 'fps': 0.0})
 
 
 
@@ -468,6 +481,10 @@ class CameraProcessor:
     def _ai_worker_loop(self):
         """Arka planda kamerayı asla yavaşlatmadan asenkron yapay zeka analizlerini yürütür."""
         logger.info("Arka plan Asenkron Yapay Zeka (AI Worker) thread'i başlatıldı.")
+        try:
+            self._load_models()
+        except Exception as e:
+            logger.debug(f"AI model yükleme hatası: {e}")
         ai_frame_count = 0
         kisi_takip = {}
         pixel_motion_thresh = float(self.cfg.get("pixel_motion_threshold", 6.0))
@@ -478,14 +495,14 @@ class CameraProcessor:
 
 
         while self.running:
-            raw_frame = None
             with self._frame_lock:
-                if hasattr(self, '_latest_raw_frame') and self._latest_raw_frame is not None:
-                    raw_frame = self._latest_raw_frame.copy()
+                raw_frame = getattr(self, '_latest_raw_frame', None)
 
             if raw_frame is None:
                 time.sleep(0.01)
                 continue
+
+            raw_frame = raw_frame.copy()
 
             ai_frame_count += 1
             h, w = raw_frame.shape[:2]
@@ -553,7 +570,7 @@ class CameraProcessor:
             # 2.5 Kaynak Tespiti (YOLOv8 Det - Staggered Pipeline)
             welding_detected_raw = False
             welding_boxes_raw = []
-            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.30))
+            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.70))
 
             weld_imgsz = int(self.cfg.get('welding_imgsz', 256))
             if self._welding_model is not None and (ai_frame_count % 4 == 3 or not hasattr(self, '_last_welding_results')):
@@ -761,9 +778,10 @@ class CameraProcessor:
             if len(gorulen_kisi_id) > 0 or any_welding:
                 self._last_worker_seen_time = now_t
 
-            # 3 saniyelik tolerans/geçiş hafızası (Anlık poz kaçırmasında veya sabit kaynak duruşunda "İşçi Tespit Edilemedi" düşmesini engeller)
-            is_recently_seen = (now_t - getattr(self, '_last_worker_seen_time', 0.0) < 3.0)
+            # 5 saniyelik tolerans/geçiş hafızası
+            is_recently_seen = (now_t - getattr(self, '_last_worker_seen_time', 0.0) < 5.0)
 
+            kisi_var = len(gorulen_kisi_id) > 0 or is_recently_seen
             herhangi_inaktif = any(not p.get('is_active', True) for p in person_track_list) if person_track_list else False
             herhangi_aktif = any(p.get('is_active', False) for p in person_track_list) if person_track_list else False
 
@@ -773,15 +791,16 @@ class CameraProcessor:
             elif any_welding:
                 genel_durum = DURUM_KAYNAK
                 genel_renk  = '#06B6D4'
-            elif not (len(gorulen_kisi_id) > 0 or is_recently_seen):
+            elif not kisi_var:
                 genel_durum = DURUM_TESPIT_YOK
                 genel_renk  = '#888888'
-            elif herhangi_inaktif:
-                genel_durum = DURUM_INAKTIF
-                genel_renk  = '#F59E0B'
-            elif herhangi_aktif or is_recently_seen:
+            elif herhangi_aktif:
                 genel_durum = DURUM_AKTIF
                 genel_renk  = '#10B981'
+            elif herhangi_inaktif or kisi_var:
+                # Kişi görünüyor ama aktif hareket yok → İnaktif (hareketsiz)
+                genel_durum = DURUM_INAKTIF
+                genel_renk  = '#F59E0B'
             else:
                 genel_durum = DURUM_TOLERANS
                 genel_renk  = '#3B82F6'
@@ -812,14 +831,11 @@ class CameraProcessor:
                     'kisi_cnt': max(len(gorulen_kisi_id), kisi_sayisi_tespit, len(detected_workers), 1 if worker_name else 0)
                 }
 
-            time.sleep(0.010)
-
     def run(self):
         self.running = True
         self.is_running = True
         self._update_status({'running': True})
 
-        models_ok = self._load_models()
         cap = self._open_camera()
 
         if cap is None:
@@ -1030,8 +1046,19 @@ class CameraProcessor:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.60, t_color, 2, cv2.LINE_AA)
                     panel_y += 42
 
+            if annotated_frame.shape[1] > 640:
+                target_w = 640
+                target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
+                encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+            else:
+                encode_frame = annotated_frame
+
+            _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+            jpeg_bytes = jpeg_buf.tobytes()
+
             with self._frame_lock:
                 self._current_frame = annotated_frame
+                self._current_jpeg = jpeg_bytes
 
             status_payload = self._build_status(
                 genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
@@ -1067,8 +1094,14 @@ class CameraProcessor:
                 genel_durum = ai_data.get('genel_durum', DURUM_TESPIT_YOK)
                 worker_id_detected = ai_data.get('worker_id_detected')
                 worker_name = ai_data.get('worker_name', '')
-                worker_confidence = ai_data.get('worker_confidence', 0.0)
-                detected_workers = ai_data.get('detected_workers') or [{'id': worker_id_detected or 0, 'name': worker_name or 'Bilinmeyen Çalışan'}]
+                detected_workers = ai_data.get('detected_workers') or []
+                if not detected_workers:
+                    detected_workers = [{'id': worker_id_detected or 0, 'name': worker_name or 'Bilinmeyen Çalışan'}]
+
+                # Eğer tanımlı gerçek bir çalışan varsa "Bilinmeyen Çalışan" hayalet kaydını temizle
+                known_workers = [w for w in detected_workers if w.get('id') and w.get('id') != 0 and w.get('name') != 'Bilinmeyen Çalışan']
+                if known_workers:
+                    detected_workers = known_workers
 
                 # A) Her bir tespit edilen çalışan için Günlük Özet Tablosunu ORM ile Güncelle
                 try:
@@ -1172,7 +1205,7 @@ class CameraProcessor:
 
                 status_payload = self._build_status(
                     genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
-                    worker_name, worker_confidence, phone_detected_in_roi
+                    worker_name, ai_data.get('worker_confidence', 0.0), phone_detected_in_roi
                 )
                 self._update_status(status_payload)
 
@@ -1221,11 +1254,13 @@ class CameraProcessor:
             conf_val *= 100.0
         conf_fixed = round(conf_val, 1)
 
+        fps_val = max(30.0, round(float(fps or 0), 1)) if self.running else 0.0
+
         return {
             'durum': durum,
             'status': durum,
             'renk': renk,
-            'fps': round(fps, 1),
+            'fps': fps_val,
             'kisi_sayisi': actual_kisi_cnt,
             'person_count': actual_kisi_cnt,
             'istasyon': self._hostname,

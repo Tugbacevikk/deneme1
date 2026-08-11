@@ -102,7 +102,9 @@ def pg_tablo_hazirla(engine) -> bool:
 
     try:
         CentralBase.metadata.create_all(engine)
-        logger.info("[PG] Merkezi PostgreSQL Code-First veritabanı ve tabloları doğrulandı.")
+        from core.database.models import Base
+        Base.metadata.create_all(engine)
+        logger.info("[PG] Merkezi PostgreSQL Code-First veritabanı ve tüm tabloları doğrulandı.")
         return True
     except Exception as e:
         logger.error(f"[PG] Tablo kontrolü/oluşturma hatası: {e}")
