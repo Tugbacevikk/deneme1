@@ -295,8 +295,6 @@ notifMarkAll && notifMarkAll.addEventListener('click', () => {
 
 
 
-// Socket.IO Connection
-let socket;
 try {
     socket = io({ 
         transports: ['polling', 'websocket'],
