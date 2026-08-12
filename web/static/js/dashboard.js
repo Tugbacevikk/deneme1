@@ -387,19 +387,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.innerHTML = '<i class="fa-solid fa-circle-stop"></i> Durdur';
             });
         });
-    }
-
     if (document.getElementById('btn-delete-video')) {
-        document.getElementById('btn-delete-video').addEventListener('click', function() {
+        document.getElementById('btn-delete-video').addEventListener('click', async function() {
             const select = document.getElementById('select-uploaded-video');
             const videoPath = select ? select.value : '';
             if (!videoPath) {
                 showToast('Lütfen silinecek bir video seçin.', 'warning');
                 return;
             }
-            if (!confirm('Bu videoyu silmek istediğinize emin misiniz?')) {
-                return;
-            }
+            const ok = await showConfirm('Bu videoyu silmek istediğinize emin misiniz?', { title: 'Video Sil', okText: 'Sil' });
+            if (!ok) return;
+
             this.disabled = true;
             fetch('/api/video/delete', {
                 method: 'POST',

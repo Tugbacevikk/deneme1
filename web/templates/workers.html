@@ -288,10 +288,11 @@ function submitWorkerForm(e) {
     });
 }
 
-function deleteWorker(btn) {
+async function deleteWorker(btn) {
     const id = btn.dataset.id;
     const name = btn.dataset.name;
-    if (!confirm(`${name} isimli çalışanı silmek istediğinize emin misiniz?`)) return;
+    const ok = await showConfirm(`${name} isimli çalışanı silmek istediğinize emin misiniz?`, { title: 'Çalışan Sil', okText: 'Sil' });
+    if (!ok) return;
 
     fetch(`/api/workers/${id}/delete`, { method: 'POST' })
     .then(r => r.json())
@@ -326,12 +327,13 @@ function filterWorkers() {
     });
 }
 
-function toggleAktif(btn) {
+async function toggleAktif(btn) {
     const id = btn.dataset.id;
     const name = btn.dataset.name;
     const aktif = btn.dataset.aktif;
     const eylem = aktif === '1' ? 'pasife almak' : 'aktife almak';
-    if (!confirm(`${name} isimli çalışanı ${eylem} istediğinize emin misiniz?`)) return;
+    const ok = await showConfirm(`${name} isimli çalışanı ${eylem} istediğinize emin misiniz?`, { title: 'Durum Değiştir', okText: 'Evet' });
+    if (!ok) return;
 
     fetch(`/api/workers/${id}/toggle-aktif`, { method: 'POST' })
     .then(r => r.json())

@@ -235,15 +235,16 @@ if (formAddUser) {
     formAddUser.addEventListener('submit', addUserSubmit);
 }
 
-function deleteUser(btn, username) {
-    let id = null;
+async function deleteUser(btn) {
+    let id, username = 'Kullanıcı';
     if (btn && typeof btn === 'object' && btn.dataset) {
         id = btn.dataset.id;
         username = btn.dataset.name;
     } else {
         id = btn;
     }
-    if (!confirm(`${username} kullanıcısını silmek istediğinizden emin misiniz?`)) return;
+    const ok = await showConfirm(`${username} kullanıcısını silmek istediğinizden emin misiniz?`, { title: 'Kullanıcı Sil', okText: 'Sil' });
+    if (!ok) return;
 
     fetch(`/api/users/${id}/delete`, { method: 'POST' })
         .then(r => r.json())
@@ -370,8 +371,9 @@ function saveEditUser() {
     });
 }
 
-function approveUser(id) {
-    if (!confirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?')) return;
+async function approveUser(id) {
+    const ok = await showConfirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?', { title: 'Başvuru Onayı', okText: 'Onayla' });
+    if (!ok) return;
     fetch(`/api/users/${id}/approve`, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
@@ -402,8 +404,9 @@ function approveUser(id) {
         .catch(() => showToast('Bağlantı hatası', 'error'));
 }
 
-function rejectUser(id) {
-    if (!confirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?')) return;
+async function rejectUser(id) {
+    const ok = await showConfirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?', { title: 'Başvuru Reddi', okText: 'Reddet' });
+    if (!ok) return;
     fetch(`/api/users/${id}/reject`, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },

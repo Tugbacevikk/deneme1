@@ -200,8 +200,8 @@
                                 </div>
                             </div>
                             <div style="display:flex; gap:8px;">
-                                <form action="/api/users/{{ p_user.id }}/reject" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu başvuruyu reddetmek istediğinize emin misiniz?')">
+                                <form action="/api/users/{{ p_user.id }}/reject" method="POST" style="display:inline;" onsubmit="event.preventDefault(); const f = this; showConfirm('Bu başvuruyu reddetmek istediğinize emin misiniz?', { title: 'Başvuru Reddi', okText: 'Reddet' }).then(ok => { if(ok) f.submit(); });">
+                                    <button type="submit" class="btn btn-danger btn-sm">
                                         <i class="fa-solid fa-user-xmark"></i> Reddet
                                     </button>
                                 </form>

@@ -142,8 +142,9 @@ function toggleZoomCard(id) {
     }
 }
 
-function deleteManagedCamera(id) {
-    if (!confirm('Bu kamerayı silmek istediğinizden emin misiniz?')) return;
+async function deleteManagedCamera(id) {
+    const ok = await showConfirm('Bu kamerayı silmek istediğinizden emin misiniz?', { title: 'Kamera Sil', okText: 'Sil' });
+    if (!ok) return;
     fetch(`/api/cameras/manage/${id}`, { method: 'DELETE' })
         .then(r => r.json())
         .then(res => {

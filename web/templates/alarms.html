@@ -290,8 +290,9 @@ if (btnMarkAll) {
 }
 
 // ── Delete Alarm ──────────────────────────────────────────────
-function deleteAlarm(id, btn) {
-    if (!confirm('Bu alarmı silmek istediğinizden emin misiniz?')) return;
+async function deleteAlarm(id, btn) {
+    const ok = await showConfirm('Bu alarmı silmek istediğinizden emin misiniz?', { title: 'Alarm Sil', okText: 'Sil' });
+    if (!ok) return;
 
     fetch(`/api/alarms/delete/${id}`, { method: 'DELETE' })
     .then(r => r.json())
