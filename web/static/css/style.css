@@ -116,7 +116,7 @@ a:hover {
 /* --- Cameras: İki Kolon Yan Yana --- */
 .two-col-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 2fr;
   gap: 24px;
   align-items: start;
 }
@@ -129,9 +129,21 @@ a:hover {
   min-width: 0;
 }
 
+/* Kamera kartları sticky wrapper: scroll edilince ekranda kalır */
+.cameras-sticky-wrap {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 @media (max-width: 1023px) {
   .two-col-layout {
     grid-template-columns: 1fr;
+  }
+  .cameras-sticky-wrap {
+    position: static;
   }
 }
 
