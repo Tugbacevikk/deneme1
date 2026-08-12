@@ -194,6 +194,22 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- Global Confirm Modal -->
+<div class="modal-overlay" id="global-confirm-modal" style="display:none;">
+    <div class="modal" style="max-width:420px; width:90%;">
+        <div class="modal-header">
+            <h2 class="modal-title" id="global-confirm-title">Emin misiniz?</h2>
+        </div>
+        <div class="modal-body">
+            <p id="global-confirm-message"></p>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn btn-secondary" id="global-confirm-cancel">Vazgeç</button>
+            <button class="btn btn-danger" id="global-confirm-ok">Onayla</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== SCRIPTS ===================== -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -503,6 +519,33 @@ window.showToast = function(message, type = 'info', duration = 4000) {
     requestAnimationFrame(() => toast.classList.add('show'));
     setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, duration);
 };
+
+// Global Confirm Modal Function
+function showConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('global-confirm-modal');
+        document.getElementById('global-confirm-title').textContent = options.title || 'Emin misiniz?';
+        document.getElementById('global-confirm-message').textContent = message;
+        const okBtn = document.getElementById('global-confirm-ok');
+        const cancelBtn = document.getElementById('global-confirm-cancel');
+        okBtn.textContent = options.okText || 'Onayla';
+
+        modal.style.display = 'flex';
+
+        function cleanup(result) {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(result);
+        }
+        function onOk() { cleanup(true); }
+        function onCancel() { cleanup(false); }
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+window.showConfirm = showConfirm;
 </script>
 
 {% block extra_scripts %}{% endblock %}
