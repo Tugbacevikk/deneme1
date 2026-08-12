@@ -25,3 +25,7 @@ logs/
 .vscode/
 .idea/
 *.swp
+
+# Yüklenen Videolar
+web/static/uploads/videos/*
+!web/static/uploads/videos/.gitkeep

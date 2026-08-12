@@ -16,18 +16,16 @@ cameras_bp = Blueprint('cameras', __name__)
 logger = logging.getLogger(__name__)
 
 
-def _get_app_globals():
-    import web.app as app_module
-    return app_module
+import web.extensions as ext
 
-
+# Rota tanımları
 @cameras_bp.route('/cameras')
 def cameras():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
-    app_mod = _get_app_globals()
-    cams = app_mod.scan_cameras()
-    return render_template('cameras.html', cameras=cams, config=app_mod.config)
+    from web.app import scan_cameras
+    cams = scan_cameras()
+    return render_template('cameras.html', cameras=cams, config=ext.config)
 
 
 @cameras_bp.route('/live-cameras')
@@ -63,7 +61,6 @@ def api_cameras_list():
 @cameras_bp.route('/api/proxy_feed/<int:cam_id>')
 def api_proxy_feed(cam_id):
     """Kamera yayınını sıkı yetki kontrolünden geçirerek sunar."""
-    app_mod = _get_app_globals()
     patron_id, is_super, stations = get_current_patron_access()
     user_id = session.get('user_id')
     try:
@@ -77,19 +74,19 @@ def api_proxy_feed(cam_id):
                 return _get_unauthorized_frame(), 403
 
             # Yerel İstasyon Tespiti: SADECE istasyon adı ile karşılaştır.
-            # IP tabanlı tespit kullanılmaz çünkü bu bilgisayar birden fazla
-            # ağ kartına sahip olabilir (192.168.30.168 de bu PC'de tanımlı).
-            local_station = (app_mod.config.get('station_name') or app_mod.config.get('istasyon_adi') or '').strip().lower()
+            local_station = (ext.config.get('station_name') or ext.config.get('istasyon_adi') or '').strip().lower()
             cam_station   = (cam.istasyon_adi or '').strip().lower()
             is_this_local = bool(local_station and cam_station and cam_station == local_station)
 
             if is_this_local:
-                if app_mod.camera_processor is None or not getattr(app_mod.camera_processor, 'is_running', False):
+                if ext.camera_processor is None or not getattr(ext.camera_processor, 'is_running', False):
                     return Response(_get_dark_frame(), mimetype='image/jpeg')
-                return app_mod.video_feed()
+                from web.app import video_feed
+                return video_feed()
 
-            # Hızlı Soket Kontrolü (Uzak Pi Çevrimdışıysa Sunucuyu Asla Kitlemez)
+            # Hızlı Soket Kontrolü
             import socket
+            ip = (cam.ip_adresi or '').strip()
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.4)
             is_online = (sock.connect_ex((ip, 5000)) == 0)

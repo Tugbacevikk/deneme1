@@ -48,6 +48,9 @@ def api_settings_save():
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
             yaml.safe_dump(cfg, f, allow_unicode=True)
 
+        import web.extensions as ext
+        ext.config = cfg
+
         return jsonify({'success': True, 'message': 'Ayarlar başarıyla kaydedildi.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
