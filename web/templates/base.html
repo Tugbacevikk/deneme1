@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=1.1">
+    <link rel="stylesheet" href="/static/css/style.css?v=1.2">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -278,7 +278,8 @@ const notifMarkAll = document.getElementById('notif-mark-all');
 notifMarkAll && notifMarkAll.addEventListener('click', () => {
     fetch('/api/alarms/mark_read', { method: 'POST' })
         .then(() => {
-            document.getElementById('notif-badge').style.display = 'none';
+            const notifBdg = document.getElementById('notif-badge');
+            if (notifBdg) notifBdg.style.display = 'none';
             const badge = document.getElementById('alarm-count-badge');
             if (badge) badge.style.display = 'none';
             document.getElementById('notif-list').innerHTML =
