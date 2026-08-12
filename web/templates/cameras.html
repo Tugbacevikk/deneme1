@@ -6,10 +6,12 @@
 
 {% block content %}
 
-<div class="cameras-layout">
+<div class="two-col-layout">
 
-    <!-- SOL KOLON: Kamera Seçimi + Canlı Önizleme (sticky) -->
-    <div class="cameras-col-left">
+    <!-- ════════════════════════════════════════════
+         LEFT COLUMN
+    ════════════════════════════════════════════ -->
+    <div class="col-left">
 
         <!-- Card: Camera Selection -->
         <div class="card">
@@ -162,29 +164,30 @@
                 </div>
             </div>
         </div>
+        <!-- END Live Preview Card -->
+
     </div>
-    <!-- END SOL KOLON -->
+    <!-- END LEFT COLUMN -->
 
 
-    <!-- SAĞ KOLON: Akordiyon Ayar Panelleri -->
-    <div class="cameras-col-right">
-
+    <!-- ════════════════════════════════════════════
+         RIGHT COLUMN
+    ════════════════════════════════════════════ -->
+    <div class="col-right">
 
         <!-- Card: ROI Settings -->
         <div class="card">
-            <div class="card-header accordion-header" onclick="toggleAccordion('acc-roi')" role="button" aria-expanded="false">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-crop-simple card-header-icon"></i>
                     <h2 class="card-title">ROI (Çalışma Alanı) Ayarı</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" id="icon-acc-roi"></i>
             </div>
-            <div class="accordion-body" id="acc-roi">
-                <div class="card-body">
+            <div class="card-body">
 
                 <p class="section-desc">
                     <i class="fa-solid fa-circle-info"></i>
-                    Çalışma alanının kamera görüntüsündeki konumunu aşağıdaki kaydırıcılarla veya canlı önizlemeden sürükleyerek ayarlayın.
+                    Çalışma alanının kamera görüntüsündeki konumunu aşağıdaki kaydırıcılarla ayarlayın.
                 </p>
 
                 <!-- ROI Sliders -->
@@ -266,7 +269,6 @@
                     <i class="fa-solid fa-floppy-disk"></i> ROI'yi Kaydet
                 </button>
 
-                </div>
             </div>
         </div>
         <!-- END ROI Card -->
@@ -274,15 +276,13 @@
 
         <!-- Card: Detection Settings -->
         <div class="card">
-            <div class="card-header accordion-header" onclick="toggleAccordion('acc-detection')" role="button" aria-expanded="false">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-sliders card-header-icon"></i>
                     <h2 class="card-title">Tespit Ayarları</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" id="icon-acc-detection"></i>
             </div>
-            <div class="accordion-body" id="acc-detection">
-                <div class="card-body">
+            <div class="card-body">
 
                 <!-- Motion Threshold Slider -->
                 <div class="slider-group">
@@ -343,22 +343,19 @@
                     <i class="fa-solid fa-floppy-disk"></i> Ayarları Kaydet
                 </button>
 
-                </div>
             </div>
         </div>
         <!-- END Detection Settings Card -->
 
         <!-- Card: Manual Camera Image Adjustments -->
         <div class="card" style="margin-top:24px;">
-            <div class="card-header accordion-header" onclick="toggleAccordion('acc-imgadj')" role="button" aria-expanded="false">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-sliders card-header-icon" style="color:var(--accent);"></i>
                     <h2 class="card-title">Kamera Manuel Görüntü Ayarları</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" id="icon-acc-imgadj"></i>
             </div>
-            <div class="accordion-body" id="acc-imgadj">
-                <div class="card-body">
+            <div class="card-body">
                 <p class="section-desc">
                     <i class="fa-solid fa-sun"></i>
                     Kamera ışık, kontrast, renk canlılığı ve aynalama ayarlarını canlı olarak ayarlayabilirsiniz.
@@ -457,15 +454,14 @@
                 <button class="btn btn--primary btn--full mt-3" id="btn-save-img-adj">
                     <i class="fa-solid fa-sliders"></i> Görüntü Ayarlarını Uygula
                 </button>
-                </div>
             </div>
         </div>
         <!-- END Manual Camera Adjustments Card -->
 
     </div>
-    <!-- END SAĞ KOLON -->
+    <!-- END RIGHT COLUMN -->
 
-</div><!-- END cameras-layout -->
+</div>
 
 {% endblock %}
 
@@ -476,35 +472,7 @@
 // Cameras JS
 // ═══════════════════════════════════════════════
 
-// ── Accordion ────────────────────────────────────────────────
-const ACCORDION_IDS = ['acc-roi', 'acc-detection', 'acc-imgadj'];
-
-function toggleAccordion(id) {
-    const body = document.getElementById(id);
-    const icon = document.getElementById('icon-' + id);
-    const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
-
-    // Önce hepsini kapat
-    ACCORDION_IDS.forEach(function(aid) {
-        const b = document.getElementById(aid);
-        const i = document.getElementById('icon-' + aid);
-        const h = b ? b.closest('.card').querySelector('.accordion-header') : null;
-        if (b) b.style.maxHeight = '0px';
-        if (i) i.classList.remove('open');
-        if (h) h.setAttribute('aria-expanded', 'false');
-    });
-
-    // Tıklananı aç (eğer kapalıysa)
-    if (!isOpen) {
-        body.style.maxHeight = body.scrollHeight + 'px';
-        if (icon) icon.classList.add('open');
-        const header = body.closest('.card').querySelector('.accordion-header');
-        if (header) header.setAttribute('aria-expanded', 'true');
-    }
-}
-
 let selectedCameraId = 0;
-
 
 // ── Camera Selection ─────────────────────────────────────────
 function selectCamera(el, camId) {
