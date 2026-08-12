@@ -374,7 +374,8 @@ function approveUser(id) {
     if (!confirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?')) return;
     fetch(`/api/users/${id}/approve`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
     })
         .then(r => r.json())
         .then(data => {
@@ -392,7 +393,8 @@ function rejectUser(id) {
     if (!confirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?')) return;
     fetch(`/api/users/${id}/reject`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
     })
         .then(r => r.json())
         .then(data => {
