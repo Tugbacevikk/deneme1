@@ -199,6 +199,10 @@
 <script src="/static/js/charts.js"></script>
 
 <script>
+window.addEventListener('error', function(e) {
+    alert("JS HATA: " + e.message + "\nDosya: " + e.filename + "\nSatır: " + e.lineno);
+});
+
 // ── Base JS: runs on every page ──────────────────────────────────────────────
 
 // Clock
