@@ -26,23 +26,15 @@ def _get_app_config():
     return config
 
 
+from web.helpers import login_required, get_all_system_stations
+
+
 @reports_bp.route('/reports')
 @login_required
 def reports():
-    stations_set = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}
-    try:
-        with db_manager.get_session() as session_orm:
-            stmt = select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None)).distinct()
-            for s in session_orm.scalars(stmt).all():
-                if s and not s.startswith('VIDEO:') and not s.startswith('LAPTOP-') and not s.startswith('DESKTOP-'):
-                    stations_set.add(s.strip())
-            for s in session_orm.scalars(select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None)).distinct()).all():
-                if s and not s.startswith('VIDEO:'):
-                    stations_set.add(s.strip())
-    except Exception:
-        pass
-    stations = sorted(list(stations_set))
+    stations = get_all_system_stations()
     return render_template('reports.html', stations=stations)
+
 
 
 @reports_bp.route('/worker_analysis')
@@ -601,20 +593,8 @@ def api_reports_worker_detail():
 @login_required
 def api_camera_stations():
     try:
-        stations_set = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}
-        with db_manager.get_session() as session_orm:
-            stmt = select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None)).distinct()
-            db_stations = session_orm.scalars(stmt).all()
-            for s in db_stations:
-                if s and not s.startswith('VIDEO:') and not s.startswith('LAPTOP-') and not s.startswith('DESKTOP-'):
-                    stations_set.add(s)
-            
-            w_stations = session_orm.scalars(select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None)).distinct()).all()
-            for s in w_stations:
-                if s and not s.startswith('VIDEO:'):
-                    stations_set.add(s)
-
-        sorted_list = sorted(list(stations_set))
-        return jsonify({'stations': sorted_list, 'success': True})
+        stations = get_all_system_stations()
+        return jsonify({'stations': stations, 'success': True})
     except Exception as e:
-        return jsonify({'stations': ['Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'], 'success': False})
+        return jsonify({'stations': [], 'success': False, 'error': str(e)})
+

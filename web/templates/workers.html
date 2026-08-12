@@ -189,13 +189,16 @@
                     <select class="form-select" id="w-station" name="istasyon_adi">
                         <option value="">— İstasyon Seçin —</option>
                         {% set p_stations = (current_user.istasyonlar or '').split(',') if current_user and current_user.rol == 'patron' else [] %}
-                        {% for n in range(1, 11) %}
-                        {% set st_cur = 'Istasyon-' ~ n %}
-                        {% if not current_user or current_user.rol == 'admin' or not current_user.istasyonlar or st_cur in p_stations %}
-                        <option value="{{ st_cur }}">{{ st_cur }}</option>
+                        {% for st in stations %}
+                        {% if not current_user or current_user.rol == 'admin' or not current_user.istasyonlar or st in p_stations %}
+                        <option value="{{ st }}">{{ st }}</option>
                         {% endif %}
                         {% endfor %}
+                        {% if not current_user or current_user.rol == 'admin' %}
+                        <option value="__new__">+ Yeni İstasyon Ekle</option>
+                        {% endif %}
                     </select>
+                    <input type="text" class="form-input" id="w-station-new" placeholder="Yeni istasyon adı girin" style="display:none; margin-top:8px;">
                     <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">
                         Bu çalışanın görev yapacağı istasyonu seçin. Kameranın bağlı olduğu istasyondaki tüm aktiviteler otomatik bu çalışanla eşleşir.
                     </small>
@@ -220,10 +223,28 @@
 
 {% block extra_scripts %}
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const wStationSel = document.getElementById('w-station');
+    const wStationNewInput = document.getElementById('w-station-new');
+    if (wStationSel && wStationNewInput) {
+        wStationSel.addEventListener('change', () => {
+            if (wStationSel.value === '__new__') {
+                wStationNewInput.style.display = 'block';
+                wStationNewInput.focus();
+            } else {
+                wStationNewInput.style.display = 'none';
+                wStationNewInput.value = '';
+            }
+        });
+    }
+});
+
 function openWorkerModal(btn) {
     const modal = document.getElementById('modal-worker');
     const title = document.getElementById('modal-title');
     const form = document.getElementById('worker-form');
+    const stSelect = document.getElementById('w-station');
+    const stNewInput = document.getElementById('w-station-new');
     
     if (btn && btn.dataset && btn.dataset.id) {
         document.getElementById('worker-id').value = btn.dataset.id;
@@ -231,17 +252,36 @@ function openWorkerModal(btn) {
         document.getElementById('w-soyad').value = btn.dataset.soyad || '';
         document.getElementById('w-sicil').value = btn.dataset.sicil || '';
         document.getElementById('w-dept').value = btn.dataset.dept || '';
-        // Set dropdown to current station value
-        const stSelect = document.getElementById('w-station');
+        
         const stVal = btn.dataset.station || '';
         stSelect.value = stVal;
-        // If exact match not found (old format like İstasyon-A), leave as blank
-        if (stSelect.value !== stVal) stSelect.value = '';
+        if (stVal && stSelect.value !== stVal) {
+            const optNew = Array.from(stSelect.options).find(o => o.value === '__new__');
+            if (optNew) {
+                stSelect.value = '__new__';
+                if (stNewInput) {
+                    stNewInput.style.display = 'block';
+                    stNewInput.value = stVal;
+                }
+            } else {
+                stSelect.value = '';
+                if (stNewInput) stNewInput.style.display = 'none';
+            }
+        } else {
+            if (stNewInput) {
+                stNewInput.style.display = 'none';
+                stNewInput.value = '';
+            }
+        }
         title.innerHTML = '<i class="fa-solid fa-user-pen"></i> Çalışan Bilgilerini Düzenle';
     } else {
         form.reset();
         document.getElementById('worker-id').value = '';
-        document.getElementById('w-station').value = '';
+        stSelect.value = '';
+        if (stNewInput) {
+            stNewInput.style.display = 'none';
+            stNewInput.value = '';
+        }
         title.innerHTML = '<i class="fa-solid fa-user-plus"></i> Yeni Çalışan Ekle';
     }
     
@@ -261,7 +301,27 @@ function submitWorkerForm(e) {
     const soyad = document.getElementById('w-soyad').value.trim();
     const sicil = document.getElementById('w-sicil').value.trim();
     const dept = document.getElementById('w-dept').value.trim();
-    const station = document.getElementById('w-station').value.trim();
+    
+    const stSelect = document.getElementById('w-station');
+    const stNewInput = document.getElementById('w-station-new');
+    let station = stSelect ? stSelect.value.trim() : '';
+
+    if (station === '__new__') {
+        const customVal = stNewInput ? stNewInput.value.trim() : '';
+        if (!customVal) {
+            showToast('Lütfen yeni istasyon adını giriniz.', 'error');
+            return;
+        }
+        const existingOptions = Array.from(stSelect.options)
+            .map(opt => opt.value.trim().toLowerCase())
+            .filter(v => v && v !== '__new__');
+
+        if (existingOptions.includes(customVal.toLowerCase())) {
+            showToast('Bu istasyon zaten var, lütfen listeden seçin.', 'error');
+            return;
+        }
+        station = customVal;
+    }
 
     const payload = { ad, soyad, sicil_no: sicil, departman: dept, istasyon_adi: station };
 

@@ -10,7 +10,7 @@ from core.database.connection import db_manager
 from web.helpers import (
     get_current_patron_access, is_camera_authorized,
     _get_dark_frame, _get_unauthorized_frame,
-    login_required, admin_required,
+    login_required, admin_required, get_all_system_stations,
 )
 
 cameras_bp = Blueprint('cameras', __name__)
@@ -32,7 +32,7 @@ def cameras():
 @cameras_bp.route('/live_cameras')
 @login_required
 def live_cameras():
-    patron_id, is_super, stations = get_current_patron_access()
+    patron_id, is_super, patron_stations = get_current_patron_access()
     try:
         from core.database.models import User
         with db_manager.get_session() as session_orm:
@@ -40,7 +40,8 @@ def live_cameras():
             patrons = [u.to_dict() for u in users]
     except Exception:
         patrons = []
-    return render_template('live_cameras.html', is_admin=is_super, patrons=patrons)
+    all_stations = get_all_system_stations()
+    return render_template('live_cameras.html', is_admin=is_super, patrons=patrons, stations=all_stations)
 
 
 @cameras_bp.route('/api/cameras/manage', methods=['GET'])

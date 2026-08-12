@@ -13,7 +13,7 @@ workers_bp = Blueprint('workers', __name__)
 @workers_bp.route('/workers_page')
 @login_required
 def workers_page():
-    from web.helpers import get_current_patron_access
+    from web.helpers import get_current_patron_access, get_all_system_stations
     patron_id, is_super, patron_stations = get_current_patron_access()
     
     workers = get_all_workers()
@@ -25,7 +25,9 @@ def workers_page():
             or (patron_stations and w.get('istasyon_adi') in patron_stations)
         ]
         
-    return render_template('workers.html', workers=workers)
+    all_stations = get_all_system_stations()
+    return render_template('workers.html', workers=workers, stations=all_stations)
+
 
 
 @workers_bp.route('/api/workers', methods=['GET'])

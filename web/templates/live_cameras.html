@@ -59,11 +59,12 @@
                 <label style="display:block; font-size:13px; font-weight:600; color:#475569; margin-bottom:6px;">Sistem İstasyonu Seçiniz</label>
                 <select id="cam-station-name" required style="width:100%; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:14px; outline:none; box-sizing:border-box; background:#fff;">
                     <option value="">-- İstasyon Seçiniz --</option>
-                    <option value="Istasyon-1">Istasyon-1 (Kaynak Hattı 1)</option>
-                    <option value="Istasyon-2">Istasyon-2 (Kaynak Hattı 2)</option>
-                    <option value="Istasyon-3">Istasyon-3 (Montaj Hattı)</option>
-                    <option value="Istasyon-4">Istasyon-4 (Paketleme Hattı)</option>
+                    {% for st in stations %}
+                    <option value="{{ st }}">{{ st }}</option>
+                    {% endfor %}
+                    <option value="__new__">+ Yeni İstasyon Ekle</option>
                 </select>
+                <input type="text" id="cam-station-new" placeholder="Yeni istasyon adı girin" style="display:none; width:100%; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:14px; outline:none; box-sizing:border-box; margin-top:8px;">
             </div>
 
             <div style="margin-bottom:20px;">

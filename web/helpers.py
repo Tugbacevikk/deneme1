@@ -179,3 +179,41 @@ def _format_date_tr(date_str: str) -> str:
         return dt.strftime('%d.%m.%Y')
     except Exception:
         return date_str
+
+
+def get_all_system_stations() -> List[str]:
+    """
+    DurumKaydi, Worker ve Camera tablolarından tüm benzersiz istasyon adlarını toplar.
+    Büyük/küçük harf duyarsız çakışma kontrolü yapar (ilk görülen ismi korur).
+    """
+    from core.database.models import DurumKaydi, Worker, Camera
+    stations_list = []
+    lower_seen = set()
+
+    def _add_station(s):
+        if not s:
+            return
+        st = str(s).strip()
+        if not st or st.startswith('VIDEO:') or st.startswith('LAPTOP-') or st.startswith('DESKTOP-'):
+            return
+        st_low = st.lower()
+        if st_low not in lower_seen:
+            lower_seen.add(st_low)
+            stations_list.append(st)
+
+    try:
+        with db_manager.get_session() as session_orm:
+            # 1. DurumKaydi
+            for s in session_orm.scalars(select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None)).distinct()).all():
+                _add_station(s)
+            # 2. Worker
+            for s in session_orm.scalars(select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None)).distinct()).all():
+                _add_station(s)
+            # 3. Camera
+            for s in session_orm.scalars(select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None)).distinct()).all():
+                _add_station(s)
+    except Exception as e:
+        logger.error(f"System stations query error: {e}")
+
+    return sorted(stations_list)
+

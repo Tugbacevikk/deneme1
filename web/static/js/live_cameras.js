@@ -186,6 +186,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(() => {});
     }
 
+    const selStation = document.getElementById('cam-station-name');
+    const inputStationNew = document.getElementById('cam-station-new');
+
+    if (selStation && inputStationNew) {
+        selStation.addEventListener('change', () => {
+            if (selStation.value === '__new__') {
+                inputStationNew.style.display = 'block';
+                inputStationNew.required = true;
+                inputStationNew.focus();
+            } else {
+                inputStationNew.style.display = 'none';
+                inputStationNew.required = false;
+                inputStationNew.value = '';
+            }
+        });
+    }
+
     if (btnAddModal && modal) {
         btnAddModal.addEventListener('click', () => {
             loadSystemStations();
@@ -198,8 +215,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formAdd) {
         formAdd.addEventListener('submit', (e) => {
             e.preventDefault();
+            const selVal = selStation ? selStation.value.trim() : '';
+            let finalStation = selVal;
+
+            if (selVal === '__new__') {
+                const customVal = inputStationNew ? inputStationNew.value.trim() : '';
+                if (!customVal) {
+                    showToast('Lütfen yeni istasyon adını giriniz.', 'error');
+                    return;
+                }
+                // Case-insensitive duplicate check against existing select options
+                const existingOptions = Array.from(selStation.options)
+                    .map(opt => opt.value.trim().toLowerCase())
+                    .filter(v => v && v !== '__new__');
+
+                if (existingOptions.includes(customVal.toLowerCase())) {
+                    showToast('Bu istasyon zaten var, lütfen listeden seçin.', 'error');
+                    return;
+                }
+                finalStation = customVal;
+            }
+
+            if (!finalStation) {
+                showToast('Lütfen bir istasyon seçin veya girin.', 'error');
+                return;
+            }
+
             const data = {
-                istasyon_adi: document.getElementById('cam-station-name').value.trim(),
+                istasyon_adi: finalStation,
                 ip_adresi: document.getElementById('cam-ip-address').value.trim()
             };
 
@@ -214,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast(res.message || 'Kamera eklendi.', 'success');
                     modal.style.display = 'none';
                     formAdd.reset();
+                    if (inputStationNew) inputStationNew.style.display = 'none';
                     fetchManagedCameras();
                 } else {
                     showToast(res.message || 'Kamera eklenemedi.', 'error');

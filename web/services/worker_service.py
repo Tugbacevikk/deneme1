@@ -2,7 +2,7 @@
 worker_service.py - Çalışan / İşçi Yönetim Servisi
 """
 import logging
-from sqlalchemy import select
+from sqlalchemy import select, func
 from core.database.models import Worker
 from core.database.connection import db_manager
 
@@ -32,7 +32,7 @@ def create_worker(ad, soyad, sicil_no=None, departman=None, istasyon_adi=None, f
         if istasyon_adi:
             existing_station = session.scalars(
                 select(Worker).where(
-                    Worker.istasyon_adi == istasyon_adi,
+                    func.lower(Worker.istasyon_adi) == istasyon_adi.strip().lower(),
                     Worker.aktif == 1
                 )
             ).first()
@@ -80,7 +80,7 @@ def update_worker(worker_id, data):
         if istasyon_adi:
             existing_station = session.scalars(
                 select(Worker).where(
-                    Worker.istasyon_adi == istasyon_adi,
+                    func.lower(Worker.istasyon_adi) == istasyon_adi.strip().lower(),
                     Worker.aktif == 1,
                     Worker.id != worker_id
                 )
