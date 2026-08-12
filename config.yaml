@@ -10,7 +10,8 @@ roi_y1: 0
 roi_y2: 0.98
 saturation: 1.15
 station_name: Istasyon-2
-welding_conf: 0.45
+welding_conf: 0.25
 welding_imgsz: 320
+
 
 

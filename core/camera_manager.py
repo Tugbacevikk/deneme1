@@ -570,7 +570,8 @@ class CameraProcessor:
             # 2.5 Kaynak Tespiti (YOLOv8 Det - Hassas Yapay Zeka Tespiti)
             welding_detected_raw = False
             welding_boxes_raw = []
-            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.45))
+            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.25))
+
             weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
 
             if self._welding_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_welding_results')):
@@ -587,11 +588,11 @@ class CameraProcessor:
                             welding_boxes_raw.append((wx1, wy1, wx2, wy2))
                             welding_detected_raw = True
 
-            # 1.5 Saniyelik kaynak hassasiyet hafızası (ark çakmaları arasındaki anlık parlamaları yumuşatmak için)
+            # 4.0 Saniyelik kaynak hassasiyet hafızası (ark çakmaları arasındaki kısa duraksamaları yumuşatmak için)
             now_w_t = time.time()
             if welding_detected_raw:
                 self._last_welding_seen_time = now_w_t
-            elif hasattr(self, '_last_welding_seen_time') and (now_w_t - self._last_welding_seen_time < 1.5):
+            elif hasattr(self, '_last_welding_seen_time') and (now_w_t - self._last_welding_seen_time < 4.0):
                 welding_detected_raw = True
 
             welding_detected_in_roi = welding_detected_raw
@@ -788,7 +789,8 @@ class CameraProcessor:
             # 5 saniyelik tolerans/geçiş hafızası
             is_recently_seen = (now_t - getattr(self, '_last_worker_seen_time', 0.0) < 5.0)
 
-            kisi_var = len(gorulen_kisi_id) > 0 or is_recently_seen
+            kisi_var = len(gorulen_kisi_id) > 0 or is_recently_seen or any_welding
+
             herhangi_inaktif = any(not p.get('is_active', True) for p in person_track_list) if person_track_list else False
             herhangi_aktif = any(p.get('is_active', False) for p in person_track_list) if person_track_list else False
 
