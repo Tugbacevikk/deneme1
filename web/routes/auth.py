@@ -45,6 +45,41 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
+@auth_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        ad_soyad = (request.form.get('ad_soyad') or '').strip()
+        username = (request.form.get('username') or '').strip()
+        firma_adi = (request.form.get('firma_adi') or '').strip()
+        password = request.form.get('password') or ''
+        password_confirm = request.form.get('password_confirm') or ''
+
+        if not ad_soyad or not username or not password or not firma_adi:
+            flash('Lütfen tüm zorunlu alanları doldurun.', 'danger')
+            return render_template('register.html')
+
+        if password != password_confirm:
+            flash('Şifreler eşleşmiyor.', 'danger')
+            return render_template('register.html')
+
+        ok, res = create_user(
+            kullanici_adi=username,
+            sifre=password,
+            ad_soyad=ad_soyad,
+            rol='patron',
+            firma_adi=firma_adi,
+            istasyonlar=None,
+            durum='bekliyor'
+        )
+        if ok:
+            flash('Kaydınız alındı, onay bekleniyor.', 'success')
+            return redirect(url_for('auth.login'))
+        else:
+            flash(res, 'danger')
+
+    return render_template('register.html')
+
+
 from web.helpers import login_required, admin_required
 
 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>İş
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap - İş Takip Sistemi</title>
+    <title>Kayıt Ol - İş Takip Sistemi</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -118,13 +118,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 48px;
+            padding: 40px 48px;
             box-shadow: -10px 0 40px rgba(0,0,0,0.08);
-        }
-
-        .form-logo {
-            width: 140px;
-            margin-bottom: 32px;
+            overflow-y: auto;
         }
 
         .form-heading {
@@ -138,23 +134,23 @@
         .form-subheading {
             font-size: 14px;
             color: #888;
-            margin-bottom: 36px;
+            margin-bottom: 24px;
         }
 
-        .login-form { width: 100%; }
+        .register-form { width: 100%; }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .input-label {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: #444;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .input-wrap {
@@ -174,7 +170,7 @@
 
         .form-input {
             width: 100%;
-            padding: 13px 14px 13px 40px;
+            padding: 11px 14px 11px 40px;
             background: #f8f8f8;
             border: 1.5px solid #e8e8e8;
             border-radius: 10px;
@@ -211,9 +207,9 @@
         }
         .pwd-toggle:hover { color: #E30613; }
 
-        .btn-login {
+        .btn-register {
             width: 100%;
-            padding: 14px;
+            padding: 13px;
             background: #E30613;
             color: #fff;
             border: none;
@@ -231,12 +227,12 @@
             letter-spacing: 0.2px;
         }
 
-        .btn-login:hover {
+        .btn-register:hover {
             background: #C0001A;
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(227,6,19,0.35);
         }
-        .btn-login:active { transform: translateY(0); }
+        .btn-register:active { transform: translateY(0); }
 
         .error-box {
             background: #FEF2F2;
@@ -248,15 +244,14 @@
             gap: 10px;
             color: #DC2626;
             font-size: 13px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             font-weight: 500;
+            width: 100%;
         }
-        .error-box--info { background:#EFF6FF; border-color:#BFDBFE; color:#1D4ED8; }
-        .error-box--warning { background:#FEFCE8; border-color:#FEF08A; color:#A16207; }
         .error-box--success { background:#F0FDF4; border-color:#BBF7D0; color:#15803D; }
 
         .form-footer {
-            margin-top: 32px;
+            margin-top: 24px;
             text-align: center;
             font-size: 12px;
             color: #bbb;
@@ -311,38 +306,54 @@
 
 <!-- Sağ Beyaz Panel / Form -->
 <div class="right-panel">
-    <div style="background:#E30613; border-radius:12px; padding:8px 20px; display:inline-block; margin-bottom:32px;">
+    <div style="background:#E30613; border-radius:12px; padding:8px 20px; display:inline-block; margin-bottom:24px;">
         <img src="/static/logo.png" alt="Logo" style="height:36px; width:auto; display:block; filter:brightness(0) invert(1);">
     </div>
 
-    <h2 class="form-heading">Yönetici Girişi</h2>
-    <p class="form-subheading">Sisteme erişmek için bilgilerinizi girin</p>
+    <h2 class="form-heading">Yeni Hesap Oluştur</h2>
+    <p class="form-subheading">Kayıt olmak için aşağıdaki formu doldurun</p>
+
+    <div class="error-box" id="js-error-box" style="display: none;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="js-error-msg"></span>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
             <div class="error-box error-box--{{ category }}">
-                <i class="fa-solid {% if category == 'info' %}fa-circle-info{% elif category == 'warning' %}fa-triangle-exclamation{% elif category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+                <i class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
                 <span>{{ message }}</span>
             </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    {% if error %}
-    <div class="error-box">
-        <i class="fa-solid fa-circle-exclamation"></i>
-        <span>{{ error }}</span>
-    </div>
-    {% endif %}
+    <form class="register-form" action="/register" method="POST" id="reg-form">
+        <div class="input-group">
+            <label class="input-label" for="ad_soyad">Ad Soyad</label>
+            <div class="input-wrap">
+                <input type="text" class="form-input" id="ad_soyad" name="ad_soyad"
+                       placeholder="Adınızı ve soyadınızı girin" required autofocus>
+                <i class="fa-solid fa-id-card input-icon"></i>
+            </div>
+        </div>
 
-    <form class="login-form" action="/login" method="POST">
         <div class="input-group">
             <label class="input-label" for="username">Kullanıcı Adı</label>
             <div class="input-wrap">
                 <input type="text" class="form-input" id="username" name="username"
-                       placeholder="Kullanıcı adınızı girin" required autofocus>
+                       placeholder="Kullanıcı adı belirleyin" required>
                 <i class="fa-solid fa-user input-icon"></i>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label" for="firma_adi">Firma Adı</label>
+            <div class="input-wrap">
+                <input type="text" class="form-input" id="firma_adi" name="firma_adi"
+                       placeholder="Firma adını girin" required>
+                <i class="fa-solid fa-building input-icon"></i>
             </div>
         </div>
 
@@ -358,15 +369,27 @@
             </div>
         </div>
 
-        <button type="submit" class="btn-login">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            Giriş Yap
+        <div class="input-group">
+            <label class="input-label" for="password_confirm">Şifre Tekrar</label>
+            <div class="input-wrap">
+                <input type="password" class="form-input" id="password_confirm" name="password_confirm"
+                       placeholder="••••••••" required>
+                <i class="fa-solid fa-lock input-icon"></i>
+                <button type="button" class="pwd-toggle" id="toggle-pwd-confirm" title="Şifreyi Göster/Gizle">
+                    <i class="fa-solid fa-eye" id="pwd-confirm-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-register">
+            <i class="fa-solid fa-user-plus"></i>
+            Kayıt İstek Gönder
         </button>
     </form>
 
     <div style="margin-top: 20px; text-align: center; font-size: 13px;">
-        <span style="color: #666;">Hesabınız yok mu?</span> 
-        <a href="/register" style="color: #E30613; font-weight: 600; text-decoration: none; margin-left: 4px;">Kayıt olun</a>
+        <span style="color: #666;">Zaten hesabınız var mı?</span> 
+        <a href="/login" style="color: #E30613; font-weight: 600; text-decoration: none; margin-left: 4px;">Giriş yapın</a>
     </div>
 
     <div class="form-footer">
@@ -385,6 +408,33 @@ document.getElementById('toggle-pwd').addEventListener('click', function() {
     } else {
         inp.type = 'password';
         ico.className = 'fa-solid fa-eye';
+    }
+});
+
+document.getElementById('toggle-pwd-confirm').addEventListener('click', function() {
+    const inp = document.getElementById('password_confirm');
+    const ico = document.getElementById('pwd-confirm-icon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        ico.className = 'fa-solid fa-eye-slash';
+    } else {
+        inp.type = 'password';
+        ico.className = 'fa-solid fa-eye';
+    }
+});
+
+document.getElementById('reg-form').addEventListener('submit', function(e) {
+    const pwd = document.getElementById('password').value;
+    const pwdConfirm = document.getElementById('password_confirm').value;
+    const errBox = document.getElementById('js-error-box');
+    const errMsg = document.getElementById('js-error-msg');
+    
+    if (pwd !== pwdConfirm) {
+        e.preventDefault();
+        errBox.style.display = 'flex';
+        errMsg.textContent = 'Şifreler eşleşmiyor!';
+    } else {
+        errBox.style.display = 'none';
     }
 });
 </script>
