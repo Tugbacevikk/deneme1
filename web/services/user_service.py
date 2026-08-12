@@ -11,27 +11,6 @@ from core.database.connection import db_manager
 logger = logging.getLogger(__name__)
 
 
-def get_current_patron_access():
-    """Oturum açan kullanıcının patron erişim yetkisini döndürür."""
-    user_id = session.get('user_id')
-    if not user_id:
-        return None, True, []
-    role = session.get('role') or session.get('rol', 'admin')
-    if role in ('super_admin', 'admin', 'operator'):
-        return None, True, []
-
-    stations = []
-    try:
-        with db_manager.get_session() as session_orm:
-            u = session_orm.get(User, user_id)
-            if u and u.istasyonlar:
-                stations = [s.strip() for s in u.istasyonlar.split(',') if s.strip()]
-    except Exception:
-        pass
-
-    return user_id, False, stations
-
-
 def get_all_users():
     """Tüm kullanıcıları döndürür."""
     with db_manager.get_session() as session:
