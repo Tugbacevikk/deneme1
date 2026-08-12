@@ -135,11 +135,9 @@ function loadUsers() {
                             <i class="fa-solid fa-xmark"></i> Reddet
                         </button>
                     `;
-                }
-
-                const editBtn = u.kullanici_adi !== 'admin'
-                    ? `<div style="display:flex;gap:6px;align-items:center;">
-                           ${approveRejectBtns}
+                }                let editBtn = '';
+                if (u.kullanici_adi !== 'admin') {
+                    const editButtonHtml = u.durum !== 'bekliyor' ? `
                            <button class="btn btn--outline btn--sm" style="padding:4px 8px;font-size:12px;"
                                data-uid="${u.id}"
                                data-uname="${(u.kullanici_adi||'').replace(/"/g,'&quot;')}"
@@ -149,13 +147,19 @@ function loadUsers() {
                                onclick="editUserFromBtn(this)">
                                <i class="fa-solid fa-pen"></i> Düzenle
                            </button>
+                    ` : '';
+
+                    editBtn = `<div style="display:flex;gap:6px;align-items:center;">
+                           ${approveRejectBtns}
+                           ${editButtonHtml}
                            <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;"
                                onclick="deleteUser(${u.id},'${u.kullanici_adi}')">
                                <i class="fa-solid fa-trash"></i> Sil
                            </button>
-                       </div>`
-                    : '<span style="font-size:11px;color:var(--text-muted);">Ana Sistem Hesabı</span>';
-
+                       </div>`;
+                } else {
+                    editBtn = '<span style="font-size:11px;color:var(--text-muted);">Ana Sistem Hesabı</span>';
+                }
                 return `
                     <tr>
                         <td style="font-weight:700;">${u.kullanici_adi}</td>
