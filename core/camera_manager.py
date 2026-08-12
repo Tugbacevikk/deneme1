@@ -567,10 +567,10 @@ class CameraProcessor:
 
 
 
-            # 2.5 Kaynak Tespiti (YOLOv8 Det + Elektrik Arkı Işık Algılama)
+            # 2.5 Kaynak Tespiti (YOLOv8 Det - Hassas Yapay Zeka Tespiti)
             welding_detected_raw = False
             welding_boxes_raw = []
-            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.25))
+            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.45))
             weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
 
             if self._welding_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_welding_results')):
@@ -587,19 +587,11 @@ class CameraProcessor:
                             welding_boxes_raw.append((wx1, wy1, wx2, wy2))
                             welding_detected_raw = True
 
-            # Ek Güvence: ROI içi yüksek yoğunluklu kaynak ışığı / ark parlaması kontrolü
-            roi_crop_src = raw_frame[roi_y1:roi_y2, roi_x1:roi_x2]
-            if roi_crop_src.size > 0:
-                gray_src = cv2.cvtColor(roi_crop_src, cv2.COLOR_BGR2GRAY)
-                bright_pixels = np.sum(gray_src >= 248)
-                if bright_pixels >= 25:
-                    welding_detected_raw = True
-
-            # 2.5 Saniyelik kaynak hassasiyet hafızası (ışık parlamaları arasındaki kısa duraksamaları tolere etmek için)
+            # 1.5 Saniyelik kaynak hassasiyet hafızası (ark çakmaları arasındaki anlık parlamaları yumuşatmak için)
             now_w_t = time.time()
             if welding_detected_raw:
                 self._last_welding_seen_time = now_w_t
-            elif hasattr(self, '_last_welding_seen_time') and (now_w_t - self._last_welding_seen_time < 2.5):
+            elif hasattr(self, '_last_welding_seen_time') and (now_w_t - self._last_welding_seen_time < 1.5):
                 welding_detected_raw = True
 
             welding_detected_in_roi = welding_detected_raw
