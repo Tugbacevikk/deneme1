@@ -46,7 +46,7 @@ def get_patrons():
         return [p.to_dict() for p in patrons]
 
 
-def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, istasyonlar=None):
+def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, istasyonlar=None, durum='onaylandi'):
     """Yeni kullanıcı oluşturur."""
     with db_manager.get_session() as session:
         existing = session.scalars(select(User).where(User.kullanici_adi == kullanici_adi)).first()
@@ -59,7 +59,8 @@ def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, 
             ad_soyad=ad_soyad,
             rol=rol,
             firma_adi=firma_adi,
-            istasyonlar=istasyonlar
+            istasyonlar=istasyonlar,
+            durum=durum
         )
         session.add(new_user)
         session.commit()
