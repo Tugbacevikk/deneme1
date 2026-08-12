@@ -42,6 +42,15 @@ def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, 
             durum=durum
         )
         session.add(new_user)
+        if durum == 'bekliyor':
+            from core.database.models import Alarm
+            new_alarm = Alarm(
+                istasyon_adi="Sistem",
+                alarm_turu="Kayıt Başvurusu",
+                aciklama=f"Yeni patron başvurdu: {ad_soyad} ({kullanici_adi}) onay bekliyor.",
+                okundu=0
+            )
+            session.add(new_alarm)
         session.commit()
         session.refresh(new_user)
         return True, new_user.to_dict()

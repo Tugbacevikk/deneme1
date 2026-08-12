@@ -81,7 +81,9 @@ def register():
         if ok:
             from web.extensions import socketio
             from web.services.user_service import get_pending_count
+            from web.services.alarm_service import get_unread_count
             socketio.emit('new_pending_user', {'count': get_pending_count(), 'ad_soyad': ad_soyad})
+            socketio.emit('alarm_update', {'unread_count': get_unread_count()})
             flash('Kaydınız alındı, onay bekleniyor.', 'success')
             return redirect(url_for('auth.login'))
         else:
