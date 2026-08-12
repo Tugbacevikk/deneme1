@@ -137,7 +137,7 @@ function loadUsers() {
                     `;
                 }                let editBtn = '';
                 if (u.kullanici_adi !== 'admin') {
-                    const editButtonHtml = u.durum !== 'bekliyor' ? `
+                    const editButtonHtml = u.durum === 'onaylandi' ? `
                            <button class="btn btn--outline btn--sm" style="padding:4px 8px;font-size:12px;"
                                data-uid="${u.id}"
                                data-uname="${(u.kullanici_adi||'').replace(/"/g,'&quot;')}"

@@ -229,6 +229,9 @@ def api_users_update(user_id):
             if not user:
                 return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
             
+            if user.durum != 'onaylandi':
+                return jsonify({'success': False, 'message': 'Yalnızca onaylanmış kullanıcıların bilgileri düzenlenebilir.'}), 400
+            
             user.ad_soyad = ad_soyad
             user.rol = rol
             user.istasyonlar = istasyonlar
