@@ -567,13 +567,13 @@ class CameraProcessor:
 
 
 
-            # 2.5 Kaynak Tespiti (YOLOv8 Det - Staggered Pipeline)
+            # 2.5 Kaynak Tespiti (YOLOv8 Det + Elektrik Arkı Işık Algılama)
             welding_detected_raw = False
             welding_boxes_raw = []
-            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.70))
+            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.25))
+            weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
 
-            weld_imgsz = int(self.cfg.get('welding_imgsz', 256))
-            if self._welding_model is not None and (ai_frame_count % 4 == 3 or not hasattr(self, '_last_welding_results')):
+            if self._welding_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_welding_results')):
                 try:
                     self._last_welding_results = self._welding_model(raw_frame, conf=welding_conf_thresh, imgsz=weld_imgsz, verbose=False)
                 except Exception as e:
@@ -586,6 +586,21 @@ class CameraProcessor:
                             wx1, wy1, wx2, wy2 = map(int, box.xyxy[0].cpu().numpy())
                             welding_boxes_raw.append((wx1, wy1, wx2, wy2))
                             welding_detected_raw = True
+
+            # Ek Güvence: ROI içi yüksek yoğunluklu kaynak ışığı / ark parlaması kontrolü
+            roi_crop_src = raw_frame[roi_y1:roi_y2, roi_x1:roi_x2]
+            if roi_crop_src.size > 0:
+                gray_src = cv2.cvtColor(roi_crop_src, cv2.COLOR_BGR2GRAY)
+                bright_pixels = np.sum(gray_src >= 248)
+                if bright_pixels >= 25:
+                    welding_detected_raw = True
+
+            # 2.5 Saniyelik kaynak hassasiyet hafızası (ışık parlamaları arasındaki kısa duraksamaları tolere etmek için)
+            now_w_t = time.time()
+            if welding_detected_raw:
+                self._last_welding_seen_time = now_w_t
+            elif hasattr(self, '_last_welding_seen_time') and (now_w_t - self._last_welding_seen_time < 2.5):
+                welding_detected_raw = True
 
             welding_detected_in_roi = welding_detected_raw
             welding_boxes = welding_boxes_raw
