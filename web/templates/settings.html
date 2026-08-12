@@ -342,7 +342,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if u.kullanici_adi != 'admin' %}
+                                        {% if u.rol not in ['admin', 'super_admin'] %}
                                             {% if u.durum == 'bekliyor' %}
                                             <button class="btn btn-success" style="padding:4px 8px; font-size:12px; margin-right:4px;"
                                                     onclick="approveUser({{ u.id }})">
@@ -360,7 +360,7 @@
                                                 <i class="fa-solid fa-trash"></i> Sil
                                             </button>
                                         {% else %}
-                                        <span style="font-size:11px; color:var(--text-muted);">Ana Sistem Hesabı</span>
+                                        <span style="font-size:11px; color:var(--text-muted);">Admin Hesabı</span>
                                         {% endif %}
                                     </td>
                                 </tr>

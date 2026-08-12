@@ -62,6 +62,8 @@ def delete_user(user_id):
         user = session.get(User, user_id)
         if not user:
             return False, "Kullanıcı bulunamadı."
+        if user.rol in ('admin', 'super_admin'):
+            return False, "Admin hesapları silinemez."
         session.delete(user)
         session.commit()
         return True, "Kullanıcı silindi."
