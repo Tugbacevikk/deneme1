@@ -132,11 +132,12 @@
                     <i class="fa-solid fa-bell"></i>
                     <span id="notif-badge" class="notif-badge" style="display:none;"></span>
                   </button>
-                  <div id="notif-dropdown" class="notif-dropdown" style="display:none; position:absolute; right:0; top:100%; width:320px; z-index:1000;">
-                    <div class="notif-header">
-                      <span>Bildirimler</span>
+                  <div id="notif-dropdown" class="notif-dropdown" style="display:none; position:absolute; right:0; top:100%; width:340px; z-index:1000;">
+                    <div class="notif-header" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border-color);">
+                      <span style="font-weight:700; font-size:14px; color:var(--text-primary);">Bildirimler</span>
+                      <button id="notif-mark-all-btn" style="background:none; border:none; color:var(--accent); font-size:12px; font-weight:600; cursor:pointer;">Tümünü Oku</button>
                     </div>
-                    <div id="notif-list"><div class="notif-empty">Yükleniyor...</div></div>
+                    <div id="notif-list" style="max-height:360px; overflow-y:auto;"><div class="notif-empty">Yükleniyor...</div></div>
                   </div>
                 </div>
                 {% endif %}
@@ -375,40 +376,77 @@ fetch('/api/alarms/unread_count')
         }
     }).catch(() => {});
 
+function handleNotificationClick(e, alarmId, redirectUrl) {
+    e.preventDefault();
+    fetch(`/api/alarms/${alarmId}/mark_read`, { method: 'POST' })
+        .then(() => {
+            window.location.href = redirectUrl;
+        })
+        .catch(() => {
+            window.location.href = redirectUrl;
+        });
+}
+
 function loadPendingNotifications() {
     const list = document.getElementById('notif-list');
     const badge = document.getElementById('notif-badge');
     if (!list) return;
 
-    fetch('/api/users/pending_notifications')
+    fetch('/api/alarms')
         .then(r => r.json())
         .then(data => {
-            const count = data.count || 0;
-            if (badge) {
-                if (count > 0) {
-                    badge.style.display = 'flex';
-                    badge.textContent = count > 9 ? '9+' : count;
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
+            const alarms = data.alarms || [];
             
-            if (count === 0) {
-                list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>Bildirim yok</p></div>';
+            if (alarms.length === 0) {
+                list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash" style="font-size:20px; color:var(--text-muted); margin-bottom:8px; display:block;"></i><p>Bildirim bulunmamaktadır.</p></div>';
                 return;
             }
             
-            list.innerHTML = data.notifications.map(n => `
-                <a href="/settings" class="notif-item">
-                    <div class="notif-item-title">${n.ad_soyad}</div>
-                    <div class="notif-item-desc">${n.firma_adi || 'Firma Belirtilmemiş'} — Yeni kayıt başvurusu</div>
-                    <div class="notif-item-time">${n.kayit_tarihi || ''}</div>
-                </a>
-            `).join('');
+            list.innerHTML = alarms.map(n => {
+                const isUnread = n.okundu === 0;
+                const isReg = n.alarm_turu === 'Kayıt Başvurusu';
+                const redirectUrl = isReg ? '/settings' : '/alarms';
+                const iconClass = isReg ? 'fa-user-plus text-warning' : (n.alarm_turu.includes('Telefon') ? 'fa-mobile-screen-button text-danger' : 'fa-triangle-exclamation text-danger');
+                
+                return `
+                    <a href="${redirectUrl}" onclick="handleNotificationClick(event, ${n.id}, '${redirectUrl}')" class="notif-item ${isUnread ? 'notif-item--unread' : ''}">
+                        <div class="notif-item-icon">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </div>
+                        <div class="notif-item-content">
+                            <div class="notif-item-title" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span>${n.alarm_turu || 'Sistem Bildirimi'}</span>
+                                ${isUnread ? '<span style="width:6px; height:6px; background:var(--accent); border-radius:50%;"></span>' : ''}
+                            </div>
+                            <div class="notif-item-desc">${n.aciklama || ''}</div>
+                            <div class="notif-item-time">${n.zaman || ''}</div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
         }).catch(console.error);
 }
 
-// Fetch pending users count and list on page load if elements exist
+// Bind Tümünü Oku button
+const notifMarkAllBtn = document.getElementById('notif-mark-all-btn');
+if (notifMarkAllBtn) {
+    notifMarkAllBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fetch('/api/alarms/mark_read', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.getElementById('notif-badge');
+                if (badge) badge.style.display = 'none';
+                const mainBadge = document.getElementById('alarm-count-badge');
+                if (mainBadge) mainBadge.style.display = 'none';
+                loadPendingNotifications();
+                showToast('Tüm bildirimler okundu olarak işaretlendi', 'success');
+            }).catch(console.error);
+    });
+}
+
+// Fetch pending users count on sidebar page load if elements exist
 const pendingBadge = document.getElementById('pending-user-badge');
 if (pendingBadge) {
     fetch('/api/users/pending_count')

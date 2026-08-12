@@ -34,3 +34,13 @@ def api_alarms_unread_count():
 def api_alarms_mark_read():
     mark_alarms_read()
     return jsonify({'success': True, 'message': 'Tüm alarmlar okundu olarak işaretlendi.'})
+
+
+@alarms_bp.route('/api/alarms/<int:alarm_id>/mark_read', methods=['POST'])
+@login_required
+def api_alarms_mark_single_read(alarm_id):
+    from web.services.alarm_service import mark_single_alarm_read
+    ok = mark_single_alarm_read(alarm_id)
+    if ok:
+        return jsonify({'success': True, 'unread_count': get_unread_count()})
+    return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404

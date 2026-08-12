@@ -34,3 +34,14 @@ def mark_alarms_read():
         session.query(Alarm).filter(Alarm.okundu == 0).update({Alarm.okundu: 1})
         session.commit()
         return True
+
+
+def mark_single_alarm_read(alarm_id):
+    """Belirli bir alarmı okundu olarak işaretler."""
+    with db_manager.get_session() as session:
+        alarm = session.get(Alarm, alarm_id)
+        if alarm:
+            alarm.okundu = 1
+            session.commit()
+            return True
+        return False
