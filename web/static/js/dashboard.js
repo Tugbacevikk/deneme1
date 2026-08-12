@@ -387,6 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.innerHTML = '<i class="fa-solid fa-circle-stop"></i> Durdur';
             });
         });
+    }
+
     if (document.getElementById('btn-delete-video')) {
         document.getElementById('btn-delete-video').addEventListener('click', async function() {
             const select = document.getElementById('select-uploaded-video');
