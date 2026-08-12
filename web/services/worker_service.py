@@ -29,6 +29,20 @@ def create_worker(ad, soyad, sicil_no=None, departman=None, istasyon_adi=None, f
             if existing:
                 return False, "Bu sicil numarası zaten kullanımda."
 
+        if istasyon_adi:
+            existing_station = session.scalars(
+                select(Worker).where(
+                    Worker.istasyon_adi == istasyon_adi,
+                    Worker.aktif == 1
+                )
+            ).first()
+            if existing_station:
+                ad_soyad = f"{existing_station.ad} {existing_station.soyad}"
+                return False, (
+                    f"Bu istasyonda zaten aktif bir çalışan var: {ad_soyad}. "
+                    "Önce onu pasif yapın veya farklı bir istasyon seçin."
+                )
+
         new_worker = Worker(
             ad=ad,
             soyad=soyad,
@@ -61,6 +75,22 @@ def update_worker(worker_id, data):
         worker = session.get(Worker, worker_id)
         if not worker:
             return False, "Çalışan bulunamadı."
+
+        istasyon_adi = data.get('istasyon_adi')
+        if istasyon_adi:
+            existing_station = session.scalars(
+                select(Worker).where(
+                    Worker.istasyon_adi == istasyon_adi,
+                    Worker.aktif == 1,
+                    Worker.id != worker_id
+                )
+            ).first()
+            if existing_station:
+                ad_soyad = f"{existing_station.ad} {existing_station.soyad}"
+                return False, (
+                    f"Bu istasyonda zaten aktif bir çalışan var: {ad_soyad}. "
+                    "Önce onu pasif yapın veya farklı bir istasyon seçin."
+                )
 
         for key in ['ad', 'soyad', 'sicil_no', 'departman', 'istasyon_adi', 'fotograf_yolu', 'patron_id', 'aktif']:
             if key in data and data[key] is not None:
