@@ -6,11 +6,10 @@
 
 {% block content %}
 
-<div class="cameras-two-col">
+<div class="cameras-layout">
 
-    <!-- SOL: Kamera (sticky wrapper) -->
-    <div class="col-left">
-      <div class="cameras-sticky-wrap">
+    <!-- SOL KOLON: Kamera Seçimi + Canlı Önizleme (sticky) -->
+    <div class="cameras-col-left">
 
         <!-- Card: Camera Selection -->
         <div class="card">
@@ -163,17 +162,13 @@
                 </div>
             </div>
         </div>
-        <!-- END Live Preview Card -->
-
-      </div><!-- END cameras-sticky-wrap -->
     </div>
-    <!-- END LEFT COLUMN -->
+    <!-- END SOL KOLON -->
 
 
-    <!-- ════════════════════════════════════════════
-         RIGHT COLUMN
-    ════════════════════════════════════════════ -->
-    <div class="col-right">
+    <!-- SAĞ KOLON: Akordiyon Ayar Panelleri -->
+    <div class="cameras-col-right">
+
 
         <!-- Card: ROI Settings -->
         <div class="card">
@@ -468,9 +463,9 @@
         <!-- END Manual Camera Adjustments Card -->
 
     </div>
-    <!-- END RIGHT COLUMN -->
+    <!-- END SAĞ KOLON -->
 
-</div>
+</div><!-- END cameras-layout -->
 
 {% endblock %}
 
