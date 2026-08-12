@@ -71,7 +71,7 @@ function fetchQuickAlarms() {
 }
 
 function loadUploadedVideos() {
-    fetch('/api/video/list')
+    fetch('/api/video/list?t=' + Date.now())
         .then(r => r.json())
         .then(data => {
             const select = document.getElementById('select-uploaded-video');
@@ -314,6 +314,110 @@ document.addEventListener('DOMContentLoaded', () => {
             .finally(() => {
                 this.disabled = false;
                 this.innerHTML = '<i class="fa-solid fa-circle-stop"></i> Durdur';
+            });
+        });
+    }
+
+    if (document.getElementById('btn-start-video')) {
+        document.getElementById('btn-start-video').addEventListener('click', function() {
+            if (this.dataset.loading === 'true') return;
+            const select = document.getElementById('select-uploaded-video');
+            const videoPath = select ? select.value : '';
+            if (!videoPath) {
+                showToast('Lütfen analiz edilecek bir video seçin.', 'warning');
+                return;
+            }
+            this.dataset.loading = 'true';
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Başlatılıyor...';
+            fetch('/api/camera/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_type: 'video', video_path: videoPath })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Video analizi başarıyla başlatıldı!', 'success');
+                    const ov = document.getElementById('camera-overlay');
+                    if (ov) ov.style.display = 'none';
+                    const feed = document.getElementById('camera-feed');
+                    if (feed) {
+                        feed.style.display = 'block';
+                        setTimeout(() => {
+                            feed.src = '/api/video_feed?' + Date.now();
+                        }, 350);
+                    }
+                } else {
+                    showToast(data.message || 'Video analizi başlatılamadı', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Video start error:', err);
+                showToast('Hata: ' + err, 'error');
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.dataset.loading = 'false';
+                this.innerHTML = '<i class="fa-solid fa-robot"></i> Videoyu Analiz Et';
+            });
+        });
+    }
+
+    if (document.getElementById('btn-stop-video')) {
+        document.getElementById('btn-stop-video').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Durduruluyor...';
+            const feed = document.getElementById('camera-feed');
+            if (feed) {
+                feed.src = '';
+                feed.style.display = 'none';
+            }
+            const ov = document.getElementById('camera-overlay');
+            if (ov) ov.style.display = 'flex';
+
+            fetch('/api/camera/stop', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                showToast('Video analizi durduruldu.', 'info');
+            })
+            .catch(err => console.error('Video stop error:', err))
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fa-solid fa-circle-stop"></i> Durdur';
+            });
+        });
+    }
+
+    if (document.getElementById('btn-delete-video')) {
+        document.getElementById('btn-delete-video').addEventListener('click', function() {
+            const select = document.getElementById('select-uploaded-video');
+            const videoPath = select ? select.value : '';
+            if (!videoPath) {
+                showToast('Lütfen silinecek bir video seçin.', 'warning');
+                return;
+            }
+            if (!confirm('Bu videoyu silmek istediğinize emin misiniz?')) {
+                return;
+            }
+            this.disabled = true;
+            fetch('/api/video/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ video_path: videoPath })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Video başarıyla silindi.', 'success');
+                    loadUploadedVideos();
+                } else {
+                    showToast(data.error || 'Video silinemedi', 'error');
+                }
+            })
+            .catch(err => console.error('Video delete error:', err))
+            .finally(() => {
+                this.disabled = false;
             });
         });
     }

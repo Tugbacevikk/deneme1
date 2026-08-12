@@ -130,59 +130,38 @@ def request_entity_too_large(error):
     return jsonify({'success': False, 'error': 'Yüklenen video dosyası çok büyük! (Maksimum 500 MB yükleyebilirsiniz.)'}), 413
 app.config['SESSION_PERMANENT'] = False
 
+from web.extensions import socketio, config, camera_processor, face_recognizer, last_status
+import web.extensions as ext
+
 if HAS_CORS:
     CORS(app)
-socketio = SocketIO(app, async_mode='threading', cors_allowed_origins='*')
-
-# ---------------------------------------------------------------------------
-# Global değişkenler
-# ---------------------------------------------------------------------------
-camera_processor: CameraProcessor = None
-camera_thread: threading.Thread = None
-face_recognizer = None
-config: dict = {}
-last_status: dict = {
-    'durum': 'Kamera Başlatılmadı',
-    'renk': '#888888',
-    'fps': 0.0,
-    'kisi_sayisi': 0,
-    'istasyon': 'N/A',
-    'zaman': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-    'running': False,
-    'worker_name': '',
-    'worker_confidence': 0.0,
-    'phone_detected': False,
-    'camera_id': '',
-}
-
+socketio.init_app(app)
 
 def start_camera(cam_id=0):
     """Kamerayı başlatan yardımcı fonksiyon (cameras.py ve dashboard.js tarafından çağrılabilir)."""
-    global camera_processor
-    cfg = dict(config)
+    cfg = dict(ext.config)
     cfg['camera_id'] = cam_id
-    if camera_processor is None:
-        camera_processor = CameraProcessor(
+    if ext.camera_processor is None:
+        ext.camera_processor = CameraProcessor(
             camera_id=cam_id,
             config=cfg,
             db_path=str(DB_PATH),
-            face_recognizer=face_recognizer,
+            face_recognizer=ext.face_recognizer,
             socketio=socketio,
         )
     else:
-        if camera_processor.is_running:
+        if ext.camera_processor.is_running:
             return True  # Zaten çalışıyor
-        camera_processor.camera_id = cam_id
-        camera_processor.cfg.update(cfg)
-        camera_processor.config.update(cfg)
-    return camera_processor.start_camera()
+        ext.camera_processor.camera_id = cam_id
+        ext.camera_processor.cfg.update(cfg)
+        ext.camera_processor.config.update(cfg)
+    return ext.camera_processor.start_camera()
 
 
 def stop_camera():
     """Kamerayı durduran yardımcı fonksiyon."""
-    global camera_processor
-    if camera_processor is not None:
-        camera_processor.stop_camera()
+    if ext.camera_processor is not None:
+        ext.camera_processor.stop_camera()
 
 # ---------------------------------------------------------------------------
 # Modüler Blueprint Kayıtları
@@ -260,62 +239,23 @@ _DEFAULT_CONFIG = {
 }
 
 
-def load_config() -> dict:
-    """config.yaml dosyasını okur, yoksa varsayılanı yazar."""
-    global config
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-            loaded = yaml.safe_load(f) or {}
-        merged_merkezi = {**_DEFAULT_CONFIG.get('merkezi_db', {}), **(loaded.get('merkezi_db') or {})}
-        config = {**_DEFAULT_CONFIG, **loaded, 'merkezi_db': merged_merkezi}
-    else:
-        config = dict(_DEFAULT_CONFIG)
-        save_config(config)
-    return config
-
-
-def save_config(cfg: dict):
-    """Yapılandırmayı config.yaml dosyasına kaydeder."""
-    global config
-    config = cfg
-    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-        yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
-    logger.info("Yapılandırma kaydedildi.")
-
-# ---------------------------------------------------------------------------
-# Kamera tarama & Akış Üreteçleri
-# ---------------------------------------------------------------------------
-
-def scan_cameras(max_index: int = 5) -> list:
-    """Kullanılabilir kameraları tarar ve cihaz detayları listesini döndürür."""
-    try:
-        return CameraProcessor.scan_cameras(max_index=max_index)
-    except Exception as e:
-        logger.debug(f"Kamera tarama hatası: {e}")
-        return []
-
-
-def _get_dark_frame() -> bytes:
-    from web.helpers import _get_dark_frame as dark_fn
-    return dark_fn()
+# Yapılandırma ve yardımcı fonksiyonlar dosyanın alt bölümündedir.
 
 
 def generate_frames():
     """MJPEG akış üreteci (CameraProcessor pre-encoded JPEG buffer kullanır)."""
-    global camera_processor, last_status
     dark_frame = _get_dark_frame()
 
-    last_jpeg = None
     try:
         while True:
             if (
-                camera_processor is not None
-                and camera_processor.is_running
+                ext.camera_processor is not None
+                and ext.camera_processor.is_running
             ):
-                jpeg_bytes = camera_processor.get_current_jpeg()
+                jpeg_bytes = ext.camera_processor.get_current_jpeg()
                 if jpeg_bytes is None:
                     # Görüntü henüz kodlanmadıysa ham frame alıp dene
-                    raw_frame = camera_processor.get_current_frame()
+                    raw_frame = ext.camera_processor.get_current_frame()
                     if raw_frame is not None:
                         if raw_frame.shape[1] > 640:
                             target_w = 640
@@ -327,9 +267,9 @@ def generate_frames():
                         jpeg_bytes = jpeg_buf.tobytes()
 
                 if jpeg_bytes is not None:
-                    cur_st = camera_processor.get_status()
-                    last_status.update(cur_st)
-                    last_status['running'] = True
+                    cur_st = ext.camera_processor.get_status()
+                    ext.last_status.update(cur_st)
+                    ext.last_status['running'] = True
 
                     yield (
                         b'--frame\r\n'
@@ -343,7 +283,7 @@ def generate_frames():
                     )
                     time.sleep(0.050)
             else:
-                last_status['running'] = False
+                ext.last_status['running'] = False
                 yield (
                     b'--frame\r\n'
                     b'Content-Type: image/jpeg\r\n\r\n' + dark_frame + b'\r\n'
@@ -357,7 +297,6 @@ def generate_frames():
 
 def _broadcast_status():
     """Her saniye durum güncellemesi yayınlar."""
-    global last_status
     while True:
         try:
             st = _get_current_status()
@@ -368,21 +307,20 @@ def _broadcast_status():
 
 
 def _get_current_status() -> dict:
-    global camera_processor, last_status
-    if camera_processor is not None and camera_processor.is_running:
-        st = camera_processor.get_current_status()
-        last_status.update(st)
-        last_status['running'] = True
+    if ext.camera_processor is not None and ext.camera_processor.is_running:
+        st = ext.camera_processor.get_current_status()
+        ext.last_status.update(st)
+        ext.last_status['running'] = True
     else:
-        last_status['running'] = False
-        last_status['durum'] = 'Kamera Kapalı'
-        last_status['status'] = 'Kamera Kapalı'
-        last_status['worker_name'] = ''
-        last_status['worker_confidence'] = 0.0
-        last_status['kisi_sayisi'] = 0
-        last_status['person_count'] = 0
-        last_status['fps'] = 0.0
-    return last_status
+        ext.last_status['running'] = False
+        ext.last_status['durum'] = 'Kamera Kapalı'
+        ext.last_status['status'] = 'Kamera Kapalı'
+        ext.last_status['worker_name'] = ''
+        ext.last_status['worker_confidence'] = 0.0
+        ext.last_status['kisi_sayisi'] = 0
+        ext.last_status['person_count'] = 0
+        ext.last_status['fps'] = 0.0
+    return ext.last_status
 
 
 @app.context_processor
@@ -422,7 +360,7 @@ def api_is_local_camera(cam_id):
             if not cam:
                 return jsonify({'is_local': False})
             # Yalnızca istasyon adı eşleşmesi — IP adresi birden fazla ağ kartında çakışabilir
-            local_station = (config.get('station_name') or config.get('istasyon_adi') or '').strip().lower()
+            local_station = (ext.config.get('station_name') or ext.config.get('istasyon_adi') or '').strip().lower()
             cam_station   = (cam.istasyon_adi or '').strip().lower()
             is_local = bool(local_station and cam_station and cam_station == local_station)
             return jsonify({'is_local': is_local, 'cam_id': cam_id, 'ip': cam.ip_adresi, 'station': cam.istasyon_adi})
@@ -532,6 +470,16 @@ def api_upload_video():
     if ext not in ['.mp4', '.avi', '.mov', '.mkv', '.webm']:
         return jsonify({'success': False, 'error': 'Desteklenmeyen video formatı! (.mp4, .avi, .mov, .mkv, .webm)'}), 400
 
+    # Aynı isimde başka bir videonun önceden yüklenip yüklenmediğini kontrol et (şişmeyi önlemek için)
+    safe_name = secure_filename(file.filename).lower()
+    if UPLOAD_VIDEO_DIR.exists():
+        for f in UPLOAD_VIDEO_DIR.glob('*'):
+            if f.name.lower().endswith(f"_{safe_name}"):
+                return jsonify({
+                    'success': False, 
+                    'error': f'"{file.filename}" isimli video zaten sistemde mevcut! Lütfen listeden seçin veya ismini değiştirip tekrar yükleyin.'
+                }), 400
+
     filename = f"video_{int(time.time())}_{secure_filename(file.filename)}"
     save_path = UPLOAD_VIDEO_DIR / filename
     file.save(str(save_path))
@@ -560,7 +508,6 @@ def api_list_videos():
 
 @app.route('/api/video/delete', methods=['POST', 'DELETE'])
 def api_delete_video():
-    global camera_processor
     data = request.get_json() or {}
     filename = data.get('filename') or data.get('video_path')
     if not filename:
@@ -569,10 +516,10 @@ def api_delete_video():
     clean_filename = Path(filename).name
     target_path = UPLOAD_VIDEO_DIR / clean_filename
 
-    if camera_processor and camera_processor.is_running:
-        curr_source = str(getattr(camera_processor, 'camera_id', ''))
+    if ext.camera_processor and ext.camera_processor.is_running:
+        curr_source = str(getattr(ext.camera_processor, 'camera_id', ''))
         if clean_filename in curr_source:
-            camera_processor.stop_camera()
+            ext.camera_processor.stop_camera()
 
     if target_path.exists():
         try:
@@ -590,7 +537,6 @@ def api_delete_video():
 @app.route('/api/cameras/start', methods=['POST'])
 @app.route('/api/video/start', methods=['POST'])
 def api_start_camera():
-    global camera_processor
     data = request.get_json() or {}
     source_type = data.get('source_type', 'camera')
     video_path = data.get('video_path')
@@ -627,25 +573,25 @@ def api_start_camera():
         cfg['station_name'] = station_override
         cfg['istasyon_adi'] = station_override
 
-    if camera_processor is None:
-        camera_processor = CameraProcessor(
+    if ext.camera_processor is None:
+        ext.camera_processor = CameraProcessor(
             camera_id=target_source,
             config=cfg,
             db_path=str(DB_PATH),
-            face_recognizer=face_recognizer,
+            face_recognizer=ext.face_recognizer,
             socketio=socketio
         )
     else:
-        if camera_processor.is_running:
-            camera_processor.stop_camera()
+        if ext.camera_processor.is_running:
+            ext.camera_processor.stop_camera()
 
-        camera_processor.camera_id = target_source
-        camera_processor.cfg.update(cfg)
-        camera_processor.config.update(cfg)
-        if hasattr(camera_processor, '_update_hostname'):
-            camera_processor._update_hostname()
+        ext.camera_processor.camera_id = target_source
+        ext.camera_processor.cfg.update(cfg)
+        ext.camera_processor.config.update(cfg)
+        if hasattr(ext.camera_processor, '_update_hostname'):
+            ext.camera_processor._update_hostname()
 
-    success = camera_processor.start_camera()
+    success = ext.camera_processor.start_camera()
     if success:
         label = "Video Dosyası" if source_type == 'video' else f"Kamera {target_source}"
         return jsonify({'success': True, 'message': f'{label} analizi başlatıldı.', 'camera_id': str(target_source)})
@@ -656,10 +602,46 @@ def api_start_camera():
 @app.route('/api/camera/stop', methods=['POST'])
 @app.route('/api/cameras/stop', methods=['POST'])
 def api_stop_camera():
-    global camera_processor
-    if camera_processor is not None:
-        camera_processor.stop_camera()
+    if ext.camera_processor is not None:
+        ext.camera_processor.stop_camera()
     return jsonify({'success': True, 'message': 'Kamera durduruldu.'})
+
+def load_config() -> dict:
+    """config.yaml dosyasını okur, yoksa varsayılanı yazar."""
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            loaded = yaml.safe_load(f) or {}
+        merged_merkezi = {**_DEFAULT_CONFIG.get('merkezi_db', {}), **(loaded.get('merkezi_db') or {})}
+        ext.config = {**_DEFAULT_CONFIG, **loaded, 'merkezi_db': merged_merkezi}
+    else:
+        ext.config = dict(_DEFAULT_CONFIG)
+        save_config(ext.config)
+    return ext.config
+
+
+def save_config(cfg: dict):
+    """Yapılandırmayı config.yaml dosyasına kaydeder."""
+    ext.config = cfg
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        yaml.dump(cfg, f, allow_unicode=True, default_flow_style=False)
+    logger.info("Yapılandırma kaydedildi.")
+
+# ---------------------------------------------------------------------------
+# Kamera tarama & Akış Üreteçleri
+# ---------------------------------------------------------------------------
+
+def scan_cameras(max_index: int = 5) -> list:
+    """Kullanılabilir kameraları tarar ve cihaz detayları listesini döndürür."""
+    try:
+        return CameraProcessor.scan_cameras(max_index=max_index)
+    except Exception as e:
+        logger.debug(f"Kamera tarama hatası: {e}")
+        return []
+
+
+def _get_dark_frame() -> bytes:
+    from web.helpers import _get_dark_frame as dark_fn
+    return dark_fn()
 
 # ---------------------------------------------------------------------------
 # Başlatma
@@ -684,21 +666,19 @@ def _print_banner():
 
 def initialize():
     """Uygulama başlangıç işlemleri."""
-    global face_recognizer, config, camera_processor
-
     PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
     (WEB_DIR / 'static').mkdir(parents=True, exist_ok=True)
     (WEB_DIR / 'templates').mkdir(parents=True, exist_ok=True)
 
-    config = load_config()
+    ext.config = load_config()
     logger.info("Yapılandırma yüklendi.")
 
     init_db()
-    face_recognizer = None
+    ext.face_recognizer = None
 
     try:
         logger.info("YOLO modelleri sunucu açılışında ön-yükleniyor (Sıfır Donma / Sıfır Gecikme)...")
-        CameraProcessor.preload_models(config)
+        CameraProcessor.preload_models(ext.config)
     except Exception as e:
         logger.error(f"Modeller ön-yüklenirken hata: {e}")
 
@@ -710,10 +690,10 @@ def initialize():
     broadcast_thread.start()
     logger.info("Durum yayın iş parçacığı başlatıldı.")
 
-    merkezi_db_cfg = config.get("merkezi_db") or config
+    merkezi_db_cfg = ext.config.get("merkezi_db") or ext.config
     if HAS_PG_SYNC and SenkronThread:
         try:
-            istasyon_adi = config.get("station_name") or config.get("istasyon_adi") or "Istasyon-1"
+            istasyon_adi = ext.config.get("station_name") or ext.config.get("istasyon_adi") or "Istasyon-1"
             if not istasyon_adi or str(istasyon_adi).strip().lower() == "auto":
                 istasyon_adi = "Istasyon-1"
             senkron_thread = SenkronThread(
@@ -727,18 +707,18 @@ def initialize():
             logger.error(f"PostgreSQL senkronizasyon başlatılamadı: {e}")
 
     # Otomatik Kamera Başlatma (Varsayılan olarak kapalıdır, kullanıcı 'Kamerayı Başlat' dediğinde başlar)
-    if config.get("auto_start_camera", False):
+    if ext.config.get("auto_start_camera", False):
         try:
-            target_source = config.get('camera_id', 0)
-            cfg = dict(config)
-            camera_processor = CameraProcessor(
+            target_source = ext.config.get('camera_id', 0)
+            cfg = dict(ext.config)
+            ext.camera_processor = CameraProcessor(
                 camera_id=target_source,
                 config=cfg,
                 db_path=str(DB_PATH),
-                face_recognizer=face_recognizer,
+                face_recognizer=ext.face_recognizer,
                 socketio=socketio
             )
-            if camera_processor.start_camera():
+            if ext.camera_processor.start_camera():
                 logger.info(f"Kamera (ID: {target_source}) sistem açılışında otomatik olarak başlatıldı.")
             else:
                 logger.warning(f"Kamera (ID: {target_source}) sistem açılışında otomatik başlatılamadı.")
