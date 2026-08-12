@@ -198,6 +198,55 @@ def api_reports_worker_stats():
         return jsonify({'workers': [], 'data': [], 'error': str(e)})
 
 
+def _get_pdf_font():
+    """Türkçe karakterleri (ç, ğ, ı, ö, ş, ü) destekleyen TrueType fontu yükler."""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+
+    font_name = 'TR-Font'
+    font_bold = 'TR-Font-Bold'
+
+    try:
+        pdfmetrics.getFont(font_name)
+        pdfmetrics.getFont(font_bold)
+        return font_name, font_bold
+    except Exception:
+        pass
+
+    font_paths = [
+        # Windows
+        (os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'arial.ttf'),
+         os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'arialbd.ttf')),
+        (os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'segoeui.ttf'),
+         os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'segoeuib.ttf')),
+        (os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'tahoma.ttf'),
+         os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', 'tahomabd.ttf')),
+        # Linux
+        ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+         '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),
+        ('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+         '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'),
+        # macOS
+        ('/Library/Fonts/Arial.ttf', '/Library/Fonts/Arial Bold.ttf'),
+        ('/System/Library/Fonts/Supplemental/Arial.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf'),
+    ]
+
+    for regular_path, bold_path in font_paths:
+        if os.path.exists(regular_path):
+            try:
+                pdfmetrics.registerFont(TTFont(font_name, regular_path))
+                if os.path.exists(bold_path):
+                    pdfmetrics.registerFont(TTFont(font_bold, bold_path))
+                else:
+                    pdfmetrics.registerFont(TTFont(font_bold, regular_path))
+                return font_name, font_bold
+            except Exception:
+                pass
+
+    return 'Helvetica', 'Helvetica-Bold'
+
+
 @reports_bp.route('/api/reports/export_pdf', methods=['GET'])
 @login_required
 def api_reports_export_pdf():
@@ -205,7 +254,7 @@ def api_reports_export_pdf():
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     import io
 
     start = request.args.get('start', '')
@@ -217,34 +266,55 @@ def api_reports_export_pdf():
     from web.services.report_service import get_worker_stats_rows
     rows = get_worker_stats_rows(start, end, istasyon, worker, patron_id)
 
+    font_name, font_bold = _get_pdf_font()
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
     styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle('TRTitle', parent=styles['Title'], fontName=font_bold, fontSize=16, leading=20, alignment=1)
+    norm_style = ParagraphStyle('TRNormal', parent=styles['Normal'], fontName=font_name, fontSize=9, leading=13)
+    hdr_style = ParagraphStyle('TRHdr', parent=styles['Normal'], fontName=font_bold, fontSize=8, leading=10, textColor=colors.white, alignment=1)
+    cell_style = ParagraphStyle('TRCell', parent=styles['Normal'], fontName=font_name, fontSize=8, leading=10)
+    cell_center = ParagraphStyle('TRCellCenter', parent=styles['Normal'], fontName=font_name, fontSize=8, leading=10, alignment=1)
+
     elements = []
+    elements.append(Paragraph("Çalışan Çalışma Saatleri Raporu", title_style))
+    elements.append(Spacer(1, 0.3*cm))
 
-    elements.append(Paragraph("Çalışan Çalışma Saatleri Raporu", styles['Title']))
-    tarih_araligi = f"{start or 'Başlangıç'} — {end or 'Bitiş'}"
-    elements.append(Paragraph(f"Tarih Aralığı: {tarih_araligi}", styles['Normal']))
+    tarih_araligi = f"{start or 'Tüm Zamanlar'} — {end or 'Tüm Zamanlar'}"
+    elements.append(Paragraph(f"<b>Tarih Aralığı:</b> {tarih_araligi}", norm_style))
     if istasyon:
-        elements.append(Paragraph(f"İstasyon: {istasyon}", styles['Normal']))
-    elements.append(Spacer(1, 0.5*cm))
+        elements.append(Paragraph(f"<b>İstasyon:</b> {istasyon}", norm_style))
+    if worker:
+        elements.append(Paragraph(f"<b>Çalışan Filtresi:</b> {worker}", norm_style))
+    elements.append(Spacer(1, 0.4*cm))
 
-    table_data = [['Tarih', 'Çalışan', 'Vardiya Başı', 'Vardiya Bitişi', 'Aktif Süre', 'Hareketsiz Süre', 'Verimlilik']]
+    headers = ['Tarih', 'Çalışan', 'İstasyon', 'Vardiya Başı', 'Vardiya Bitişi', 'Aktif Süre', 'Hareketsiz Süre', 'Verimlilik']
+    hdr_row = [Paragraph(f"<b>{h}</b>", hdr_style) for h in headers]
+    table_data = [hdr_row]
+
     for r in rows:
         table_data.append([
-            r.get('tarih_fmt', r.get('tarih', '')), r.get('worker_adi', ''),
-            r.get('ilk_gorulme', ''), r.get('son_gorulme', ''),
-            r.get('aktif_sure_fmt', ''), r.get('inaktif_sure_fmt', ''),
-            f"%{r.get('aktif_oran', 0)}"
+            Paragraph(r.get('tarih_fmt', r.get('tarih', '')), cell_center),
+            Paragraph(r.get('worker_adi', ''), cell_style),
+            Paragraph(r.get('istasyon_adi', ''), cell_center),
+            Paragraph(r.get('ilk_gorulme', ''), cell_center),
+            Paragraph(r.get('son_gorulme', ''), cell_center),
+            Paragraph(r.get('aktif_sure_fmt', ''), cell_center),
+            Paragraph(r.get('inaktif_sure_fmt', ''), cell_center),
+            Paragraph(f"%{r.get('aktif_oran', 0)}", cell_center)
         ])
 
-    t = Table(table_data, repeatRows=1)
+    col_widths = [2.2*cm, 3.2*cm, 2.3*cm, 3.0*cm, 3.0*cm, 2.0*cm, 2.2*cm, 1.6*cm]
+    t = Table(table_data, repeatRows=1, colWidths=col_widths)
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1F2937')),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F3F4F6')]),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#D1D5DB')),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F9FAFB')]),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
     ]))
     elements.append(t)
     doc.build(elements)
@@ -253,6 +323,7 @@ def api_reports_export_pdf():
     from flask import send_file
     filename = f"calisan_raporu_{start or 'tum'}_{end or 'zamanlar'}.pdf"
     return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
 
 
 @reports_bp.route('/api/reports/worker_detail', methods=['GET'])
