@@ -217,10 +217,12 @@ const html        = document.documentElement;
 function applyTheme(theme) {
     html.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    if (theme === 'dark') {
-        themeIcon.className = 'fa-solid fa-moon';
-    } else {
-        themeIcon.className = 'fa-solid fa-sun';
+    if (themeIcon) {
+        if (theme === 'dark') {
+            themeIcon.className = 'fa-solid fa-moon';
+        } else {
+            themeIcon.className = 'fa-solid fa-sun';
+        }
     }
 }
 
@@ -228,7 +230,7 @@ function applyTheme(theme) {
 const savedTheme = localStorage.getItem('theme') || '{{ session.get("theme", "dark") }}';
 applyTheme(savedTheme);
 
-themeToggle.addEventListener('click', () => {
+themeToggle && themeToggle.addEventListener('click', () => {
     const current = html.getAttribute('data-theme');
     applyTheme(current === 'dark' ? 'light' : 'dark');
     // Optionally persist to server
