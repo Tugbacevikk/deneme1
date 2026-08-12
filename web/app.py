@@ -7,6 +7,10 @@ Tarayıcı: http://localhost:5000
 
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Windows terminal UTF-8 sorunu çözümü
 if sys.platform == 'win32':
