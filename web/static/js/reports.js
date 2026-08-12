@@ -13,11 +13,54 @@ function initDates() {
     const elStart = document.getElementById('filter-start');
     const elEnd   = document.getElementById('filter-end');
     if (!elStart || !elEnd) return;
+    const allChip = document.querySelector('.btn-chip[data-preset="all"]');
+    if (allChip && allChip.classList.contains('active')) return;
+
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-    if (!elStart.value) elStart.value = todayStr;
-    if (!elEnd.value) elEnd.value = todayStr;
+    if (!elStart.value && !elEnd.value && !document.querySelector('.btn-chip.active')) {
+        elStart.value = todayStr;
+        elEnd.value = todayStr;
+    }
+}
+
+function applyDatePreset(preset) {
+    const elStart = document.getElementById('filter-start');
+    const elEnd   = document.getElementById('filter-end');
+    if (!elStart || !elEnd) return;
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    let start = fmt(now);
+    let end   = fmt(now);
+
+    if (preset === 'today') {
+        start = fmt(now);
+        end   = fmt(now);
+    } else if (preset === 'week') {
+        const day = now.getDay() === 0 ? 7 : now.getDay(); // Pazartesi=1 kabul
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (day - 1));
+        start = fmt(monday);
+        end   = fmt(now);
+    } else if (preset === 'month') {
+        start = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+        end   = fmt(now);
+    } else if (preset === 'all') {
+        start = ''; // boş = filtre yok, backend'de tüm kayıtlar dönsün
+        end   = '';
+    }
+
+    elStart.value = start;
+    elEnd.value   = end;
+
+    document.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('active'));
+    const targetChip = document.querySelector(`.btn-chip[data-preset="${preset}"]`);
+    if (targetChip) targetChip.classList.add('active');
+
+    fetchAll();
 }
 
 function buildParams() {

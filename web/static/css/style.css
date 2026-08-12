@@ -596,6 +596,30 @@ a:hover {
 .btn-danger { background-color: var(--red); color: #fff; }
 .btn-secondary { background-color: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border-color); }
 
+.btn-chip {
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  background-color: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.btn-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.btn-chip.active {
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
 .form-group {
   margin-bottom: 18px;
 }
