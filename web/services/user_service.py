@@ -138,6 +138,7 @@ def get_pending_count():
 def change_own_password(user_id, current_password, new_password):
     """Kullanıcının kendi şifresini değiştirir."""
     from werkzeug.security import check_password_hash
+    from core.database.models import Alarm
     with db_manager.get_session() as session:
         user = session.get(User, user_id)
         if not user:
@@ -145,5 +146,13 @@ def change_own_password(user_id, current_password, new_password):
         if not check_password_hash(user.sifre_hash, current_password):
             return False, "Mevcut şifre hatalı."
         user.sifre_hash = generate_password_hash(new_password)
+        session.commit()
+        new_alarm = Alarm(
+            istasyon_adi="Sistem",
+            alarm_turu="Şifre Değişikliği",
+            aciklama=f"{user.ad_soyad} ({user.kullanici_adi}) kendi şifresini değiştirdi.",
+            okundu=0
+        )
+        session.add(new_alarm)
         session.commit()
         return True, "Şifreniz başarıyla güncellendi."

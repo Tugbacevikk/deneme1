@@ -287,5 +287,8 @@ def api_profile_change_password():
 
     ok, msg = change_own_password(user_id, current_password, new_password)
     if ok:
+        from web.extensions import socketio
+        from web.services.alarm_service import get_unread_count
+        socketio.emit('alarm_update', {'unread_count': get_unread_count()})
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400

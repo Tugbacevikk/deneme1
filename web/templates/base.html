@@ -424,7 +424,11 @@ function loadPendingNotifications() {
                 const alarmTuru = n.alarm_turu || '';
                 const isReg = alarmTuru === 'Kayıt Başvurusu';
                 const redirectUrl = isReg ? '/settings' : '/alarms';
-                const iconClass = isReg ? 'fa-user-plus text-warning' : (alarmTuru.includes('Telefon') ? 'fa-mobile-screen-button text-danger' : 'fa-triangle-exclamation text-danger');
+                const iconClass = isReg
+                    ? 'fa-user-plus text-warning'
+                    : alarmTuru === 'Şifre Değişikliği'
+                        ? 'fa-key' 
+                        : (alarmTuru.includes('Telefon') ? 'fa-mobile-screen-button text-danger' : 'fa-triangle-exclamation text-danger');
                 
                 return `
                     <a href="${redirectUrl}" onclick="handleNotificationClick(event, '${n.id}', '${redirectUrl}')" class="notif-item ${isUnread ? 'notif-item--unread' : ''}">
