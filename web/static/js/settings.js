@@ -128,11 +128,11 @@ function loadUsers() {
                     approveRejectBtns = `
                         <button class="btn btn-success" style="padding:4px 8px; font-size:12px; margin-right:4px;"
                             onclick="approveUser(${u.id})">
-                            <i class="fa-solid fa-check"></i> Onayla
+                            <i class="fa-solid fa-user-check"></i> Onayla
                         </button>
-                        <button class="btn btn-warning" style="padding:4px 8px; font-size:12px; margin-right:4px; color:#fff;"
+                        <button class="btn btn-danger" style="padding:4px 8px; font-size:12px; margin-right:4px; background:#e11d48; border-color:#e11d48; color:#fff;"
                             onclick="rejectUser(${u.id})">
-                            <i class="fa-solid fa-xmark"></i> Reddet
+                            <i class="fa-solid fa-user-xmark"></i> Reddet
                         </button>
                     `;
                 }                let editBtn = '';
@@ -372,7 +372,10 @@ function saveEditUser() {
 
 function approveUser(id) {
     if (!confirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?')) return;
-    fetch(`/api/users/${id}/approve`, { method: 'POST' })
+    fetch(`/api/users/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -387,7 +390,10 @@ function approveUser(id) {
 
 function rejectUser(id) {
     if (!confirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?')) return;
-    fetch(`/api/users/${id}/reject`, { method: 'POST' })
+    fetch(`/api/users/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
