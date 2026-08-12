@@ -5,14 +5,23 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 
 def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str, body: str):
-    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER')
-    port = int(os.getenv('SMTP_PORT', 587))
-    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL')
-    password = os.getenv('SMTP_PASSWORD')
-    sender = os.getenv('SMTP_FROM') or user
+    # .env veya config.yaml üzerinden SMTP oku
+    cfg_smtp = {}
+    try:
+        import web.extensions as ext
+        cfg_smtp = (ext.config or {}).get('smtp', {})
+    except Exception:
+        pass
+
+    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER') or cfg_smtp.get('host') or cfg_smtp.get('server')
+    port = int(os.getenv('SMTP_PORT') or cfg_smtp.get('port') or 587)
+    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL') or cfg_smtp.get('user') or cfg_smtp.get('email')
+    password = os.getenv('SMTP_PASSWORD') or cfg_smtp.get('password')
+    sender = os.getenv('SMTP_FROM') or cfg_smtp.get('from') or user
 
     if not host or not user or not password:
-        return False, "SMTP ayarları yapılandırılmamış (.env dosyasını kontrol edin)."
+        return False, "SMTP ayarları yapılandırılmamış (.env veya config.yaml dosyasını kontrol edin)."
+
 
     msg = MIMEMultipart()
     msg['From'] = sender
