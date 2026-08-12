@@ -132,23 +132,28 @@
 
                     <!-- Canlı ROI Overlay (kaydırıcılara bağlı) -->
                     <div id="preview-roi-overlay" style="
-                        position:absolute; pointer-events:none;
+                        position:absolute;
                         top:0; left:0; right:0; bottom:0;
                         border-radius: 0 0 12px 12px;
                         overflow:hidden;
                     ">
                         <!-- ROI Alanı Dışı Karartma: Üst -->
-                        <div id="roi-shade-top" style="position:absolute; top:0; left:0; right:0; background:rgba(0,0,0,0.35);"></div>
+                        <div id="roi-shade-top" style="position:absolute; top:0; left:0; right:0; background:rgba(0,0,0,0.35); pointer-events:none;"></div>
                         <!-- ROI Alanı Dışı Karartma: Alt -->
-                        <div id="roi-shade-bottom" style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.35);"></div>
+                        <div id="roi-shade-bottom" style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.35); pointer-events:none;"></div>
                         <!-- ROI Alanı Dışı Karartma: Sol -->
-                        <div id="roi-shade-left" style="position:absolute; background:rgba(0,0,0,0.35);"></div>
+                        <div id="roi-shade-left" style="position:absolute; background:rgba(0,0,0,0.35); pointer-events:none;"></div>
                         <!-- ROI Alanı Dışı Karartma: Sağ -->
-                        <div id="roi-shade-right" style="position:absolute; background:rgba(0,0,0,0.35);"></div>
-                        <!-- ROI Çerçeve Kenarlığı -->
-                        <div id="roi-border-box" style="position:absolute; border:2px solid #00ff88; border-radius:3px; box-shadow:0 0 0 1px rgba(0,255,136,0.3), inset 0 0 0 1px rgba(0,255,136,0.2);"></div>
+                        <div id="roi-shade-right" style="position:absolute; background:rgba(0,0,0,0.35); pointer-events:none;"></div>
+                        <!-- ROI Çerçeve Kenarlığı + Sürükle Handle'ları -->
+                        <div id="roi-border-box" style="position:absolute; border:2px solid #00ff88; border-radius:3px; box-shadow:0 0 0 1px rgba(0,255,136,0.3), inset 0 0 0 1px rgba(0,255,136,0.2); cursor:move;">
+                            <div id="roi-handle-tl" style="position:absolute; width:10px; height:10px; background:#00ff88; border:1.5px solid #000; border-radius:2px; top:-5px; left:-5px; cursor:nw-resize;"></div>
+                            <div id="roi-handle-tr" style="position:absolute; width:10px; height:10px; background:#00ff88; border:1.5px solid #000; border-radius:2px; top:-5px; right:-5px; cursor:ne-resize;"></div>
+                            <div id="roi-handle-bl" style="position:absolute; width:10px; height:10px; background:#00ff88; border:1.5px solid #000; border-radius:2px; bottom:-5px; left:-5px; cursor:sw-resize;"></div>
+                            <div id="roi-handle-br" style="position:absolute; width:10px; height:10px; background:#00ff88; border:1.5px solid #000; border-radius:2px; bottom:-5px; right:-5px; cursor:se-resize;"></div>
+                        </div>
                         <!-- ROI Etiket -->
-                        <div id="roi-label-overlay" style="position:absolute; background:rgba(0,255,136,0.9); color:#000; font-size:11px; font-weight:700; padding:2px 8px; border-radius:0 0 6px 0; top:0; left:0;"></div>
+                        <div id="roi-label-overlay" style="position:absolute; background:rgba(0,255,136,0.9); color:#000; font-size:11px; font-weight:700; padding:2px 8px; border-radius:0 0 6px 0; top:0; left:0; pointer-events:none;"></div>
                     </div>
 
                     <!-- Overlay info -->
@@ -650,6 +655,111 @@ function updateROI() {
     }
 }
 updateROI();
+
+// ── ROI Sürükle-Bırak / Köşe Boyutlandırma ───────────────────
+(function () {
+    const overlay   = document.getElementById('preview-roi-overlay');
+    const borderBox = document.getElementById('roi-border-box');
+
+    let dragMode = null; // 'move' | 'tl' | 'tr' | 'bl' | 'br'
+    let startClientX, startClientY;
+    let startX1, startY1, startX2, startY2;
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function getVals() {
+        return {
+            x1: parseInt(document.getElementById('roi-x1').value),
+            y1: parseInt(document.getElementById('roi-y1').value),
+            x2: parseInt(document.getElementById('roi-x2').value),
+            y2: parseInt(document.getElementById('roi-y2').value),
+        };
+    }
+
+    function setVals(x1, y1, x2, y2) {
+        document.getElementById('roi-x1').value = Math.round(clamp(x1, 0, 100));
+        document.getElementById('roi-y1').value = Math.round(clamp(y1, 0, 100));
+        document.getElementById('roi-x2').value = Math.round(clamp(x2, 0, 100));
+        document.getElementById('roi-y2').value = Math.round(clamp(y2, 0, 100));
+        updateROI();
+    }
+
+    function beginDrag(e, mode) {
+        e.preventDefault();
+        dragMode = mode;
+        const pt = e.touches ? e.touches[0] : e;
+        startClientX = pt.clientX;
+        startClientY = pt.clientY;
+        const v = getVals();
+        startX1 = v.x1; startY1 = v.y1;
+        startX2 = v.x2; startY2 = v.y2;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend',  onUp);
+    }
+
+    function onMove(e) {
+        if (!dragMode) return;
+        e.preventDefault();
+        const pt   = e.touches ? e.touches[0] : e;
+        const rect = overlay.getBoundingClientRect();
+        const dx   = ((pt.clientX - startClientX) / rect.width)  * 100;
+        const dy   = ((pt.clientY - startClientY) / rect.height) * 100;
+
+        if (dragMode === 'move') {
+            const w  = startX2 - startX1;
+            const h  = startY2 - startY1;
+            const nx = clamp(startX1 + dx, 0, 100 - w);
+            const ny = clamp(startY1 + dy, 0, 100 - h);
+            setVals(nx, ny, nx + w, ny + h);
+        } else if (dragMode === 'tl') {
+            setVals(clamp(startX1 + dx, 0, startX2 - 2),
+                    clamp(startY1 + dy, 0, startY2 - 2),
+                    startX2, startY2);
+        } else if (dragMode === 'tr') {
+            setVals(startX1,
+                    clamp(startY1 + dy, 0, startY2 - 2),
+                    clamp(startX2 + dx, startX1 + 2, 100),
+                    startY2);
+        } else if (dragMode === 'bl') {
+            setVals(clamp(startX1 + dx, 0, startX2 - 2),
+                    startY1,
+                    startX2,
+                    clamp(startY2 + dy, startY1 + 2, 100));
+        } else if (dragMode === 'br') {
+            setVals(startX1, startY1,
+                    clamp(startX2 + dx, startX1 + 2, 100),
+                    clamp(startY2 + dy, startY1 + 2, 100));
+        }
+    }
+
+    function onUp() {
+        dragMode = null;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend',  onUp);
+    }
+
+    // Kutu gövdesi → taşı (handle'a tıklanmışsa atla)
+    borderBox.addEventListener('mousedown', function (e) {
+        if (e.target !== borderBox) return;
+        beginDrag(e, 'move');
+    });
+    borderBox.addEventListener('touchstart', function (e) {
+        if (e.target !== borderBox) return;
+        beginDrag(e, 'move');
+    }, { passive: false });
+
+    // Köşe handle'ları
+    [['roi-handle-tl','tl'],['roi-handle-tr','tr'],
+     ['roi-handle-bl','bl'],['roi-handle-br','br']].forEach(function(pair) {
+        const el = document.getElementById(pair[0]);
+        el.addEventListener('mousedown',  function(e){ e.stopPropagation(); beginDrag(e, pair[1]); });
+        el.addEventListener('touchstart', function(e){ e.stopPropagation(); beginDrag(e, pair[1]); }, { passive: false });
+    });
+})();
 
 // ── Save ROI ──────────────────────────────────────────────────
 document.getElementById('btn-save-roi').addEventListener('click', function() {
