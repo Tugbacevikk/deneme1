@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Profilim - İş Takip Sistemi{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-user-circle" style="color:var(--accent);"></i> Profilim</h1>
+        <p class="page-subtitle">Hesap bilgilerinizi görüntüleyin ve şifrenizi değiştirin.</p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:960px;">
+
+    <!-- Kart 1: Bilgi -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <div class="card-header-left">
+                <i class="fa-solid fa-id-badge card-header-icon" style="color:var(--accent);"></i>
+                <h2 class="card-title">Hesap Bilgileri</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Kullanıcı Adı</label>
+                    <div class="form-input" style="background:var(--bg-secondary); color:var(--text-muted); cursor:not-allowed;">
+                        {{ user.kullanici_adi }}
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Ad Soyad</label>
+                    <div class="form-input" style="background:var(--bg-secondary); color:var(--text-muted); cursor:not-allowed;">
+                        {{ user.ad_soyad }}
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Firma / Fabrika</label>
+                    <div class="form-input" style="background:var(--bg-secondary); color:var(--text-muted); cursor:not-allowed;">
+                        {{ user.firma_adi or '—' }}
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Rol / Yetki</label>
+                    <div class="form-input" style="background:var(--bg-secondary); cursor:not-allowed; display:flex; align-items:center; gap:8px;">
+                        {% if user.rol in ['admin', 'super_admin'] %}
+                            <span class="badge badge--success">{{ user.rol|upper }}</span>
+                        {% else %}
+                            <span class="badge badge--outline">{{ user.rol|upper }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin:0; grid-column: 1 / -1;">
+                    <label class="form-label">Yetkili İstasyonlar</label>
+                    <div class="form-input" style="background:var(--bg-secondary); color:var(--text-muted); cursor:not-allowed; min-height:42px;">
+                        {% if user.istasyonlar %}
+                            {% for ist in user.istasyonlar.split(',') %}
+                                <span style="display:inline-block; background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px; margin:2px 4px 2px 0;">{{ ist.strip() }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="color:var(--text-muted); font-style:italic;">
+                                {% if user.rol in ['admin', 'super_admin'] %}Tüm Fabrika{% else %}Henüz atanmadı{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Kart 2: Şifre Değiştir -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <div class="card-header-left">
+                <i class="fa-solid fa-lock card-header-icon" style="color:#d97706;"></i>
+                <h2 class="card-title">Şifre Değiştir</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="form-change-password" style="max-width:480px;">
+                <div class="form-group">
+                    <label class="form-label">Mevcut Şifre *</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-input" id="cp-current" placeholder="Mevcut şifrenizi girin" autocomplete="current-password">
+                        <button type="button" onclick="togglePwd('cp-current', this)" tabindex="-1"
+                            style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Yeni Şifre *</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-input" id="cp-new" placeholder="En az 6 karakter" autocomplete="new-password">
+                        <button type="button" onclick="togglePwd('cp-new', this)" tabindex="-1"
+                            style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Yeni Şifre (Tekrar) *</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-input" id="cp-confirm" placeholder="Yeni şifrenizi tekrarlayın" autocomplete="new-password">
+                        <button type="button" onclick="togglePwd('cp-confirm', this)" tabindex="-1"
+                            style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cp-error" style="display:none; color:#e11d48; font-size:13px; font-weight:600; margin-bottom:12px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:var(--radius-sm);">
+                    <i class="fa-solid fa-circle-xmark"></i> <span id="cp-error-text"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; gap:8px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Şifremi Güncelle
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+    }
+}
+
+document.getElementById('form-change-password').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const errBox  = document.getElementById('cp-error');
+    const errText = document.getElementById('cp-error-text');
+    errBox.style.display = 'none';
+
+    const current  = document.getElementById('cp-current').value;
+    const newPwd   = document.getElementById('cp-new').value;
+    const confirm  = document.getElementById('cp-confirm').value;
+
+    if (!current || !newPwd || !confirm) {
+        errText.textContent = 'Tüm alanları doldurunuz.';
+        errBox.style.display = 'block';
+        return;
+    }
+    if (newPwd !== confirm) {
+        errText.textContent = 'Yeni şifreler eşleşmiyor.';
+        errBox.style.display = 'block';
+        return;
+    }
+    if (newPwd.length < 6) {
+        errText.textContent = 'Yeni şifre en az 6 karakter olmalıdır.';
+        errBox.style.display = 'block';
+        return;
+    }
+
+    const btn = this.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Güncelleniyor...';
+
+    fetch('/api/profile/change_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            current_password: current,
+            new_password: newPwd,
+            new_password_confirm: confirm
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Şifremi Güncelle';
+        if (data.success) {
+            document.getElementById('cp-current').value = '';
+            document.getElementById('cp-new').value = '';
+            document.getElementById('cp-confirm').value = '';
+            showToast(data.message, 'success');
+        } else {
+            errText.textContent = data.message;
+            errBox.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Şifremi Güncelle';
+        errText.textContent = 'Sunucu hatası. Lütfen tekrar deneyin.';
+        errBox.style.display = 'block';
+    });
+});
+</script>
+{% endblock %}

@@ -133,3 +133,17 @@ def get_pending_count():
     """durum='bekliyor' olan User sayısını döndürür."""
     with db_manager.get_session() as session:
         return session.scalar(select(func.count(User.id)).where(User.durum == 'bekliyor')) or 0
+
+
+def change_own_password(user_id, current_password, new_password):
+    """Kullanıcının kendi şifresini değiştirir."""
+    from werkzeug.security import check_password_hash
+    with db_manager.get_session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            return False, "Kullanıcı bulunamadı."
+        if not check_password_hash(user.sifre_hash, current_password):
+            return False, "Mevcut şifre hatalı."
+        user.sifre_hash = generate_password_hash(new_password)
+        session.commit()
+        return True, "Şifreniz başarıyla güncellendi."

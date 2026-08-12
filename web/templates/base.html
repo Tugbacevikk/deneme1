@@ -145,11 +145,13 @@
                 <!-- User Profile & Logout -->
                 {% if current_user %}
                 <div class="user-profile-badge">
-                    <i class="fa-solid fa-user-shield user-icon"></i>
-                    <span class="user-name">{{ current_user.ad_soyad or current_user.kullanici_adi }}</span>
-                    <span class="user-role-tag {{ 'admin' if current_user.rol == 'admin' else 'op' }}">
-                        {{ current_user.rol|upper }}
-                    </span>
+                    <a href="/profile" style="display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit;" title="Profilim">
+                        <i class="fa-solid fa-user-shield user-icon"></i>
+                        <span class="user-name">{{ current_user.ad_soyad or current_user.kullanici_adi }}</span>
+                        <span class="user-role-tag {{ 'admin' if current_user.rol == 'admin' else 'op' }}">
+                            {{ current_user.rol|upper }}
+                        </span>
+                    </a>
                     <a href="/logout" class="user-logout-btn" title="Güvenli Çıkış Yap">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </a>

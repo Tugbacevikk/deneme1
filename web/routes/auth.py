@@ -251,3 +251,41 @@ def api_users_update(user_id):
             return jsonify({'success': True, 'message': 'Kullanıcı bilgileri başarıyla güncellendi.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@auth_bp.route('/profile', methods=['GET'])
+@login_required
+def profile():
+    user_id = session.get('user_id')
+    with db_manager.get_session() as db_session:
+        user = db_session.get(User, user_id)
+        if not user:
+            flash('Kullanıcı bulunamadı.', 'danger')
+            return redirect(url_for('auth.login'))
+        user_data = user.to_dict()
+    return render_template('profile.html', user=user_data)
+
+
+@auth_bp.route('/api/profile/change_password', methods=['POST'])
+@login_required
+def api_profile_change_password():
+    from web.services.user_service import change_own_password
+    user_id = session.get('user_id')
+    data = request.get_json() or request.form
+    current_password = data.get('current_password', '')
+    new_password = data.get('new_password', '')
+    new_password_confirm = data.get('new_password_confirm', '')
+
+    if not current_password or not new_password or not new_password_confirm:
+        return jsonify({'success': False, 'message': 'Tüm alanları doldurunuz.'}), 400
+
+    if new_password != new_password_confirm:
+        return jsonify({'success': False, 'message': 'Yeni şifreler eşleşmiyor.'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Yeni şifre en az 6 karakter olmalıdır.'}), 400
+
+    ok, msg = change_own_password(user_id, current_password, new_password)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
