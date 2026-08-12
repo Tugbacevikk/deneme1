@@ -364,59 +364,55 @@ fetch('/api/alarms/unread_count')
     }).catch(() => {});
 
 function loadPendingNotifications() {
-    const userRole = document.body.getAttribute('data-role');
-    if (userRole === 'admin' || userRole === 'super_admin') {
-        fetch('/api/users/pending_notifications')
-            .then(r => r.json())
-            .then(data => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-badge');
-                if (!list) return;
-                
-                const count = data.count || 0;
-                if (badge) {
-                    if (count > 0) {
-                        badge.style.display = 'flex';
-                        badge.textContent = count > 9 ? '9+' : count;
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                }
-                
-                if (count === 0) {
-                    list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>Bildirim yok</p></div>';
-                    return;
-                }
-                
-                list.innerHTML = data.notifications.map(n => `
-                    <a href="/settings" class="notif-item">
-                        <div class="notif-item-title">${n.ad_soyad}</div>
-                        <div class="notif-item-desc">${n.firma_adi || 'Firma Belirtilmemiş'} — Yeni kayıt başvurusu</div>
-                        <div class="notif-item-time">${n.kayit_tarihi || ''}</div>
-                    </a>
-                `).join('');
-            }).catch(console.error);
-    }
-}
+    const list = document.getElementById('notif-list');
+    const badge = document.getElementById('notif-badge');
+    if (!list) return;
 
-// Fetch pending users count on page load (if admin/super_admin)
-const userRole = document.body.getAttribute('data-role');
-if (userRole === 'admin' || userRole === 'super_admin') {
-    fetch('/api/users/pending_count')
+    fetch('/api/users/pending_notifications')
         .then(r => r.json())
         .then(data => {
             const count = data.count || 0;
-            const badge = document.getElementById('pending-user-badge');
             if (badge) {
                 if (count > 0) {
-                    badge.style.display = 'inline-flex';
+                    badge.style.display = 'flex';
                     badge.textContent = count > 9 ? '9+' : count;
                 } else {
                     badge.style.display = 'none';
                 }
             }
+            
+            if (count === 0) {
+                list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>Bildirim yok</p></div>';
+                return;
+            }
+            
+            list.innerHTML = data.notifications.map(n => `
+                <a href="/settings" class="notif-item">
+                    <div class="notif-item-title">${n.ad_soyad}</div>
+                    <div class="notif-item-desc">${n.firma_adi || 'Firma Belirtilmemiş'} — Yeni kayıt başvurusu</div>
+                    <div class="notif-item-time">${n.kayit_tarihi || ''}</div>
+                </a>
+            `).join('');
+        }).catch(console.error);
+}
+
+// Fetch pending users count and list on page load if elements exist
+const pendingBadge = document.getElementById('pending-user-badge');
+if (pendingBadge) {
+    fetch('/api/users/pending_count')
+        .then(r => r.json())
+        .then(data => {
+            const count = data.count || 0;
+            if (count > 0) {
+                pendingBadge.style.display = 'inline-flex';
+                pendingBadge.textContent = count > 9 ? '9+' : count;
+            } else {
+                pendingBadge.style.display = 'none';
+            }
         }).catch(() => {});
-    
+}
+
+if (document.getElementById('notif-list')) {
     loadPendingNotifications();
 }
 
