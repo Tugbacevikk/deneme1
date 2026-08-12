@@ -13,14 +13,26 @@ workers_bp = Blueprint('workers', __name__)
 @workers_bp.route('/workers_page')
 @login_required
 def workers_page():
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, _ = get_current_patron_access()
+    
     workers = get_all_workers()
+    if not is_super and patron_id is not None:
+        workers = [w for w in workers if w.get('patron_id') == patron_id]
+        
     return render_template('workers.html', workers=workers)
 
 
 @workers_bp.route('/api/workers', methods=['GET'])
 @login_required
 def api_workers_list():
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, _ = get_current_patron_access()
+    
     workers = get_all_workers()
+    if not is_super and patron_id is not None:
+        workers = [w for w in workers if w.get('patron_id') == patron_id]
+        
     return jsonify({'success': True, 'workers': workers})
 
 
