@@ -38,7 +38,19 @@
                 <label class="filter-label">
                     <i class="fa-solid fa-industry"></i> İstasyon
                 </label>
-                <input type="text" class="form-input form-input--sm" id="filter-station" placeholder="İstasyon veya video adı...">
+                <select class="form-select form-input--sm" id="filter-station">
+                    <option value="">Tüm İstasyonlar</option>
+                    {% if stations %}
+                        {% for st in stations %}
+                            <option value="{{ st }}">{{ st }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="Istasyon-1">Istasyon-1</option>
+                        <option value="Istasyon-2">Istasyon-2</option>
+                        <option value="Istasyon-3">Istasyon-3</option>
+                        <option value="Istasyon-4">Istasyon-4</option>
+                    {% endif %}
+                </select>
             </div>
             <div class="filter-group filter-group--actions" style="display:flex; gap:8px;">
                 <button class="btn btn-primary" id="btn-filter">

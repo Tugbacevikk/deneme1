@@ -319,9 +319,31 @@ if (btnCsv) {
     });
 }
 
+function loadStationOptions() {
+    const sel = document.getElementById('filter-station');
+    if (!sel || sel.tagName !== 'SELECT') return;
+    fetch('/api/cameras/stations')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.stations && data.stations.length > 0) {
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">Tüm İstasyonlar</option>';
+                data.stations.forEach(st => {
+                    const opt = document.createElement('option');
+                    opt.value = st;
+                    opt.textContent = st;
+                    if (st === currentVal) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }
+        })
+        .catch(() => {});
+}
+
 function initReportsPage() {
     if (window._reportsPageInitialized) return;
     window._reportsPageInitialized = true;
+    loadStationOptions();
     applyDatePreset('today');
 }
 

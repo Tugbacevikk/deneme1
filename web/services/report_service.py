@@ -109,8 +109,8 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
     }
 
 
-def _build_orm_filters(start: str, end: str, istasyon: str, only_registered: bool = False, patron_id: int = None, model_cls=DurumKaydi):
-    """Tarih, istasyon, patron_id ve atanmış istasyon filtrelerini ORM koşul listesi olarak oluşturur."""
+def _build_orm_filters(start: str, end: str, istasyon: str, worker: str = '', only_registered: bool = False, patron_id: int = None, model_cls=DurumKaydi):
+    """Tarih, istasyon, çalışan, patron_id ve atanmış istasyon filtrelerini ORM koşul listesi olarak oluşturur."""
     filters = []
     zaman_str_expr = func.cast(model_cls.zaman, String)
     if start:
@@ -121,7 +121,38 @@ def _build_orm_filters(start: str, end: str, istasyon: str, only_registered: boo
         if 'VIDEO:' in istasyon.upper() or istasyon.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
             filters.append(model_cls.istasyon_adi.like(f"%{istasyon}%"))
         else:
-            filters.append(model_cls.istasyon_adi == istasyon)
+            filters.append(or_(
+                model_cls.istasyon_adi == istasyon,
+                model_cls.istasyon_adi.like(f"%{istasyon}%")
+            ))
+
+    if worker:
+        w_query = worker.strip().lower()
+        w_ids = []
+        w_stations = []
+        try:
+            with db_manager.get_session() as local_sess:
+                w_all = local_sess.scalars(select(Worker)).all()
+                for w in w_all:
+                    w_full = f"{w.ad} {w.soyad}".strip().lower()
+                    w_sicil = (w.sicil_no or '').lower()
+                    if w_query in w_full or w_query in (w.ad or '').lower() or w_query in (w.soyad or '').lower() or w_query in w_sicil or str(w.id) == w_query:
+                        w_ids.append(w.id)
+                        if w.istasyon_adi:
+                            w_stations.append(w.istasyon_adi.strip())
+        except Exception:
+            pass
+
+        w_conds = [model_cls.worker_adi.ilike(f"%{worker}%")]
+        if str(worker).isdigit():
+            w_conds.append(model_cls.worker_id == int(worker))
+        if w_ids:
+            w_conds.append(model_cls.worker_id.in_(w_ids))
+        if w_stations:
+            w_conds.append(model_cls.istasyon_adi.in_(w_stations))
+
+        filters.append(or_(*w_conds))
+
 
     if patron_id is not None:
         stations = []

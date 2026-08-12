@@ -29,7 +29,20 @@ def _get_app_config():
 @reports_bp.route('/reports')
 @login_required
 def reports():
-    return render_template('reports.html')
+    stations_set = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}
+    try:
+        with db_manager.get_session() as session_orm:
+            stmt = select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None)).distinct()
+            for s in session_orm.scalars(stmt).all():
+                if s and not s.startswith('VIDEO:') and not s.startswith('LAPTOP-') and not s.startswith('DESKTOP-'):
+                    stations_set.add(s.strip())
+            for s in session_orm.scalars(select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None)).distinct()).all():
+                if s and not s.startswith('VIDEO:'):
+                    stations_set.add(s.strip())
+    except Exception:
+        pass
+    stations = sorted(list(stations_set))
+    return render_template('reports.html', stations=stations)
 
 
 @reports_bp.route('/worker_analysis')
@@ -46,6 +59,7 @@ def api_reports_summary():
     start    = request.args.get('start', '')
     end      = request.args.get('end', '')
     istasyon = request.args.get('istasyon', '')
+    worker   = request.args.get('worker', '')
 
     config = _get_app_config()
     save_interval = config.get('save_interval', 5)
@@ -53,7 +67,8 @@ def api_reports_summary():
 
     try:
         with _get_reports_db_context(config) as (session_orm, model_cls):
-            filters = _build_orm_filters(start, end, istasyon, patron_id=patron_id, model_cls=model_cls)
+            filters = _build_orm_filters(start, end, istasyon, worker=worker, patron_id=patron_id, model_cls=model_cls)
+
 
             # Toplam Aktif Kayıt Sayısı
             stmt_aktif = select(func.count(model_cls.id)).where(model_cls.durum.like('AKT%'))
@@ -178,12 +193,8 @@ def api_reports_worker_stats():
 
     try:
         with _get_reports_db_context(config) as (session_orm, model_cls):
-            filters = _build_orm_filters(start, end, istasyon, patron_id=patron_id, model_cls=model_cls)
-            if worker:
-                filters.append(or_(
-                    model_cls.worker_id == int(worker) if str(worker).isdigit() else False,
-                    model_cls.worker_adi.like(f"%{worker}%")
-                ))
+            filters = _build_orm_filters(start, end, istasyon, worker=worker, patron_id=patron_id, model_cls=model_cls)
+
 
             default_st = config.get('station_name') or config.get('istasyon_adi') or 'Istasyon-1'
             if not default_st or default_st in ['auto', 'auto (Otomatik Bilgisayar Adı)'] or default_st.startswith('LAPTOP-') or default_st.startswith('DESKTOP-'):
