@@ -6,7 +6,7 @@ from werkzeug.security import check_password_hash
 from sqlalchemy import select
 from core.database.models import User
 from core.database.connection import db_manager
-from web.services.user_service import get_all_users, get_patrons, create_user, delete_user, assign_worker_to_patron
+from web.services.user_service import get_all_users, get_patrons, create_user, delete_user, assign_worker_to_patron, approve_user, reject_user
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -151,70 +151,39 @@ def api_patrons_assign_worker():
 @auth_bp.route('/api/users/<int:user_id>/approve', methods=['POST'])
 @admin_required
 def api_users_approve(user_id):
-    try:
-        from core.database.models import Worker
-        with db_manager.get_session() as db_session:
-            user = db_session.get(User, user_id)
-            if not user:
-                if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-                    return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
-                flash('Kullanıcı bulunamadı.', 'danger')
-                return redirect(url_for('settings.settings'))
-            
-            # Form veya JSON üzerinden atanan çalışanları oku
-            worker_ids = request.form.getlist('workers') or (request.json.get('workers') if request.is_json else [])
-            current_stations = [s.strip() for s in user.istasyonlar.split(',') if s.strip()] if user.istasyonlar else []
-            for w_id in worker_ids:
-                if str(w_id).isdigit():
-                    worker = db_session.get(Worker, int(w_id))
-                    if worker:
-                        worker.patron_id = user_id
-                        if worker.istasyon_adi and worker.istasyon_adi.strip():
-                            new_st = worker.istasyon_adi.strip()
-                            if new_st not in current_stations:
-                                current_stations.append(new_st)
-            
-            user.istasyonlar = ", ".join(current_stations) if current_stations else None
-            user.durum = 'onaylandi'
-            db_session.commit()
-            
-            if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-                return jsonify({'success': True, 'message': 'Kullanıcı başarıyla onaylandı ve çalışanlar atandı.'})
-            
-            flash(f'"{user.ad_soyad}" kullanıcısı onaylandı ve seçili çalışanlar atandı.', 'success')
-            return redirect(url_for('settings.settings'))
-    except Exception as e:
+    # Form veya JSON üzerinden atanan çalışanları oku
+    raw_workers = request.form.getlist('workers') or (request.json.get('workers') if request.is_json else [])
+    worker_ids = [int(w_id) for w_id in raw_workers if str(w_id).isdigit()]
+    
+    ok, msg = approve_user(user_id, worker_ids)
+    if not ok:
         if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash(f'Hata: {str(e)}', 'danger')
+            return jsonify({'success': False, 'message': msg}), 404
+        flash(msg, 'danger')
         return redirect(url_for('settings.settings'))
+
+    if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+        return jsonify({'success': True, 'message': msg})
+    
+    flash(msg, 'success')
+    return redirect(url_for('settings.settings'))
 
 
 @auth_bp.route('/api/users/<int:user_id>/reject', methods=['POST'])
 @admin_required
 def api_users_reject(user_id):
-    try:
-        with db_manager.get_session() as db_session:
-            user = db_session.get(User, user_id)
-            if not user:
-                if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-                    return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
-                flash('Kullanıcı bulunamadı.', 'danger')
-                return redirect(url_for('settings.settings'))
-            
-            user.durum = 'reddedildi'
-            db_session.commit()
-            
-            if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-                return jsonify({'success': True, 'message': 'Kullanıcı reddedildi.'})
-            
-            flash(f'"{user.ad_soyad}" kullanıcısının başvurusu reddedildi.', 'info')
-            return redirect(url_for('settings.settings'))
-    except Exception as e:
+    ok, msg = reject_user(user_id)
+    if not ok:
         if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash(f'Hata: {str(e)}', 'danger')
+            return jsonify({'success': False, 'message': msg}), 404
+        flash(msg, 'danger')
         return redirect(url_for('settings.settings'))
+
+    if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+        return jsonify({'success': True, 'message': msg})
+    
+    flash(msg, 'info')
+    return redirect(url_for('settings.settings'))
 
 
 @auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])

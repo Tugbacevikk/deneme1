@@ -105,3 +105,35 @@ def get_pending_users():
     with db_manager.get_session() as session:
         users = session.scalars(select(User).where(User.durum == 'bekliyor').order_by(User.id.desc())).all()
         return [u.to_dict() for u in users]
+
+
+def approve_user(user_id, worker_ids):
+    """Kullanıcıyı onaylar ve seçilen çalışanların istasyonlarını atar."""
+    with db_manager.get_session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            return False, "Kullanıcı bulunamadı."
+        
+        user.durum = 'onaylandi'
+        stations = set()
+        for w_id in worker_ids:
+            worker = session.get(Worker, w_id)
+            if worker:
+                worker.patron_id = user_id
+                if worker.istasyon_adi and worker.istasyon_adi.strip():
+                    stations.add(worker.istasyon_adi.strip())
+        
+        user.istasyonlar = ", ".join(stations) if stations else None
+        session.commit()
+        return True, f"Kullanıcı onaylandı. {len(worker_ids)} çalışan ve {len(stations)} istasyon atandı."
+
+
+def reject_user(user_id):
+    """Kullanıcı başvurusunu reddeder."""
+    with db_manager.get_session() as session:
+        user = session.get(User, user_id)
+        if not user:
+            return False, "Kullanıcı bulunamadı."
+        user.durum = 'reddedildi'
+        session.commit()
+        return True, "Kullanıcı reddedildi."
