@@ -1296,11 +1296,22 @@ a:hover {
 }
 
 .notif-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 320px;
+  max-height: 450px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  margin-top: 8px;
   overflow: hidden;
+}
+.notif-dropdown.show {
+  display: block !important;
 }
 
 .notif-header {
