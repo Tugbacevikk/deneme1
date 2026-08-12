@@ -23,6 +23,13 @@ def login():
                 user = db_session.scalars(select(User).where(User.kullanici_adi == kullanici_adi)).first()
 
             if user and check_password_hash(user.sifre_hash, sifre):
+                if user.durum == 'bekliyor':
+                    flash('Hesabınız henüz onaylanmadı.', 'warning')
+                    return render_template('login.html')
+                elif user.durum == 'reddedildi':
+                    flash('Başvurunuz reddedildi.', 'danger')
+                    return render_template('login.html')
+
                 session['user_id'] = user.id
                 session['kullanici_adi'] = user.kullanici_adi
                 session['username'] = user.kullanici_adi
