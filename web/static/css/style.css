@@ -1372,3 +1372,52 @@ a:hover {
   color: var(--text-muted);
   margin-top: 4px;
 }
+
+/* ==========================================================================
+   Accordion Panel  (cameras sayfası için)
+   ========================================================================== */
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  gap: 8px;
+}
+
+.accordion-header:hover .card-title {
+  color: var(--accent);
+  transition: color 0.2s ease;
+}
+
+.accordion-icon {
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.accordion-icon.open {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+/* ==========================================================================
+   Sticky Live Preview  (masaüstü ≥ 1024px)
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+  .preview-card-sticky {
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+  }
+}
+
