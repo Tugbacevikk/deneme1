@@ -391,6 +391,9 @@ function approveUser(id) {
                         badge.style.display = 'none';
                     }
                 }
+                if (typeof loadPendingNotifications === 'function') {
+                    loadPendingNotifications();
+                }
                 loadUsers();
             } else {
                 showToast(data.message || 'Hata oluştu', 'error');
@@ -419,6 +422,9 @@ function rejectUser(id) {
                     } else {
                         badge.style.display = 'none';
                     }
+                }
+                if (typeof loadPendingNotifications === 'function') {
+                    loadPendingNotifications();
                 }
                 loadUsers();
             } else {

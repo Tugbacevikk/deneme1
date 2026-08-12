@@ -200,6 +200,26 @@ def api_users_pending_count():
     return jsonify({'success': True, 'count': get_pending_count()})
 
 
+@auth_bp.route('/api/users/pending_notifications', methods=['GET'])
+@admin_required
+def api_users_pending_notifications():
+    from web.services.user_service import get_pending_users
+    users = get_pending_users()
+    formatted = []
+    for u in users:
+        formatted.append({
+            'id': u['id'],
+            'ad_soyad': u['ad_soyad'],
+            'firma_adi': u['firma_adi'],
+            'kayit_tarihi': u['kayit_tarihi']
+        })
+    return jsonify({
+        'success': True,
+        'count': len(users),
+        'notifications': formatted
+    })
+
+
 @auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])
 @admin_required
 def api_users_update(user_id):

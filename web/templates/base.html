@@ -121,10 +121,25 @@
                 </div>
 
                 <!-- Current Time -->
-                <div class="header-time">
+                <div class="header-time" style="margin-right:12px;">
                     <i class="fa-regular fa-clock"></i>
                     <span id="current-time">--:--:--</span>
                 </div>
+
+                {% if current_user and current_user.rol in ['admin', 'super_admin'] %}
+                <div class="notif-wrap" style="position:relative; margin-right: 12px; display:flex; align-items:center;">
+                  <button id="notif-btn" class="header-icon-btn" title="Bildirimler">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="notif-badge" class="notif-badge" style="display:none;"></span>
+                  </button>
+                  <div id="notif-dropdown" class="notif-dropdown" style="display:none; position:absolute; right:0; top:100%; width:320px; z-index:1000;">
+                    <div class="notif-header">
+                      <span>Bildirimler</span>
+                    </div>
+                    <div id="notif-list"><div class="notif-empty">Yükleniyor...</div></div>
+                  </div>
+                </div>
+                {% endif %}
 
                 <!-- User Profile & Logout -->
                 {% if current_user %}
@@ -325,6 +340,9 @@ try {
                 badge.style.display = 'none';
             }
         }
+        if (typeof loadPendingNotifications === 'function') {
+            loadPendingNotifications();
+        }
     });
 
     window._socket = socket;
@@ -345,6 +363,42 @@ fetch('/api/alarms/unread_count')
         }
     }).catch(() => {});
 
+function loadPendingNotifications() {
+    const userRole = document.body.getAttribute('data-role');
+    if (userRole === 'admin' || userRole === 'super_admin') {
+        fetch('/api/users/pending_notifications')
+            .then(r => r.json())
+            .then(data => {
+                const list = document.getElementById('notif-list');
+                const badge = document.getElementById('notif-badge');
+                if (!list) return;
+                
+                const count = data.count || 0;
+                if (badge) {
+                    if (count > 0) {
+                        badge.style.display = 'flex';
+                        badge.textContent = count > 9 ? '9+' : count;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                
+                if (count === 0) {
+                    list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>Bildirim yok</p></div>';
+                    return;
+                }
+                
+                list.innerHTML = data.notifications.map(n => `
+                    <a href="/settings" class="notif-item">
+                        <div class="notif-item-title">${n.ad_soyad}</div>
+                        <div class="notif-item-desc">${n.firma_adi || 'Firma Belirtilmemiş'} — Yeni kayıt başvurusu</div>
+                        <div class="notif-item-time">${n.kayit_tarihi || ''}</div>
+                    </a>
+                `).join('');
+            }).catch(console.error);
+    }
+}
+
 // Fetch pending users count on page load (if admin/super_admin)
 const userRole = document.body.getAttribute('data-role');
 if (userRole === 'admin' || userRole === 'super_admin') {
@@ -362,6 +416,8 @@ if (userRole === 'admin' || userRole === 'super_admin') {
                 }
             }
         }).catch(() => {});
+    
+    loadPendingNotifications();
 }
 
 // Global Toast Function
