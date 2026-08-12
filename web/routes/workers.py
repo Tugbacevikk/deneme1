@@ -2,7 +2,7 @@
 workers.py - Çalışan Rotaları (Blueprint)
 """
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-from web.services.worker_service import get_all_workers, create_worker, delete_worker, update_worker
+from web.services.worker_service import get_all_workers, create_worker, delete_worker, update_worker, toggle_worker_aktif
 
 from web.helpers import login_required
 
@@ -85,3 +85,12 @@ def api_workers_update(worker_id):
     if ok:
         return jsonify({'success': True, 'worker': res})
     return jsonify({'success': False, 'message': res}), 400
+
+
+@workers_bp.route('/api/workers/<int:worker_id>/toggle-aktif', methods=['POST'])
+@login_required
+def api_workers_toggle_aktif(worker_id):
+    ok, msg = toggle_worker_aktif(worker_id)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400

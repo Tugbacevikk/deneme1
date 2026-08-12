@@ -9,7 +9,7 @@ from core.database.connection import db_manager
 logger = logging.getLogger(__name__)
 
 
-def get_all_workers(aktif_only=True):
+def get_all_workers(aktif_only=False):
     """Tüm çalışanları döndürür."""
     with db_manager.get_session() as session:
         stmt = select(Worker)
@@ -98,3 +98,24 @@ def update_worker(worker_id, data):
 
         session.commit()
         return True, worker.to_dict()
+
+
+def toggle_worker_aktif(worker_id):
+    """Çalışanı aktif ↔ pasif arasında geçiş yapar.
+    Pasife alınırken istasyon ataması da temizlenir."""
+    with db_manager.get_session() as session:
+        worker = session.get(Worker, worker_id)
+        if not worker:
+            return False, "Çalışan bulunamadı."
+
+        yeni_durum = 0 if worker.aktif == 1 else 1
+
+        worker.aktif = yeni_durum
+        # Pasife alınırken istasyonu serbest bırak
+        if yeni_durum == 0:
+            worker.istasyon_adi = None
+
+        session.commit()
+        durum_label = "aktif" if yeni_durum == 1 else "pasif"
+        return True, f"{worker.ad} {worker.soyad} artık {durum_label}."
+

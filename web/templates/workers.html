@@ -19,10 +19,15 @@
             {{ workers|length if workers else 0 }} Çalışan Kayıtlı
         </span>
     </div>
-    <div class="top-bar-right">
-        <input type="text" class="form-input" id="worker-search" style="width:280px;"
+    <div class="top-bar-right" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <select class="form-select" id="filter-aktif" onchange="filterWorkers()" style="width:150px; padding:8px 12px; font-size:13px;">
+            <option value="hepsi">Tümü</option>
+            <option value="aktif" selected>Aktifler</option>
+            <option value="pasif">Pasifler</option>
+        </select>
+        <input type="text" class="form-input" id="worker-search" style="width:250px;"
                placeholder="Çalışan veya istasyon ara..."
-               oninput="filterWorkers(this.value)">
+               oninput="filterWorkers()">
     </div>
 </div>
 
@@ -35,7 +40,21 @@
              data-sicil="{{ worker.sicil_no|lower if worker.sicil_no else '' }}"
              data-dept="{{ worker.departman|lower if worker.departman else '' }}"
              data-station="{{ worker.istasyon_adi|lower if worker.istasyon_adi else '' }}"
-             data-id="{{ worker.id }}" style="margin-bottom:0; padding:20px;">
+             data-aktif="{{ worker.aktif if worker.aktif is not none else 1 }}"
+             data-id="{{ worker.id }}" style="margin-bottom:0; padding:20px; position:relative;">
+
+            <!-- Aktif/Pasif köşe rozeti -->
+            <div style="position:absolute; top:12px; right:12px;">
+                {% if worker.aktif == 0 %}
+                <span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600;">
+                    <i class="fa-solid fa-circle-xmark"></i> Pasif
+                </span>
+                {% else %}
+                <span style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600;">
+                    <i class="fa-solid fa-circle-check"></i> Aktif
+                </span>
+                {% endif %}
+            </div>
 
             <div style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px;">
                 <div style="width:70px; height:70px; border-radius:50%; background:var(--accent-light, #e0e7ff); color:var(--accent, #4f46e5); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:24px; border:2px solid var(--accent);">
@@ -72,8 +91,27 @@
                             data-sicil="{{ worker.sicil_no|default('') }}"
                             data-dept="{{ worker.departman|default('') }}"
                             data-station="{{ worker.istasyon_adi|default('') }}">
-                        <i class="fa-solid fa-pen"></i> Düzenle / İstasyon Değiştir
+                        <i class="fa-solid fa-pen"></i> Düzenle
                     </button>
+                    {% if worker.aktif == 0 %}
+                    <button class="btn" style="padding:8px 12px; font-size:13px; background:#16a34a; color:#fff; border:none; border-radius:8px; cursor:pointer;"
+                            onclick="toggleAktif(this)"
+                            data-id="{{ worker.id }}"
+                            data-name="{{ worker.ad }} {{ worker.soyad }}"
+                            data-aktif="0"
+                            title="Aktife Al">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </button>
+                    {% else %}
+                    <button class="btn" style="padding:8px 12px; font-size:13px; background:#f59e0b; color:#fff; border:none; border-radius:8px; cursor:pointer;"
+                            onclick="toggleAktif(this)"
+                            data-id="{{ worker.id }}"
+                            data-name="{{ worker.ad }} {{ worker.soyad }}"
+                            data-aktif="1"
+                            title="Pasife Al">
+                        <i class="fa-solid fa-circle-pause"></i>
+                    </button>
+                    {% endif %}
                     <button class="btn btn-danger" style="padding:8px 12px; font-size:13px;"
                             onclick="deleteWorker(this)"
                             data-id="{{ worker.id }}"
@@ -267,20 +305,45 @@ function deleteWorker(btn) {
     });
 }
 
-function filterWorkers(query) {
-    const q = query.toLowerCase().trim();
+function filterWorkers() {
+    const q = document.getElementById('worker-search').value.toLowerCase().trim();
+    const aktifFilter = document.getElementById('filter-aktif').value;
     const cards = document.querySelectorAll('.worker-card');
     cards.forEach(card => {
         const name = card.dataset.name || '';
         const sicil = card.dataset.sicil || '';
         const dept = card.dataset.dept || '';
         const station = card.dataset.station || '';
-        if (name.includes(q) || sicil.includes(q) || dept.includes(q) || station.includes(q)) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
-        }
+        const aktif = card.dataset.aktif;
+
+        const textMatch = !q || name.includes(q) || sicil.includes(q) || dept.includes(q) || station.includes(q);
+        const aktifMatch =
+            aktifFilter === 'hepsi' ||
+            (aktifFilter === 'aktif' && aktif !== '0') ||
+            (aktifFilter === 'pasif' && aktif === '0');
+
+        card.style.display = (textMatch && aktifMatch) ? 'block' : 'none';
     });
+}
+
+function toggleAktif(btn) {
+    const id = btn.dataset.id;
+    const name = btn.dataset.name;
+    const aktif = btn.dataset.aktif;
+    const eylem = aktif === '1' ? 'pasife almak' : 'aktife almak';
+    if (!confirm(`${name} isimli çalışanı ${eylem} istediğinize emin misiniz?`)) return;
+
+    fetch(`/api/workers/${id}/toggle-aktif`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 700);
+        } else {
+            showToast(data.message || 'İşlem başarısız.', 'error');
+        }
+    })
+    .catch(err => showToast('Sunucu hatası: ' + err, 'error'));
 }
 </script>
 {% endblock %}
