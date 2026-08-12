@@ -21,39 +21,42 @@
                     <h2 class="card-title">Kamera Seçimi ve Kontrol</h2>
                 </div>
                 <button class="btn btn--outline btn--sm" id="btn-scan">
-                    <i class="fa-solid fa-magnifying-glass"></i> Kameraları Tara
+                    <i class="fa-solid fa-magnifying-glass"></i> Tara
                 </button>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="padding-top:12px; padding-bottom:14px;">
 
-                <!-- Adim Rehberi -->
-                <div class="adim-sirasi">
-                    <div class="adim">
-                        <span class="adim-no">1</span>
-                        <span>Aşağıdaki listeden bir kamera seçin veya <strong>Kameraları Tara</strong> butonuna basın</span>
-                    </div>
-                    <div class="adim">
-                        <span class="adim-no">2</span>
-                        <span><strong>Kamerayı Başlat</strong> butonuna basarak canlı yayını açın</span>
-                    </div>
-                    <div class="adim">
-                        <span class="adim-no">3</span>
-                        <span><strong>Canlı Önizleme</strong> ekranından yayını ve ROI alanını takip edin</span>
-                    </div>
+                <!-- Adim Rehberi - kompakt -->
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+                    <span style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                        <span style="width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                        Kamera seç
+                    </span>
+                    <i class="fa-solid fa-arrow-right" style="font-size:10px; color:var(--text-muted);"></i>
+                    <span style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                        <span style="width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                        Başlat
+                    </span>
+                    <i class="fa-solid fa-arrow-right" style="font-size:10px; color:var(--text-muted);"></i>
+                    <span style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                        <span style="width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>
+                        ROI ayarla
+                    </span>
                 </div>
 
                 <!-- Camera List -->
-                <div class="camera-list" id="camera-list">
+                <div class="camera-list" id="camera-list" style="gap:6px; margin-top:0; margin-bottom:10px;">
                     {% if cameras and cameras|length > 0 %}
                         {% for cam in cameras %}
                         <div class="camera-item {% if loop.first %}camera-item--selected{% endif %}"
+                             style="padding:8px 12px;"
                              data-cam-id="{{ cam.id }}"
                              onclick="selectCamera(this)">
-                            <div class="cam-item-icon">
+                            <div class="cam-item-icon" style="width:30px;height:30px;font-size:13px;">
                                 <i class="fa-solid fa-video"></i>
                             </div>
                             <div class="cam-item-info">
-                                <span class="cam-item-name">{{ cam.name }}</span>
+                                <span class="cam-item-name" style="font-size:13px;">{{ cam.name }}</span>
                                 <span class="cam-item-sub">ID: {{ cam.id }}</span>
                             </div>
                             <span class="cam-status-dot {% if cam.active %}cam-dot--active{% else %}cam-dot--idle{% endif %}"
@@ -65,40 +68,32 @@
                         <div class="empty-state empty-state--sm" id="no-cameras-msg">
                             <i class="fa-solid fa-video-slash"></i>
                             <p>Sistemde aktif kamera bulunamadı</p>
-                            <small>Kameraları taramak için aşağıdaki butonu kullanın</small>
+                            <small>Kameraları taramak için yukarıdaki butonu kullanın</small>
                         </div>
                     {% endif %}
                 </div>
 
-                <!-- Selected Camera Info -->
-                <div class="selected-cam-info" id="selected-cam-info">
-                    <div class="info-row">
-                        <span class="info-key"><i class="fa-solid fa-hashtag"></i> Seçili Kamera</span>
-                        <span class="info-val" id="sel-cam-id">—</span>
+                <!-- Seçili Kamera Bilgi + Butonlar -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:8px 12px; margin-bottom:10px;">
+                    <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:2px;">
+                        <span><i class="fa-solid fa-hashtag" style="width:12px;"></i> <span id="sel-cam-id">—</span></span>
+                        <span><i class="fa-solid fa-circle" style="width:12px;"></i> <span id="sel-cam-status">Pasif</span></span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-key"><i class="fa-solid fa-circle"></i> Durum</span>
-                        <span class="info-val" id="sel-cam-status">Pasif</span>
+                    <div id="cam-current-status">
+                        <div class="status-pill status-pill--idle" style="padding:4px 10px; font-size:11px;">
+                            <span class="status-pill-dot"></span>
+                            <span id="cam-status-text">Pasif</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="btn-group mt-3" style="display:flex; flex-direction:column; gap:10px;">
-                    <button class="btn-full-tr yesil" id="btn-cam-start">
-                        <i class="fa-solid fa-circle-play"></i>
-                        Kamerayı Baslat
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-full-tr yesil" id="btn-cam-start" style="padding:9px 14px; font-size:13px; flex:1;">
+                        <i class="fa-solid fa-circle-play"></i> Başlat
                     </button>
-                    <button class="btn-full-tr kirmizi" id="btn-cam-stop">
-                        <i class="fa-solid fa-circle-stop"></i>
-                        Kamerayı Durdur
+                    <button class="btn-full-tr kirmizi" id="btn-cam-stop" style="padding:9px 14px; font-size:13px; flex:1;">
+                        <i class="fa-solid fa-circle-stop"></i> Durdur
                     </button>
-                </div>
-
-                <!-- Current Status Display -->
-                <div class="cam-current-status mt-3" id="cam-current-status">
-                    <div class="status-pill status-pill--idle">
-                        <span class="status-pill-dot"></span>
-                        <span id="cam-status-text">Kamera Pasif</span>
-                    </div>
                 </div>
 
             </div>

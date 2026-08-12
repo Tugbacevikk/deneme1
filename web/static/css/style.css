@@ -1421,3 +1421,43 @@ a:hover {
   }
 }
 
+/* ==========================================================================
+   Cameras Page – İki Sütunlu Layout + Sol Sütun Sticky
+   ========================================================================== */
+
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .col-left {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+  }
+}
+
+@media (max-width: 1023px) {
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
