@@ -116,6 +116,14 @@ a:hover {
 /* --- Cameras: İki Kolon Yan Yana --- */
 .two-col-layout {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Kameraya özel iki kolon: sol geniş (kamera), sağ dar (ayarlar) */
+.cameras-two-col {
+  display: grid;
   grid-template-columns: 3fr 2fr;
   gap: 24px;
   align-items: start;
@@ -139,7 +147,8 @@ a:hover {
 }
 
 @media (max-width: 1023px) {
-  .two-col-layout {
+  .two-col-layout,
+  .cameras-two-col {
     grid-template-columns: 1fr;
   }
   .cameras-sticky-wrap {
