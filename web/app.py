@@ -77,6 +77,8 @@ from sqlalchemy import select, delete, func, case, and_, or_, desc, String
 from core.database.models import Worker, DurumKaydi, Alarm, User, Camera
 from core.database.connection import db_manager
 from core.camera_manager import CameraProcessor
+from web.helpers import login_required, admin_required
+
 
 try:
     from pg_sync import SenkronThread, veritabanlarini_temizle
@@ -347,6 +349,7 @@ def inject_user():
 
 @app.route('/api/video_feed')
 @app.route('/video_feed')
+@login_required
 def video_feed():
     return Response(
         generate_frames(),
@@ -355,6 +358,7 @@ def video_feed():
 
 
 @app.route('/api/cameras/is_local/<int:cam_id>')
+@login_required
 def api_is_local_camera(cam_id):
     """Bu kamera ID'si yerel makineye ait mi? Sadece istasyon adı eşleşmesine göre karar verilir."""
     try:
@@ -375,12 +379,14 @@ def api_is_local_camera(cam_id):
 
 @app.route('/api/camera/status', methods=['GET'])
 @app.route('/api/status', methods=['GET'])
+@login_required
 def api_status():
     return jsonify(_get_current_status())
 
 
 @app.route('/api/system/info', methods=['GET'])
 @app.route('/api/system_info', methods=['GET'])
+@login_required
 def api_system_info():
     try:
         import platform
@@ -426,6 +432,7 @@ def api_system_info():
 
 
 @app.route('/api/database/cleanup', methods=['POST'])
+@admin_required
 def api_database_cleanup():
     """Manuel veritabanı temizliği tetikler."""
     if veritabanlarini_temizle is None:
@@ -454,6 +461,7 @@ def api_database_cleanup():
 
 @app.route('/api/camera/list', methods=['GET'])
 @app.route('/api/cameras/scan', methods=['GET'])
+@login_required
 def api_scan_cameras():
     cam_list = scan_cameras()
     return jsonify({'cameras': cam_list, 'camera_list': cam_list})
@@ -463,6 +471,7 @@ UPLOAD_VIDEO_DIR = BASE_DIR / 'web' / 'static' / 'uploads' / 'videos'
 UPLOAD_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 @app.route('/api/video/upload', methods=['POST'])
+@admin_required
 def api_upload_video():
     if 'video' not in request.files:
         return jsonify({'success': False, 'error': 'Video dosyası bulunamadı.'}), 400
@@ -497,6 +506,7 @@ def api_upload_video():
 
 
 @app.route('/api/video/list', methods=['GET'])
+@login_required
 def api_list_videos():
     videos = []
     if UPLOAD_VIDEO_DIR.exists():
@@ -511,6 +521,7 @@ def api_list_videos():
 
 
 @app.route('/api/video/delete', methods=['POST', 'DELETE'])
+@admin_required
 def api_delete_video():
     data = request.get_json() or {}
     filename = data.get('filename') or data.get('video_path')
@@ -540,6 +551,7 @@ def api_delete_video():
 @app.route('/api/camera/start', methods=['POST'])
 @app.route('/api/cameras/start', methods=['POST'])
 @app.route('/api/video/start', methods=['POST'])
+@login_required
 def api_start_camera():
     data = request.get_json() or {}
     source_type = data.get('source_type', 'camera')
@@ -605,10 +617,12 @@ def api_start_camera():
 
 @app.route('/api/camera/stop', methods=['POST'])
 @app.route('/api/cameras/stop', methods=['POST'])
+@login_required
 def api_stop_camera():
     if ext.camera_processor is not None:
         ext.camera_processor.stop_camera()
     return jsonify({'success': True, 'message': 'Kamera durduruldu.'})
+
 
 def load_config() -> dict:
     """config.yaml dosyasını okur, yoksa varsayılanı yazar."""
