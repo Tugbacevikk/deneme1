@@ -241,6 +241,7 @@
                                 <th>Firma / Fabrika</th>
                                 <th>Atanan İstasyonlar</th>
                                 <th>Rol / Yetki</th>
+                                <th>Durum</th>
                                 <th>İşlem</th>
                             </tr>
                         </thead>
@@ -258,13 +259,32 @@
                                         </span>
                                     </td>
                                     <td>
+                                        {% if u.durum == 'bekliyor' %}
+                                            <span class="status-badge yok" style="background:#FEF3C7; color:#D97706; border:1px solid #FDE68A;">Bekliyor</span>
+                                        {% elif u.durum == 'reddedildi' %}
+                                            <span class="status-badge inaktif">Reddedildi</span>
+                                        {% else %}
+                                            <span class="status-badge aktif">Onaylandı</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         {% if u.kullanici_adi != 'admin' %}
-                                        <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;"
-                                                onclick="deleteUser(this)"
-                                                data-id="{{ u.id }}"
-                                                data-name="{{ u.kullanici_adi }}">
-                                            <i class="fa-solid fa-trash"></i> Sil
-                                        </button>
+                                            {% if u.durum == 'bekliyor' %}
+                                            <button class="btn btn-success" style="padding:4px 8px; font-size:12px; margin-right:4px;"
+                                                    onclick="approveUser({{ u.id }})">
+                                                <i class="fa-solid fa-check"></i> Onayla
+                                            </button>
+                                            <button class="btn btn-warning" style="padding:4px 8px; font-size:12px; margin-right:4px; color:#fff;"
+                                                    onclick="rejectUser({{ u.id }})">
+                                                <i class="fa-solid fa-xmark"></i> Reddet
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;"
+                                                    onclick="deleteUser(this)"
+                                                    data-id="{{ u.id }}"
+                                                    data-name="{{ u.kullanici_adi }}">
+                                                <i class="fa-solid fa-trash"></i> Sil
+                                            </button>
                                         {% else %}
                                         <span style="font-size:11px; color:var(--text-muted);">Ana Sistem Hesabı</span>
                                         {% endif %}
@@ -273,7 +293,7 @@
                                 {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="5" style="text-align:center; padding:15px; color:var(--text-secondary);">
+                                <td colspan="7" style="text-align:center; padding:15px; color:var(--text-secondary);">
                                     Kullanıcı bulunamadı.
                                 </td>
                             </tr>

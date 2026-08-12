@@ -146,3 +146,33 @@ def api_patrons_assign_worker():
     if ok:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
+
+
+@auth_bp.route('/api/users/<int:user_id>/approve', methods=['POST'])
+@admin_required
+def api_users_approve(user_id):
+    try:
+        with db_manager.get_session() as db_session:
+            user = db_session.get(User, user_id)
+            if not user:
+                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+            user.durum = 'onaylandi'
+            db_session.commit()
+            return jsonify({'success': True, 'message': 'Kullanıcı başarıyla onaylandı.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@auth_bp.route('/api/users/<int:user_id>/reject', methods=['POST'])
+@admin_required
+def api_users_reject(user_id):
+    try:
+        with db_manager.get_session() as db_session:
+            user = db_session.get(User, user_id)
+            if not user:
+                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+            user.durum = 'reddedildi'
+            db_session.commit()
+            return jsonify({'success': True, 'message': 'Kullanıcı reddedildi.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

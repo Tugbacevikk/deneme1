@@ -103,7 +103,7 @@ function loadUsers() {
         .then(data => {
             const users = Array.isArray(data) ? data : (data.users || data.data || []);
             if (!users.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--text-secondary);">Kullanıcı bulunamadı.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-secondary);">Kullanıcı bulunamadı.</td></tr>';
                 return;
             }
 
@@ -113,8 +113,33 @@ function loadUsers() {
                 const roleBadgeClass = isSuper ? 'aktif' : (isPatron ? 'inaktif' : 'tolerans');
                 const roleLabel = isSuper ? 'Süper Admin' : (isPatron ? 'Patron' : 'Operatör');
                 const stStr = u.istasyonlar || (isSuper ? 'Tüm Fabrika' : 'Atanmadı');
+
+                let statusBadge = '';
+                if (u.durum === 'bekliyor') {
+                    statusBadge = `<span class="status-badge yok" style="background:#FEF3C7; color:#D97706; border:1px solid #FDE68A;">Bekliyor</span>`;
+                } else if (u.durum === 'reddedildi') {
+                    statusBadge = `<span class="status-badge inaktif">Reddedildi</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge aktif">Onaylandı</span>`;
+                }
+
+                let approveRejectBtns = '';
+                if (u.durum === 'bekliyor') {
+                    approveRejectBtns = `
+                        <button class="btn btn-success" style="padding:4px 8px; font-size:12px; margin-right:4px;"
+                            onclick="approveUser(${u.id})">
+                            <i class="fa-solid fa-check"></i> Onayla
+                        </button>
+                        <button class="btn btn-warning" style="padding:4px 8px; font-size:12px; margin-right:4px; color:#fff;"
+                            onclick="rejectUser(${u.id})">
+                            <i class="fa-solid fa-xmark"></i> Reddet
+                        </button>
+                    `;
+                }
+
                 const editBtn = u.kullanici_adi !== 'admin'
-                    ? `<div style="display:flex;gap:6px;">
+                    ? `<div style="display:flex;gap:6px;align-items:center;">
+                           ${approveRejectBtns}
                            <button class="btn btn--outline btn--sm" style="padding:4px 8px;font-size:12px;"
                                data-uid="${u.id}"
                                data-uname="${(u.kullanici_adi||'').replace(/"/g,'&quot;')}"
@@ -138,6 +163,7 @@ function loadUsers() {
                         <td>${u.firma_adi || 'Fabrika'}</td>
                         <td><span class="badge badge--outline" style="font-size:11px;"><i class="fa-solid fa-industry"></i> ${stStr}</span></td>
                         <td><span class="status-badge ${roleBadgeClass}">${roleLabel}</span></td>
+                        <td>${statusBadge}</td>
                         <td>${editBtn}</td>
                     </tr>
                 `;
@@ -145,7 +171,7 @@ function loadUsers() {
         })
         .catch(err => {
             console.error('Kullanıcı yükleme hatası:', err);
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px; color:var(--red);">Kullanıcı listesi yüklenemedi. (Yönetici girişi gereklidir)</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--red);">Kullanıcı listesi yüklenemedi. (Yönetici girişi gereklidir)</td></tr>';
         });
 }
 
@@ -338,6 +364,36 @@ function saveEditUser() {
         btn.disabled = false;
         btn.innerHTML = origHTML;
     });
+}
+
+function approveUser(id) {
+    if (!confirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?')) return;
+    fetch(`/api/users/${id}/approve`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Kullanıcı onaylandı', 'success');
+                loadUsers();
+            } else {
+                showToast(data.message || 'Hata oluştu', 'error');
+            }
+        })
+        .catch(() => showToast('Bağlantı hatası', 'error'));
+}
+
+function rejectUser(id) {
+    if (!confirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?')) return;
+    fetch(`/api/users/${id}/reject`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Kullanıcı reddedildi', 'success');
+                loadUsers();
+            } else {
+                showToast(data.message || 'Hata oluştu', 'error');
+            }
+        })
+        .catch(() => showToast('Bağlantı hatası', 'error'));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
