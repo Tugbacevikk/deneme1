@@ -113,28 +113,26 @@ a:hover {
   min-height: 100vh;
 }
 
-/* --- Cameras: İki Kolon Yan Yana --- */
-.two-col-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-/* Kameraya özel iki kolon: sol geniş (kamera), sağ dar (ayarlar) */
+/* --- Cameras sayfası: İki Kolon Yan Yana (3:2 oran) --- */
 .cameras-two-col {
   display: grid;
   grid-template-columns: 3fr 2fr;
   gap: 24px;
   align-items: start;
+  width: 100%;
 }
 
-.col-left,
-.col-right {
+.cameras-two-col .col-left,
+.cameras-two-col .col-right {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   min-width: 0;
+}
+
+/* Grid içindeki card'larda margin-bottom'u sil (gap halleder) */
+.cameras-two-col .card {
+  margin-bottom: 0;
 }
 
 /* Kamera kartları sticky wrapper: scroll edilince ekranda kalır */
@@ -143,11 +141,15 @@ a:hover {
   top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+}
+
+/* Sağ sutun accordion kartlarında da margin-bottom olmasın */
+.cameras-two-col .col-right .card {
+  margin-bottom: 0;
 }
 
 @media (max-width: 1023px) {
-  .two-col-layout,
   .cameras-two-col {
     grid-template-columns: 1fr;
   }
