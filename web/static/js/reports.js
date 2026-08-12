@@ -328,6 +328,35 @@ if (btnPdf) {
     });
 }
 
+// Mail Gönder
+const btnMailSend = document.getElementById('btn-mail-send');
+if (btnMailSend) {
+    btnMailSend.addEventListener('click', async () => {
+        const mailInput = document.getElementById('mail-input');
+        const email = mailInput ? mailInput.value.trim() : '';
+        if (!email) { showToast('E-posta adresi girin', 'error'); return; }
+        btnMailSend.disabled = true;
+        const elStart = document.getElementById('filter-start').value;
+        const elEnd = document.getElementById('filter-end').value;
+        const elStation = document.getElementById('filter-station').value;
+        const elWorker = document.getElementById('filter-worker').value;
+        try {
+            const res = await fetch('/api/reports/email_pdf', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, start: elStart, end: elEnd, istasyon: elStation, worker: elWorker})
+            });
+            const result = await res.json();
+            showToast(result.message, result.success ? 'success' : 'error');
+        } catch (e) {
+            showToast('Sunucu bağlantı hatası', 'error');
+        } finally {
+            btnMailSend.disabled = false;
+        }
+    });
+}
+
+
 
 function loadStationOptions() {
     const sel = document.getElementById('filter-station');

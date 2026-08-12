@@ -247,21 +247,14 @@ def _get_pdf_font():
     return 'Helvetica', 'Helvetica-Bold'
 
 
-@reports_bp.route('/api/reports/export_pdf', methods=['GET'])
-@login_required
-def api_reports_export_pdf():
+def _generate_report_pdf(start='', end='', istasyon='', worker='', patron_id=None) -> bytes:
+    """Rapor verilerini PDF (bytes) formatında üretir."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     import io
-
-    start = request.args.get('start', '')
-    end = request.args.get('end', '')
-    istasyon = request.args.get('istasyon', '')
-    worker = request.args.get('worker', '')
-    patron_id, is_super = get_current_patron_id()
 
     from web.services.report_service import get_worker_stats_rows
     rows = get_worker_stats_rows(start, end, istasyon, worker, patron_id)
@@ -319,10 +312,53 @@ def api_reports_export_pdf():
     elements.append(t)
     doc.build(elements)
     buffer.seek(0)
+    return buffer.getvalue()
+
+
+@reports_bp.route('/api/reports/export_pdf', methods=['GET'])
+@login_required
+def api_reports_export_pdf():
+    import io
+    start = request.args.get('start', '')
+    end = request.args.get('end', '')
+    istasyon = request.args.get('istasyon', '')
+    worker = request.args.get('worker', '')
+    patron_id, is_super = get_current_patron_id()
+
+    pdf_bytes = _generate_report_pdf(start, end, istasyon, worker, patron_id)
+    buffer = io.BytesIO(pdf_bytes)
 
     from flask import send_file
     filename = f"calisan_raporu_{start or 'tum'}_{end or 'zamanlar'}.pdf"
     return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+
+@reports_bp.route('/api/reports/email_pdf', methods=['POST'])
+@login_required
+def api_reports_email_pdf():
+    data = request.get_json() or {}
+    to_email = data.get('email', '').strip()
+    if not to_email or '@' not in to_email:
+        return jsonify({'success': False, 'message': 'Geçerli bir e-posta adresi girin.'}), 400
+
+    start = data.get('start', '')
+    end = data.get('end', '')
+    istasyon = data.get('istasyon', '')
+    worker = data.get('worker', '')
+    patron_id, is_super = get_current_patron_id()
+
+    pdf_bytes = _generate_report_pdf(start, end, istasyon, worker, patron_id)
+    filename = f"calisan_raporu_{start or 'tum'}_{end or 'zamanlar'}.pdf"
+    tarih_araligi = f"{start or 'başlangıç'} — {end or 'bitiş'}"
+
+    from web.services.mail_service import send_pdf_report
+    ok, msg = send_pdf_report(
+        to_email, pdf_bytes, filename,
+        subject=f"Çalışan Raporu ({tarih_araligi})",
+        body=f"Ekte {tarih_araligi} tarih aralığına ait çalışan raporu yer almaktadır."
+    )
+    return jsonify({'success': ok, 'message': msg}), (200 if ok else 500)
+
 
 
 
