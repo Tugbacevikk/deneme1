@@ -125,11 +125,12 @@ function renderCameraGrid(cameras) {
 function toggleZoomCard(id) {
     const card = document.getElementById(`cam-card-${id}`);
     if (!card) return;
+    const feedWrap = document.getElementById(`feed-wrap-${id}`) || card.querySelector('div[style*="height"]') || card.querySelector('div');
     if (card.classList.contains('zoomed')) {
         card.classList.remove('zoomed');
         card.style.position = 'static';
         card.style.zIndex = '1';
-        card.querySelector('div[style*="height:240px"]').style.height = '240px';
+        if (feedWrap) feedWrap.style.height = '240px';
     } else {
         card.classList.add('zoomed');
         card.style.position = 'fixed';
@@ -138,7 +139,7 @@ function toggleZoomCard(id) {
         card.style.width = 'calc(100% - 40px)';
         card.style.height = 'calc(100% - 40px)';
         card.style.zIndex = '10000';
-        card.querySelector('div[style*="height:240px"]').style.height = 'calc(100% - 100px)';
+        if (feedWrap) feedWrap.style.height = 'calc(100% - 100px)';
     }
 }
 
