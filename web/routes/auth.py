@@ -79,6 +79,9 @@ def register():
             durum='bekliyor'
         )
         if ok:
+            from web.extensions import socketio
+            from web.services.user_service import get_pending_count
+            socketio.emit('new_pending_user', {'count': get_pending_count(), 'ad_soyad': ad_soyad})
             flash('Kaydınız alındı, onay bekleniyor.', 'success')
             return redirect(url_for('auth.login'))
         else:
@@ -162,8 +165,9 @@ def api_users_approve(user_id):
         flash(msg, 'danger')
         return redirect(url_for('settings.settings'))
 
+    from web.services.user_service import get_pending_count
     if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'pending_count': get_pending_count()})
     
     flash(msg, 'success')
     return redirect(url_for('settings.settings'))
@@ -179,11 +183,19 @@ def api_users_reject(user_id):
         flash(msg, 'danger')
         return redirect(url_for('settings.settings'))
 
+    from web.services.user_service import get_pending_count
     if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'pending_count': get_pending_count()})
     
     flash(msg, 'info')
     return redirect(url_for('settings.settings'))
+
+
+@auth_bp.route('/api/users/pending_count', methods=['GET'])
+@admin_required
+def api_users_pending_count():
+    from web.services.user_service import get_pending_count
+    return jsonify({'success': True, 'count': get_pending_count()})
 
 
 @auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])

@@ -19,7 +19,7 @@
 
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body data-role="{{ session.get('role') }}">
 
 <div class="layout">
 
@@ -74,7 +74,12 @@
             <span class="nav-section-label">SİSTEM</span>
 
             <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
-                <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
+                <span class="nav-icon" style="position:relative;">
+                    <i class="fa-solid fa-gear"></i>
+                    {% if session.get('role') in ['admin', 'super_admin'] %}
+                    <span id="pending-user-badge" class="badge" style="display:none; position:absolute; top:-6px; right:-8px; background:#e11d48; color:#fff; border-radius:10px; padding:2px 6px; font-size:9px; font-weight:700; line-height:1; min-width:16px; justify-content:center; align-items:center;"></span>
+                    {% endif %}
+                </span>
                 <span class="nav-label">Ayarlar</span>
                 <span class="nav-indicator"></span>
             </a>
@@ -310,6 +315,18 @@ try {
         }
     });
 
+    socket.on('new_pending_user', function(data) {
+        const badge = document.getElementById('pending-user-badge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.style.display = 'inline-flex';
+                badge.textContent = data.count > 9 ? '9+' : data.count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    });
+
     window._socket = socket;
 } catch(e) {
     console.warn('Socket.IO başlatılamadı:', e);
@@ -327,6 +344,25 @@ fetch('/api/alarms/unread_count')
             if (notifBdg) { notifBdg.style.display = 'flex'; notifBdg.textContent = count > 9 ? '9+' : count; }
         }
     }).catch(() => {});
+
+// Fetch pending users count on page load (if admin/super_admin)
+const userRole = document.body.getAttribute('data-role');
+if (userRole === 'admin' || userRole === 'super_admin') {
+    fetch('/api/users/pending_count')
+        .then(r => r.json())
+        .then(data => {
+            const count = data.count || 0;
+            const badge = document.getElementById('pending-user-badge');
+            if (badge) {
+                if (count > 0) {
+                    badge.style.display = 'inline-flex';
+                    badge.textContent = count > 9 ? '9+' : count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }).catch(() => {});
+}
 
 // Global Toast Function
 window.showToast = function(message, type = 'info', duration = 4000) {

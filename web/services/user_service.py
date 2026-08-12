@@ -3,7 +3,7 @@ user_service.py - Kullanıcı, Patron ve Yetki Yönetim Servisi
 """
 import logging
 from flask import session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from werkzeug.security import generate_password_hash
 from core.database.models import User, Worker
 from core.database.connection import db_manager
@@ -116,3 +116,9 @@ def reject_user(user_id):
         user.durum = 'reddedildi'
         session.commit()
         return True, "Kullanıcı reddedildi."
+
+
+def get_pending_count():
+    """durum='bekliyor' olan User sayısını döndürür."""
+    with db_manager.get_session() as session:
+        return session.scalar(select(func.count(User.id)).where(User.durum == 'bekliyor')) or 0

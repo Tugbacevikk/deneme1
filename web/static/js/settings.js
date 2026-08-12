@@ -381,6 +381,16 @@ function approveUser(id) {
         .then(data => {
             if (data.success) {
                 showToast(data.message || 'Kullanıcı onaylandı', 'success');
+                const badge = document.getElementById('pending-user-badge');
+                if (badge) {
+                    const count = data.pending_count || 0;
+                    if (count > 0) {
+                        badge.style.display = 'inline-flex';
+                        badge.textContent = count > 9 ? '9+' : count;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
                 loadUsers();
             } else {
                 showToast(data.message || 'Hata oluştu', 'error');
@@ -400,6 +410,16 @@ function rejectUser(id) {
         .then(data => {
             if (data.success) {
                 showToast(data.message || 'Kullanıcı reddedildi', 'success');
+                const badge = document.getElementById('pending-user-badge');
+                if (badge) {
+                    const count = data.pending_count || 0;
+                    if (count > 0) {
+                        badge.style.display = 'inline-flex';
+                        badge.textContent = count > 9 ? '9+' : count;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
                 loadUsers();
             } else {
                 showToast(data.message || 'Hata oluştu', 'error');
