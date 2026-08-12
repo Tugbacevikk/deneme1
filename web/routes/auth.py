@@ -176,3 +176,33 @@ def api_users_reject(user_id):
             return jsonify({'success': True, 'message': 'Kullanıcı reddedildi.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])
+@admin_required
+def api_users_update(user_id):
+    data = request.get_json() or request.form
+    ad_soyad = data.get('ad_soyad') or data.get('fullname')
+    rol = data.get('rol') or data.get('role')
+    sifre = data.get('sifre') or data.get('password')
+    istasyonlar = data.get('istasyonlar') or data.get('stations')
+
+    if not ad_soyad or not rol:
+        return jsonify({'success': False, 'message': 'Ad Soyad ve Rol alanları zorunludur.'}), 400
+
+    try:
+        with db_manager.get_session() as db_session:
+            user = db_session.get(User, user_id)
+            if not user:
+                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+            
+            user.ad_soyad = ad_soyad
+            user.rol = rol
+            user.istasyonlar = istasyonlar
+            if sifre and sifre.strip():
+                user.sifre_hash = generate_password_hash(sifre)
+            
+            db_session.commit()
+            return jsonify({'success': True, 'message': 'Kullanıcı bilgileri başarıyla güncellendi.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
