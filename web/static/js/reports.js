@@ -267,41 +267,66 @@ function fetchAll() {
     fetchWorkerStats(params);
 }
 
-document.getElementById('btn-filter').addEventListener('click', fetchAll);
-document.getElementById('btn-reset-filter').addEventListener('click', () => {
-    document.getElementById('filter-worker').value = '';
-    document.getElementById('filter-station').value = '';
-    initDates();
-    fetchAll();
+// Global click event delegation for preset chips
+document.addEventListener('click', function(e) {
+    const chip = e.target.closest('.btn-chip');
+    if (chip && chip.dataset.preset) {
+        applyDatePreset(chip.dataset.preset);
+    }
 });
+
+const btnFilter = document.getElementById('btn-filter');
+if (btnFilter) {
+    btnFilter.addEventListener('click', () => {
+        document.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('active'));
+        fetchAll();
+    });
+}
+
+const btnResetFilter = document.getElementById('btn-reset-filter');
+if (btnResetFilter) {
+    btnResetFilter.addEventListener('click', () => {
+        const elWorker = document.getElementById('filter-worker');
+        const elStation = document.getElementById('filter-station');
+        if (elWorker) elWorker.value = '';
+        if (elStation) elStation.value = '';
+        applyDatePreset('today');
+    });
+}
 
 // CSV İndir
-document.getElementById('btn-csv').addEventListener('click', () => {
-    if (!workerStatsData.length) {
-        showToast('İndirilecek veri bulunamadı', 'warning');
-        return;
-    }
+const btnCsv = document.getElementById('btn-csv');
+if (btnCsv) {
+    btnCsv.addEventListener('click', () => {
+        if (!workerStatsData.length) {
+            showToast('İndirilecek veri bulunamadı', 'warning');
+            return;
+        }
 
-    let csv = "\uFEFF=== ÇALIŞAN GÜNLÜK MESAİ VE ÇALIŞMA SÜRELERİ ÖZETİ ===\n";
-    csv += "Tarih,Çalışan Adı,Vardiya Başı (İlk Görülme),Vardiya Bitişi (Son Görülme),Aktif Çalışma Süresi,Hareketsiz Süre,Verimlilik Oranı (%)\n";
-    workerStatsData.forEach(w => {
-        csv += `"${w.tarih_fmt || w.tarih}","${w.worker_adi}","${w.ilk_gorulme}","${w.son_gorulme}","${w.aktif_sure_fmt}","${w.inaktif_sure_fmt}","%${w.aktif_oran}"\n`;
+        let csv = "\uFEFF=== ÇALIŞAN GÜNLÜK MESAİ VE ÇALIŞMA SÜRELERİ ÖZETİ ===\n";
+        csv += "Tarih,Çalışan Adı,Vardiya Başı (İlk Görülme),Vardiya Bitişi (Son Görülme),Aktif Çalışma Süresi,Hareketsiz Süre,Verimlilik Oranı (%)\n";
+        workerStatsData.forEach(w => {
+            csv += `"${w.tarih_fmt || w.tarih}","${w.worker_adi}","${w.ilk_gorulme}","${w.son_gorulme}","${w.aktif_sure_fmt}","${w.inaktif_sure_fmt}","%${w.aktif_oran}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `calisan_calisma_saatleri_raporu_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        showToast('Çalışan çalışma saatleri raporu CSV olarak indirildi!', 'success');
     });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `calisan_calisma_saatleri_raporu_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    showToast('Çalışan çalışma saatleri raporu CSV olarak indirildi!', 'success');
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    initDates();
-    fetchAll();
-});
-if (document.readyState === 'interactive' || document.readyState === 'complete') {
-    initDates();
-    fetchAll();
 }
+
+function initReportsPage() {
+    if (window._reportsPageInitialized) return;
+    window._reportsPageInitialized = true;
+    applyDatePreset('today');
+}
+
+document.addEventListener('DOMContentLoaded', initReportsPage);
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    initReportsPage();
+}
+
