@@ -63,6 +63,33 @@ def api_settings_save():
         return jsonify({'success': False, 'message': str(e)}), 400
 
 
+@settings_bp.route('/api/camera/apply_settings', methods=['POST'])
+@admin_required
+def api_camera_apply_settings():
+    data = request.get_json() or {}
+    allowed_keys = ['brightness', 'contrast', 'saturation', 'flip_h', 'flip_v',
+                    'roi_x1', 'roi_y1', 'roi_x2', 'roi_y2',
+                    'hareket_esik_orani', 'inaktif_kare_limiti',
+                    'motion_threshold', 'inactive_frame_limit', 'calibration_mode']
+    updates = {k: v for k, v in data.items() if k in allowed_keys}
+
+    cfg = {}
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            cfg = yaml.safe_load(f) or {}
+    cfg.update(updates)
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        yaml.safe_dump(cfg, f, allow_unicode=True)
+
+    import web.extensions as ext
+    ext.config = cfg
+
+    if ext.camera_processor is not None:
+        ext.camera_processor.cfg.update(updates)
+
+    return jsonify({'success': True, 'message': 'Ayarlar canlı olarak uygulandı.'})
+
+
 @settings_bp.route('/api/settings/test_db', methods=['POST'])
 @admin_required
 def api_settings_test_db():

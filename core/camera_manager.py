@@ -898,6 +898,12 @@ class CameraProcessor:
             contrast   = float(self.cfg.get('contrast', 1.0))
             if brightness != 0 or contrast != 1.0:
                 frame = cv2.convertScaleAbs(frame, alpha=contrast, beta=brightness)
+            saturation = float(self.cfg.get('saturation', 1.0))
+            if saturation != 1.0:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV).astype(np.float32)
+                hsv[..., 1] = np.clip(hsv[..., 1] * saturation, 0, 255)
+                frame = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
 
             with self._frame_lock:
                 self._latest_raw_frame = frame

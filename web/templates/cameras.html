@@ -803,7 +803,7 @@ document.getElementById('btn-save-roi').addEventListener('click', function() {
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
 
-    fetch('/api/settings/save', {
+    fetch('/api/camera/apply_settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roi_x1: x1, roi_y1: y1, roi_x2: x2, roi_y2: y2 })
@@ -832,7 +832,7 @@ document.getElementById('btn-save-detection').addEventListener('click', function
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
 
-    fetch('/api/settings/save', {
+    fetch('/api/camera/apply_settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -867,7 +867,7 @@ document.getElementById('btn-save-img-adj').addEventListener('click', function()
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uygulanıyor...';
 
-    fetch('/api/settings/save', {
+    fetch('/api/camera/apply_settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
