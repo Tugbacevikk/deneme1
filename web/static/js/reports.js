@@ -319,6 +319,16 @@ if (btnCsv) {
     });
 }
 
+// PDF İndir
+const btnPdf = document.getElementById('btn-pdf');
+if (btnPdf) {
+    btnPdf.addEventListener('click', () => {
+        const params = buildParams();
+        window.open('/api/reports/export_pdf?' + params, '_blank');
+    });
+}
+
+
 function loadStationOptions() {
     const sel = document.getElementById('filter-station');
     if (!sel || sel.tagName !== 'SELECT') return;

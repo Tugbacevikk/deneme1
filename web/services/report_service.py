@@ -222,3 +222,145 @@ def _get_reports_db_context(config=None):
 
     with db_manager.get_session() as session:
         yield session, DurumKaydi
+
+
+def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=None, config=None):
+    """
+    api_reports_worker_stats ve PDF çıktısı için ortak çalışan istatistik satırlarını üretir.
+    """
+    if config is None:
+        try:
+            from web.routes.reports import _get_app_config
+            config = _get_app_config()
+        except Exception:
+            config = {}
+    save_interval = config.get('save_interval', 5)
+
+    from web.helpers import format_duration_tr, _format_date_tr
+    from sqlalchemy import case, desc
+
+    workers_data = []
+    try:
+        with _get_reports_db_context(config) as (session_orm, model_cls):
+            filters = _build_orm_filters(start, end, istasyon, worker=worker, patron_id=patron_id, model_cls=model_cls)
+
+            default_st = config.get('station_name') or config.get('istasyon_adi') or 'Istasyon-1'
+            if not default_st or default_st in ['auto', 'auto (Otomatik Bilgisayar Adı)'] or default_st.startswith('LAPTOP-') or default_st.startswith('DESKTOP-'):
+                default_st = 'Istasyon-1'
+
+            station_worker_map = {}
+            try:
+                with db_manager.get_session() as local_sess:
+                    w_all = local_sess.scalars(select(Worker).where(Worker.aktif == 1)).all()
+                    for w in w_all:
+                        if w.istasyon_adi and w.istasyon_adi.strip():
+                            station_worker_map[w.istasyon_adi.strip()] = (w.id, f"{w.ad} {w.soyad}".strip())
+            except Exception:
+                pass
+
+            zaman_str_expr = func.cast(model_cls.zaman, String)
+            tarih_col = func.substr(zaman_str_expr, 1, 10)
+            istasyon_col = func.coalesce(model_cls.istasyon_adi, default_st)
+
+            stmt = select(
+                tarih_col.label('tarih'),
+                istasyon_col.label('istasyon_adi'),
+                func.count(model_cls.id).label('toplam_kayit'),
+                func.sum(case((model_cls.durum.like('AKT%'), 1), else_=0)).label('aktif_kayit'),
+                func.sum(case((model_cls.durum.like('%KAYNAK%'), 1), else_=0)).label('kaynak_kayit'),
+                func.sum(case((model_cls.durum.like('%NAKT%'), 1), else_=0)).label('inaktif_kayit'),
+                func.sum(case((model_cls.durum.like('%TELEFON%'), 1), else_=0)).label('telefon_kayit'),
+                func.min(model_cls.zaman).label('ilk_gorulme'),
+                func.max(model_cls.zaman).label('son_gorulme')
+            )
+            if filters:
+                stmt = stmt.where(and_(*filters))
+
+            stmt = stmt.group_by(tarih_col, istasyon_col).order_by(desc('tarih'), desc('toplam_kayit'))
+            rows = session_orm.execute(stmt).all()
+
+            for r in rows:
+                st_name = r.istasyon_adi
+                if not st_name or st_name.lower() == 'auto' or st_name.startswith('LAPTOP-') or st_name.startswith('DESKTOP-'):
+                    st_name = default_st
+
+                w_tuple = station_worker_map.get(st_name)
+                w_id = w_tuple[0] if w_tuple else None
+                if st_name and st_name.startswith('VIDEO:'):
+                    clean_vid_name = st_name.replace('VIDEO: ', '').strip()
+                    w_name = f"Video: {clean_vid_name}"
+                else:
+                    w_name = w_tuple[1] if w_tuple else 'Atanmamış Çalışan'
+
+                tarih_val = r.tarih or ''
+                toplam = r.toplam_kayit or 0
+
+                dur_info = _calculate_worker_durations(
+                    session_orm,
+                    worker_id=w_id,
+                    worker_name=w_name if w_id else '',
+                    start_date=tarih_val,
+                    end_date=tarih_val,
+                    istasyon=st_name,
+                    save_interval=save_interval,
+                    model_cls=model_cls
+                )
+
+                aktif_sec = dur_info['aktif_sec']
+                kaynak_sec = dur_info.get('kaynak_sec', 0)
+                inaktif_sec = dur_info['inaktif_sec']
+                telefon_sec = dur_info['telefon_sec']
+                toplam_sec = dur_info['toplam_sec'] or (toplam * save_interval)
+
+                aktif_min = round(aktif_sec / 60.0, 1)
+                kaynak_min = round(kaynak_sec / 60.0, 1)
+                inaktif_min = round(inaktif_sec / 60.0, 1)
+
+                uretim_sec = aktif_sec + kaynak_sec
+                rate = round((uretim_sec / toplam_sec * 100), 1) if toplam_sec > 0 else 0.0
+
+                ilk_raw = str(r.ilk_gorulme) if r.ilk_gorulme else ''
+                son_raw = str(r.son_gorulme) if r.son_gorulme else ''
+                ilk_str = ilk_raw.replace('T', ' ')[:19] if ilk_raw else '—'
+                son_str = son_raw.replace('T', ' ')[:19] if son_raw else '—'
+
+                aktif_fmt = format_duration_tr(aktif_sec)
+                kaynak_fmt = format_duration_tr(kaynak_sec)
+                inaktif_fmt = format_duration_tr(inaktif_sec)
+                telefon_fmt = format_duration_tr(telefon_sec)
+
+                workers_data.append({
+                    'tarih': tarih_val,
+                    'tarih_fmt': _format_date_tr(tarih_val),
+                    'istasyon_adi': st_name,
+                    'worker_id': w_id,
+                    'worker_adi': w_name,
+                    'toplam_kayit': toplam,
+                    'toplam_sure_sec': toplam_sec,
+                    'toplam_sure_min': round(toplam_sec / 60.0, 1),
+                    'aktif_kayit': r.aktif_kayit or 0,
+                    'aktif_sure_sec': aktif_sec,
+                    'aktif_sure_min': aktif_min,
+                    'aktif_sure_fmt': aktif_fmt,
+                    'aktif_saat': round(aktif_min / 60.0, 2),
+                    'kaynak_kayit': getattr(r, 'kaynak_kayit', 0) or 0,
+                    'kaynak_sure_sec': kaynak_sec,
+                    'kaynak_sure_min': kaynak_min,
+                    'kaynak_sure_fmt': kaynak_fmt,
+                    'kaynak_saat': round(kaynak_min / 60.0, 2),
+                    'inaktif_kayit': r.inaktif_kayit or 0,
+                    'inaktif_sure_sec': inaktif_sec,
+                    'inaktif_sure_min': inaktif_min,
+                    'inaktif_sure_fmt': inaktif_fmt,
+                    'inaktif_saat': round(inaktif_min / 60.0, 2),
+                    'telefon_sure_sec': telefon_sec,
+                    'telefon_sure_fmt': telefon_fmt,
+                    'aktif_oran': rate,
+                    'verimlilik_orani': rate,
+                    'ilk_gorulme': ilk_str,
+                    'son_gorulme': son_str
+                })
+    except Exception as e:
+        logger.error(f"get_worker_stats_rows hatası: {e}")
+    return workers_data
+
