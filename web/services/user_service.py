@@ -80,12 +80,22 @@ def delete_user(user_id):
 
 
 def assign_worker_to_patron(worker_id, patron_id):
-    """Çalışanı bir patrona atar."""
+    """Çalışanı bir patrona atar ve işçinin istasyonunu patronun yetki listesine ekler."""
     with db_manager.get_session() as session:
         worker = session.get(Worker, worker_id)
         if not worker:
             return False, "Çalışan bulunamadı."
         worker.patron_id = patron_id
+        
+        if worker.istasyon_adi and worker.istasyon_adi.strip() and patron_id:
+            user = session.get(User, patron_id)
+            if user:
+                current_stations = [s.strip() for s in user.istasyonlar.split(',') if s.strip()] if user.istasyonlar else []
+                new_station = worker.istasyon_adi.strip()
+                if new_station not in current_stations:
+                    current_stations.append(new_station)
+                    user.istasyonlar = ", ".join(current_stations)
+                    
         session.commit()
         return True, "Çalışan patrona atandı."
 

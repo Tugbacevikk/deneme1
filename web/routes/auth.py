@@ -163,12 +163,18 @@ def api_users_approve(user_id):
             
             # Form veya JSON üzerinden atanan çalışanları oku
             worker_ids = request.form.getlist('workers') or (request.json.get('workers') if request.is_json else [])
+            current_stations = [s.strip() for s in user.istasyonlar.split(',') if s.strip()] if user.istasyonlar else []
             for w_id in worker_ids:
                 if str(w_id).isdigit():
                     worker = db_session.get(Worker, int(w_id))
                     if worker:
                         worker.patron_id = user_id
+                        if worker.istasyon_adi and worker.istasyon_adi.strip():
+                            new_st = worker.istasyon_adi.strip()
+                            if new_st not in current_stations:
+                                current_stations.append(new_st)
             
+            user.istasyonlar = ", ".join(current_stations) if current_stations else None
             user.durum = 'onaylandi'
             db_session.commit()
             
