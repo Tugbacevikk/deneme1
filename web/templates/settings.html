@@ -173,6 +173,72 @@
         </div>
         <!-- END System Info Card -->
 
+        <!-- Card 5.5: Pending User Approvals (Admin Only) -->
+        {% if (session.get('role') in ['admin', 'super_admin'] or (current_user and current_user.rol in ['admin', 'super_admin'])) and pending_users %}
+        <div class="card" style="margin-top:24px;">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <i class="fa-solid fa-user-clock card-header-icon" style="color:#d97706;"></i>
+                    <h2 class="card-title">Bekleyen Kayıt Onayları</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="section-desc" style="margin-bottom:16px;">
+                    Sisteme kayıt olmak isteyen patronların başvurularını inceleyip, yönetecekleri işçileri atayarak onaylayabilirsiniz.
+                </p>
+
+                {% for p_user in pending_users %}
+                <div style="background:var(--bg-secondary, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
+                    <div style="margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:8px; display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span style="font-weight:800; font-size:15px; color:var(--text-primary);">{{ p_user.ad_soyad }}</span>
+                            <span style="font-size:13px; color:var(--text-muted); margin-left:8px;">({{ p_user.kullanici_adi }})</span>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                <i class="fa-solid fa-building"></i> Firma: <strong>{{ p_user.firma_adi or '—' }}</strong>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <form action="/api/users/{{ p_user.id }}/reject" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bu başvuruyu reddetmek istediğinize emin misiniz?')">
+                                    <i class="fa-solid fa-user-xmark"></i> Reddet
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <form action="/api/users/{{ p_user.id }}/approve" method="POST">
+                        <div style="margin-bottom:12px;">
+                            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Yöneteceği İşçileri Seçin:</span>
+                            <div style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; padding:8px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card);">
+                                {% if all_workers %}
+                                    {% for w in all_workers %}
+                                        {% if w.istasyon_adi and w.istasyon_adi.strip() %}
+                                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                                            <input type="checkbox" name="workers" value="{{ w.id }}" style="accent-color:var(--accent);">
+                                            {{ w.ad }} {{ w.soyad }} — <span style="color:var(--accent); font-weight:600;">{{ w.istasyon_adi }}</span>
+                                        </label>
+                                        {% else %}
+                                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-muted); opacity:0.6; cursor:not-allowed;">
+                                            <input type="checkbox" name="workers" value="{{ w.id }}" disabled>
+                                            {{ w.ad }} {{ w.soyad }} — <em>(istasyon atanmamış)</em>
+                                        </label>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="font-size:12px; color:var(--text-muted);">Sistemde kayıtlı işçi bulunamadı.</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm" style="width:100%;">
+                            <i class="fa-solid fa-user-check"></i> Seçilenlerle Onayla ve Aktifleştir
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Card 6: User Management (Admin Only) -->
         {% if session.get('role') in ['admin', 'super_admin'] or (current_user and current_user.rol in ['admin', 'super_admin']) %}
         <div class="card" style="margin-top:24px;">

@@ -88,3 +88,10 @@ def assign_worker_to_patron(worker_id, patron_id):
         worker.patron_id = patron_id
         session.commit()
         return True, "Çalışan patrona atandı."
+
+
+def get_pending_users():
+    """Durumu 'bekliyor' olan kullanıcıları döndürür."""
+    with db_manager.get_session() as session:
+        users = session.scalars(select(User).where(User.durum == 'bekliyor').order_by(User.id.desc())).all()
+        return [u.to_dict() for u in users]

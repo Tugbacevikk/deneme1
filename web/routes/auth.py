@@ -152,15 +152,36 @@ def api_patrons_assign_worker():
 @admin_required
 def api_users_approve(user_id):
     try:
+        from core.database.models import Worker
         with db_manager.get_session() as db_session:
             user = db_session.get(User, user_id)
             if not user:
-                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+                if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                    return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+                flash('Kullanıcı bulunamadı.', 'danger')
+                return redirect(url_for('settings.settings'))
+            
+            # Form veya JSON üzerinden atanan çalışanları oku
+            worker_ids = request.form.getlist('workers') or (request.json.get('workers') if request.is_json else [])
+            for w_id in worker_ids:
+                if str(w_id).isdigit():
+                    worker = db_session.get(Worker, int(w_id))
+                    if worker:
+                        worker.patron_id = user_id
+            
             user.durum = 'onaylandi'
             db_session.commit()
-            return jsonify({'success': True, 'message': 'Kullanıcı başarıyla onaylandı.'})
+            
+            if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({'success': True, 'message': 'Kullanıcı başarıyla onaylandı ve çalışanlar atandı.'})
+            
+            flash(f'"{user.ad_soyad}" kullanıcısı onaylandı ve seçili çalışanlar atandı.', 'success')
+            return redirect(url_for('settings.settings'))
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash(f'Hata: {str(e)}', 'danger')
+        return redirect(url_for('settings.settings'))
 
 
 @auth_bp.route('/api/users/<int:user_id>/reject', methods=['POST'])
@@ -170,12 +191,24 @@ def api_users_reject(user_id):
         with db_manager.get_session() as db_session:
             user = db_session.get(User, user_id)
             if not user:
-                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+                if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                    return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
+                flash('Kullanıcı bulunamadı.', 'danger')
+                return redirect(url_for('settings.settings'))
+            
             user.durum = 'reddedildi'
             db_session.commit()
-            return jsonify({'success': True, 'message': 'Kullanıcı reddedildi.'})
+            
+            if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+                return jsonify({'success': True, 'message': 'Kullanıcı reddedildi.'})
+            
+            flash(f'"{user.ad_soyad}" kullanıcısının başvurusu reddedildi.', 'info')
+            return redirect(url_for('settings.settings'))
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        if request.is_json or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash(f'Hata: {str(e)}', 'danger')
+        return redirect(url_for('settings.settings'))
 
 
 @auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])

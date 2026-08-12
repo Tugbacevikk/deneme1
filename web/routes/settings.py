@@ -16,7 +16,11 @@ CONFIG_PATH = BASE_DIR / 'config.yaml'
 @settings_bp.route('/settings')
 @login_required
 def settings():
-    return render_template('settings.html')
+    from web.services.user_service import get_pending_users
+    from web.services.worker_service import get_all_workers
+    pending_users = get_pending_users()
+    all_workers = get_all_workers()
+    return render_template('settings.html', pending_users=pending_users, all_workers=all_workers)
 
 
 @settings_bp.route('/api/system/info', methods=['GET'])
