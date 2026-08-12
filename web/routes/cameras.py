@@ -10,6 +10,7 @@ from core.database.connection import db_manager
 from web.helpers import (
     get_current_patron_access, is_camera_authorized,
     _get_dark_frame, _get_unauthorized_frame,
+    login_required, admin_required,
 )
 
 cameras_bp = Blueprint('cameras', __name__)
@@ -20,9 +21,8 @@ import web.extensions as ext
 
 # Rota tanımları
 @cameras_bp.route('/cameras')
+@login_required
 def cameras():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     from web.app import scan_cameras
     cams = scan_cameras()
     return render_template('cameras.html', cameras=cams, config=ext.config)
@@ -30,9 +30,8 @@ def cameras():
 
 @cameras_bp.route('/live-cameras')
 @cameras_bp.route('/live_cameras')
+@login_required
 def live_cameras():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     patron_id, is_super, stations = get_current_patron_access()
     try:
         from core.database.models import User
@@ -45,6 +44,7 @@ def live_cameras():
 
 
 @cameras_bp.route('/api/cameras/manage', methods=['GET'])
+@login_required
 def api_cameras_list():
     patron_id, is_super, stations = get_current_patron_access()
     user_id = session.get('user_id')
@@ -59,6 +59,7 @@ def api_cameras_list():
 
 
 @cameras_bp.route('/api/proxy_feed/<int:cam_id>')
+@login_required
 def api_proxy_feed(cam_id):
     """Kamera yayınını sıkı yetki kontrolünden geçirerek sunar."""
     patron_id, is_super, stations = get_current_patron_access()
@@ -120,10 +121,8 @@ def api_proxy_feed(cam_id):
 
 
 @cameras_bp.route('/api/cameras/manage', methods=['POST'])
+@admin_required
 def api_cameras_add():
-    if session.get('role') not in ('admin', 'super_admin'):
-        return jsonify({'success': False, 'message': 'Yönetici yetkisi gereklidir.'}), 403
-
     data = request.get_json() or {}
     istasyon_adi = (data.get('istasyon_adi') or '').strip()
     ip_adresi = (data.get('ip_adresi') or '').strip()
@@ -149,10 +148,8 @@ def api_cameras_add():
 
 
 @cameras_bp.route('/api/cameras/manage/<int:cam_id>', methods=['DELETE', 'POST'])
+@admin_required
 def api_cameras_delete(cam_id):
-    if session.get('role') not in ('admin', 'super_admin'):
-        return jsonify({'success': False, 'message': 'Yönetici yetkisi gereklidir.'}), 403
-
     try:
         with db_manager.get_session() as session_orm:
             cam = session_orm.get(Camera, cam_id)

@@ -11,6 +11,7 @@ from core.database.connection import db_manager
 from web.helpers import (
     get_current_patron_access, get_current_patron_id,
     format_duration_tr, _format_date_tr,
+    login_required,
 )
 from web.services.report_service import (
     _calculate_worker_durations, _build_orm_filters, _get_reports_db_context,
@@ -26,21 +27,20 @@ def _get_app_config():
 
 
 @reports_bp.route('/reports')
+@login_required
 def reports():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     return render_template('reports.html')
 
 
 @reports_bp.route('/worker_analysis')
 @reports_bp.route('/reports/worker_detail_page')
+@login_required
 def worker_detail_page():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     return render_template('worker_detail_page.html')
 
 
 @reports_bp.route('/api/reports/summary', methods=['GET'])
+@login_required
 def api_reports_summary():
     """Özet rapor istatistiklerini ORM ile hesaplar."""
     start    = request.args.get('start', '')
@@ -115,6 +115,7 @@ def api_reports_summary():
 
 @reports_bp.route('/api/reports/chart_data', methods=['GET'])
 @reports_bp.route('/api/reports/hourly', methods=['GET'])
+@login_required
 def api_reports_hourly():
     """Saatlik aktif/inaktif dağılımını 24 saatlik eksiksiz etiketlerle ORM ile döndürür."""
     start    = request.args.get('start', request.args.get('date', datetime.date.today().isoformat()))
@@ -163,6 +164,7 @@ def api_reports_hourly():
 
 @reports_bp.route('/api/reports/data', methods=['GET'])
 @reports_bp.route('/api/reports/worker_stats', methods=['GET'])
+@login_required
 def api_reports_worker_stats():
     """Çalışanların günlük bazda çalışma süreleri ve detaylarını ORM ile döndürür."""
     start    = request.args.get('start', '')
@@ -308,6 +310,7 @@ def api_reports_worker_stats():
 
 
 @reports_bp.route('/api/reports/worker_detail', methods=['GET'])
+@login_required
 def api_reports_worker_detail():
     """Belirli bir çalışanın detaylı zaman, grafik ve durum kayıtlarını ORM ile döndürür."""
     worker_id   = request.args.get('worker_id')
@@ -542,6 +545,7 @@ def api_reports_worker_detail():
 
 
 @reports_bp.route('/api/cameras/stations', methods=['GET'])
+@login_required
 def api_camera_stations():
     try:
         stations_set = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}

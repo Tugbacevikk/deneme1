@@ -45,8 +45,12 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
+from web.helpers import login_required, admin_required
+
+
 @auth_bp.route('/api/users', methods=['GET'])
 @auth_bp.route('/api/users/list', methods=['GET'])
+@login_required
 def api_users_list():
     users = get_all_users()
     return jsonify({'success': True, 'users': users})
@@ -54,6 +58,7 @@ def api_users_list():
 
 @auth_bp.route('/api/patrons', methods=['GET'])
 @auth_bp.route('/api/patrons/list', methods=['GET'])
+@login_required
 def api_patrons_list():
     patrons = get_patrons()
     return jsonify({'success': True, 'patrons': patrons})
@@ -61,6 +66,7 @@ def api_patrons_list():
 
 @auth_bp.route('/api/users', methods=['POST'])
 @auth_bp.route('/api/users/add', methods=['POST'])
+@admin_required
 def api_users_add():
     data = request.get_json() or request.form
     kullanici_adi = data.get('kullanici_adi')
@@ -80,6 +86,7 @@ def api_users_add():
 
 @auth_bp.route('/api/users/<int:user_id>', methods=['DELETE', 'POST'])
 @auth_bp.route('/api/users/<int:user_id>/delete', methods=['DELETE', 'POST'])
+@admin_required
 def api_users_delete(user_id):
     ok, msg = delete_user(user_id)
     if ok:
@@ -88,6 +95,7 @@ def api_users_delete(user_id):
 
 
 @auth_bp.route('/api/patrons/assign_worker', methods=['POST'])
+@admin_required
 def api_patrons_assign_worker():
     data = request.get_json() or request.form
     worker_id = data.get('worker_id')

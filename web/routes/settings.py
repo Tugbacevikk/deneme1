@@ -6,20 +6,22 @@ from pathlib import Path
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from pg_sync import pg_baglan
 
+from web.helpers import login_required, admin_required
+
 settings_bp = Blueprint('settings', __name__)
 BASE_DIR = Path(__file__).parent.parent.parent
 CONFIG_PATH = BASE_DIR / 'config.yaml'
 
 
 @settings_bp.route('/settings')
+@login_required
 def settings():
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     return render_template('settings.html')
 
 
 @settings_bp.route('/api/system/info', methods=['GET'])
 @settings_bp.route('/api/system_info', methods=['GET'])
+@login_required
 def api_system_info():
     import psutil, platform
     return jsonify({
@@ -34,6 +36,7 @@ def api_system_info():
 
 
 @settings_bp.route('/api/settings/save', methods=['POST'])
+@admin_required
 def api_settings_save():
     data = request.get_json() or {}
     try:
@@ -57,6 +60,7 @@ def api_settings_save():
 
 
 @settings_bp.route('/api/settings/test_db', methods=['POST'])
+@admin_required
 def api_settings_test_db():
     data = request.get_json() or {}
     engine = pg_baglan(data)
@@ -67,6 +71,7 @@ def api_settings_test_db():
 
 
 @settings_bp.route('/api/settings/theme', methods=['POST'])
+@login_required
 def api_settings_theme():
     data = request.get_json() or {}
     theme = data.get('theme', 'dark')

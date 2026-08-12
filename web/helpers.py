@@ -4,8 +4,9 @@ helpers.py - Web Arayüzü Genel Yardımcı ve Yetkilendirme Fonksiyonları
 import sys
 import logging
 import datetime
+from functools import wraps
 from typing import Optional, List, Tuple
-from flask import session, Response
+from flask import session, Response, redirect, url_for, request, jsonify
 import cv2
 import numpy as np
 
@@ -14,6 +15,34 @@ from core.database.models import User, Camera
 from core.database.connection import db_manager
 
 logger = logging.getLogger(__name__)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Yetkisiz erişim. Lütfen giriş yapın.'}), 401
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Yetkisiz erişim. Lütfen giriş yapın.'}), 401
+            return redirect(url_for('auth.login'))
+        
+        role = session.get('role') or session.get('rol')
+        if role not in ('admin', 'super_admin'):
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Bu işlem için yetkiniz yok.'}), 403
+            return jsonify({'success': False, 'error': 'Bu işlem için yetkiniz yok.'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def get_current_patron_access() -> Tuple[Optional[int], bool, List[str]]:
