@@ -338,14 +338,9 @@ try {
     socket.on('alarm_update', (data) => {
         const count = data.unread_count || 0;
         const badge    = document.getElementById('alarm-count-badge');
-        const notifBdg = document.getElementById('notif-badge');
         if (badge) {
             badge.style.display = count > 0 ? 'inline-flex' : 'none';
             badge.textContent   = count > 9 ? '9+' : count;
-        }
-        if (notifBdg) {
-            notifBdg.style.display = count > 0 ? 'flex' : 'none';
-            notifBdg.textContent   = count > 9 ? '9+' : count;
         }
     });
 
@@ -375,10 +370,8 @@ fetch('/api/alarms/unread_count')
     .then(data => {
         const count = data.count || data.unread_count || 0;
         const badge    = document.getElementById('alarm-count-badge');
-        const notifBdg = document.getElementById('notif-badge');
         if (count > 0) {
             if (badge) { badge.style.display = 'inline-flex'; badge.textContent = count > 9 ? '9+' : count; }
-            if (notifBdg) { notifBdg.style.display = 'flex'; notifBdg.textContent = count > 9 ? '9+' : count; }
         }
     }).catch(() => {});
 
@@ -469,21 +462,21 @@ if (notifMarkAllBtn) {
     });
 }
 
-// Fetch pending users count on sidebar page load if elements exist
+// Fetch pending users count on page load if elements exist
 const pendingBadge = document.getElementById('pending-user-badge');
-if (pendingBadge) {
-    fetch('/api/users/pending_count')
-        .then(r => r.json())
-        .then(data => {
-            const count = data.count || 0;
-            if (count > 0) {
-                pendingBadge.style.display = 'inline-flex';
-                pendingBadge.textContent = count > 9 ? '9+' : count;
-            } else {
-                pendingBadge.style.display = 'none';
-            }
-        }).catch(() => {});
-}
+const notifBadge = document.getElementById('notif-badge');
+fetch('/api/users/pending_count')
+    .then(r => r.json())
+    .then(data => {
+        const count = data.count || 0;
+        if (count > 0) {
+            if (pendingBadge) { pendingBadge.style.display = 'inline-flex'; pendingBadge.textContent = count > 9 ? '9+' : count; }
+            if (notifBadge) { notifBadge.style.display = 'flex'; notifBadge.textContent = count > 9 ? '9+' : count; }
+        } else {
+            if (pendingBadge) pendingBadge.style.display = 'none';
+            if (notifBadge) notifBadge.style.display = 'none';
+        }
+    }).catch(() => {});
 
 if (document.getElementById('notif-list')) {
     loadPendingNotifications();

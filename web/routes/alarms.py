@@ -18,18 +18,14 @@ def alarms_page():
 @alarms_bp.route('/api/alarms', methods=['GET'])
 @login_required
 def api_alarms():
-    from web.services.alarm_service import get_alarms
     from web.services.user_service import get_pending_users
     
-    alarms_list = get_alarms()
-    
-    # If admin or super_admin, prepend pending users as pseudo-alarms
+    alarms_list = []
     role = session.get('role') or session.get('rol')
     if role in ('admin', 'super_admin'):
         pending_users = get_pending_users()
-        pending_notifications = []
         for u in pending_users:
-            pending_notifications.append({
+            alarms_list.append({
                 'id': f"pending_{u['id']}",
                 'istasyon_adi': 'Sistem',
                 'alarm_turu': 'Kayıt Başvurusu',
@@ -37,7 +33,6 @@ def api_alarms():
                 'zaman': u['kayit_tarihi'],
                 'okundu': 0
             })
-        alarms_list = pending_notifications + alarms_list
         
     return jsonify({'success': True, 'alarms': alarms_list})
 
@@ -46,13 +41,7 @@ def api_alarms():
 @login_required
 def api_alarms_unread_count():
     from web.services.alarm_service import get_unread_count
-    from web.services.user_service import get_pending_count
     count = get_unread_count()
-    
-    role = session.get('role') or session.get('rol')
-    if role in ('admin', 'super_admin'):
-        count += get_pending_count()
-        
     return jsonify({'success': True, 'unread_count': count})
 
 
