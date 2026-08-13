@@ -275,12 +275,25 @@ themeToggle && themeToggle.addEventListener('click', () => {
     }).catch(() => {});
 });
 
+// Restore sidebar collapse state
+if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    const pw = document.querySelector('.page-wrapper');
+    if (pw) pw.classList.add('sidebar-collapsed');
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.classList.add('collapsed');
+}
+
 // Sidebar Toggle
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 sidebarToggle && sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
-    document.querySelector('.page-wrapper').classList.toggle('sidebar-collapsed');
+    const pageWrapper = document.querySelector('.page-wrapper');
+    if (pageWrapper) {
+        pageWrapper.classList.toggle('sidebar-collapsed');
+        const isCollapsed = pageWrapper.classList.contains('sidebar-collapsed');
+        localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+    }
 });
 
 // Notification dropdown toggle
