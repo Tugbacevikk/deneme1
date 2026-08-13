@@ -161,14 +161,12 @@
 
         <!-- Card: ROI Settings -->
         <div class="card">
-            <div class="card-header" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-crop-simple card-header-icon"></i>
                     <h2 class="card-title">ROI (Çalışma Alanı) Ayarı</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" style="transition: transform 0.3s ease; color: var(--text-muted);"></i>
             </div>
-            <div class="accordion-body" style="max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
             <div class="card-body">
 
                 <p class="section-desc">
@@ -256,21 +254,18 @@
                 </button>
 
             </div>
-            </div>
         </div>
         <!-- END ROI Card -->
 
 
         <!-- Card: Detection Settings -->
         <div class="card">
-            <div class="card-header" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-sliders card-header-icon"></i>
                     <h2 class="card-title">Tespit Ayarları</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" style="transition: transform 0.3s ease; color: var(--text-muted);"></i>
             </div>
-            <div class="accordion-body" style="max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
             <div class="card-body">
 
                 <!-- Motion Threshold Slider -->
@@ -333,20 +328,17 @@
                 </button>
 
             </div>
-            </div>
         </div>
         <!-- END Detection Settings Card -->
 
         <!-- Card: Manual Camera Image Adjustments -->
         <div class="card">
-            <div class="card-header" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
+            <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-sliders card-header-icon" style="color:var(--accent);"></i>
                     <h2 class="card-title">Kamera Manuel Görüntü Ayarları</h2>
                 </div>
-                <i class="fa-solid fa-chevron-down accordion-icon" style="transition: transform 0.3s ease; color: var(--text-muted);"></i>
             </div>
-            <div class="accordion-body" style="max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
             <div class="card-body">
                 <p class="section-desc">
                     <i class="fa-solid fa-sun"></i>
@@ -447,7 +439,6 @@
                     <i class="fa-solid fa-sliders"></i> Görüntü Ayarlarını Uygula
                 </button>
             </div>
-            </div>
         </div>
         <!-- END Manual Camera Adjustments Card -->
 
@@ -456,35 +447,6 @@
 
 {% block extra_scripts %}
 <script>
-// ── Accordion (Tıkla-Aç/Kapa) Mantığı ─────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-    const accordionBodies = document.querySelectorAll('.accordion-body');
-    accordionBodies.forEach(body => {
-        const card = body.closest('.card');
-        const header = card ? card.querySelector('.card-header') : null;
-        if (header) {
-            header.addEventListener('click', function() {
-                const icon = header.querySelector('.accordion-icon');
-                const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
-
-                // Aynı anda sadece biri açık kalsın: Tüm diğer akordiyonları kapat
-                document.querySelectorAll('.accordion-body').forEach(b => {
-                    b.style.maxHeight = '0px';
-                });
-                document.querySelectorAll('.accordion-icon').forEach(ic => {
-                    if (ic) ic.style.transform = 'rotate(0deg)';
-                });
-
-                // Tıklanan kapalıysa aç
-                if (!isOpen) {
-                    body.style.maxHeight = body.scrollHeight + 'px';
-                    if (icon) icon.style.transform = 'rotate(180deg)';
-                }
-            });
-        }
-    });
-});
-
 // ═══════════════════════════════════════════════
 // Cameras JS
 // ═══════════════════════════════════════════════
