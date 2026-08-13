@@ -3,6 +3,8 @@
 
 let allRecords = [];
 let workerStatsData = [];
+let currentPage = 1;
+let pageSize = 20;
 let activityChartInst = null;
 let summaryChartInst = null;
 let workerChartInst = null;
@@ -114,6 +116,7 @@ function fetchWorkerStats(params) {
         .then(r => r.json())
         .then(data => {
             workerStatsData = data.workers || data.data || [];
+            currentPage = 1;
             renderWorkerStatsTable(workerStatsData);
             if (typeof updateWorkerChart === 'function') {
                 updateWorkerChart(workerStatsData);
@@ -155,12 +158,23 @@ function formatSec(seconds) {
 
 function renderWorkerStatsTable(workers) {
     const tbody = document.getElementById('worker-stats-tbody');
-    if (!workers.length) {
+    const totalRecords = workers ? workers.length : 0;
+
+    if (!totalRecords) {
         tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:var(--text-secondary);">Kayıtlı çalışma verisi bulunamadı.</td></tr>`;
+        updatePaginationControls(0, 0, 0, 1, 1);
         return;
     }
 
-    tbody.innerHTML = workers.map(w => {
+    const totalPages = Math.ceil(totalRecords / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, totalRecords);
+    const pageWorkers = workers.slice(startIdx, endIdx);
+
+    tbody.innerHTML = pageWorkers.map(w => {
         const aktFmt = w.aktif_sure_fmt || formatSec((w.aktif_kayit || 0) * 5);
         const kynkFmt = w.kaynak_sure_fmt || formatSec(w.kaynak_sure_sec || (w.kaynak_kayit || 0) * 5);
         const inaktFmt = w.inaktif_sure_fmt || formatSec((w.inaktif_kayit || 0) * 5);
@@ -202,6 +216,41 @@ function renderWorkerStatsTable(workers) {
     `;
 
     }).join('');
+
+    updatePaginationControls(startIdx + 1, endIdx, totalRecords, currentPage, totalPages);
+}
+
+function updatePaginationControls(from, to, total, page, totalPages) {
+    const elRange = document.getElementById('pagination-range-text');
+    const elNum = document.getElementById('pagination-page-num');
+    const btnPrev = document.getElementById('btn-page-prev');
+    const btnNext = document.getElementById('btn-page-next');
+
+    if (elRange) elRange.textContent = total > 0 ? `${from} - ${to} / ${total}` : '0 - 0 / 0';
+    if (elNum) elNum.textContent = `Sayfa ${page} / ${totalPages}`;
+    if (btnPrev) btnPrev.disabled = (page <= 1);
+    if (btnNext) btnNext.disabled = (page >= totalPages);
+}
+
+function goToPrevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderWorkerStatsTable(workerStatsData);
+    }
+}
+
+function goToNextPage() {
+    const totalPages = Math.ceil(workerStatsData.length / pageSize) || 1;
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderWorkerStatsTable(workerStatsData);
+    }
+}
+
+function changePageSize(val) {
+    pageSize = parseInt(val) || 20;
+    currentPage = 1;
+    renderWorkerStatsTable(workerStatsData);
 }
 
 function openWorkerDetailFromBtn(el) {

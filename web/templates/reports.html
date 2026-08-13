@@ -147,6 +147,24 @@
             </table>
         </div>
     </div>
+    <!-- Sayfalama (Pagination) Alt Çubuğu -->
+    <div class="card-footer" id="reports-pagination-container" style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-top:1px solid var(--border-color); flex-wrap:wrap; gap:12px; background:var(--bg-secondary); border-radius: 0 0 12px 12px;">
+        <div class="pagination-info" style="font-size:13px; color:var(--text-secondary);">
+            <i class="fa-solid fa-list-check" style="color:var(--accent); margin-right:6px;"></i>Gösterilen: <span id="pagination-range-text" style="font-weight:700; color:var(--text-primary);">0 - 0 / 0</span> kayıt
+        </div>
+        <div class="pagination-controls" style="display:flex; align-items:center; gap:10px;">
+            <label style="font-size:13px; color:var(--text-secondary);">Sayfa başı:</label>
+            <select id="pagination-page-size" class="form-select form-input--sm" style="width:75px; padding:4px 8px; font-weight:600; cursor:pointer;" onchange="changePageSize(this.value)">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-page-prev" onclick="goToPrevPage()"><i class="fa-solid fa-chevron-left"></i> Önceki</button>
+            <span id="pagination-page-num" style="font-size:13px; font-weight:700; color:var(--accent); min-width:85px; text-align:center;">Sayfa 1 / 1</span>
+            <button class="btn btn-secondary btn-sm" id="btn-page-next" onclick="goToNextPage()">Sonraki <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </div>
 </div>
 
 <!-- ── WORKER DETAIL ANALYSIS MODAL ──────────────────────────── -->
