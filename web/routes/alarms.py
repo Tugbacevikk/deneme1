@@ -12,7 +12,33 @@ alarms_bp = Blueprint('alarms', __name__)
 @alarms_bp.route('/alarms_page')
 @login_required
 def alarms_page():
-    return render_template('alarms.html')
+    from web.services.user_service import get_pending_users
+    from web.helpers import get_current_patron_access
+    
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
+    alarms_list = []
+    role = session.get('role') or session.get('rol')
+    if role in ('admin', 'super_admin'):
+        pending_users = get_pending_users()
+        for u in pending_users:
+            alarms_list.append({
+                'id': f"pending_{u['id']}",
+                'istasyon_adi': 'Sistem',
+                'alarm_turu': 'Kayıt Başvurusu',
+                'aciklama': f"Yeni patron başvurdu: {u['ad_soyad']} ({u['firma_adi'] or 'Firma Belirtilmemiş'}) onay bekliyor.",
+                'zaman': u['kayit_tarihi'],
+                'okundu': 0,
+                'read': False
+            })
+        
+    real_alarms = get_alarms(limit=50, stations=stations_param)
+    for a in real_alarms:
+        a['read'] = (a.get('okundu') == 1)
+        alarms_list.append(a)
+
+    return render_template('alarms.html', alarms=alarms_list)
 
 
 @alarms_bp.route('/api/alarms', methods=['GET'])
