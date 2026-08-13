@@ -6,14 +6,7 @@
 
 {% block content %}
 
-<div class="cameras-layout">
-
-    <!-- ════════════════════════════════════════════
-         LEFT COLUMN
-    ════════════════════════════════════════════ -->
-    <div class="cameras-col-left">
-
-        <!-- Card: Camera Selection -->
+<!-- Card: Camera Selection -->
         <div class="card">
             <div class="card-header">
                 <div class="card-header-left">
@@ -107,7 +100,7 @@
 
 
         <!-- Card: Live Preview -->
-        <div class="card">
+        <div class="card camera-preview-sticky" style="margin-top:24px;">
             <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-eye card-header-icon"></i>
@@ -166,17 +159,8 @@
         </div>
         <!-- END Live Preview Card -->
 
-    </div>
-    <!-- END LEFT COLUMN -->
-
-
-    <!-- ════════════════════════════════════════════
-         RIGHT COLUMN
-    ════════════════════════════════════════════ -->
-    <div class="cameras-col-right">
-
         <!-- Card: ROI Settings -->
-        <div class="card">
+        <div class="card" style="margin-top:24px;">
             <div class="card-header" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
                 <div class="card-header-left">
                     <i class="fa-solid fa-crop-simple card-header-icon"></i>
@@ -467,11 +451,6 @@
         </div>
         <!-- END Manual Camera Adjustments Card -->
 
-    </div>
-    <!-- END RIGHT COLUMN -->
-
-</div>
-
 {% endblock %}
 
 
@@ -479,28 +458,30 @@
 <script>
 // ── Accordion (Tıkla-Aç/Kapa) Mantığı ─────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-    const accordionHeaders = document.querySelectorAll('.cameras-col-right .card-header');
-    accordionHeaders.forEach(header => {
-        header.addEventListener('click', function() {
-            const card = this.closest('.card');
-            const body = card.querySelector('.accordion-body');
-            const icon = this.querySelector('.accordion-icon');
-            const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+    const accordionBodies = document.querySelectorAll('.accordion-body');
+    accordionBodies.forEach(body => {
+        const card = body.closest('.card');
+        const header = card ? card.querySelector('.card-header') : null;
+        if (header) {
+            header.addEventListener('click', function() {
+                const icon = header.querySelector('.accordion-icon');
+                const isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
 
-            // Aynı anda sadece biri açık kalsın: Tüm diğer akordiyonları kapat
-            document.querySelectorAll('.cameras-col-right .accordion-body').forEach(b => {
-                b.style.maxHeight = '0px';
-            });
-            document.querySelectorAll('.cameras-col-right .accordion-icon').forEach(ic => {
-                if (ic) ic.style.transform = 'rotate(0deg)';
-            });
+                // Aynı anda sadece biri açık kalsın: Tüm diğer akordiyonları kapat
+                document.querySelectorAll('.accordion-body').forEach(b => {
+                    b.style.maxHeight = '0px';
+                });
+                document.querySelectorAll('.accordion-icon').forEach(ic => {
+                    if (ic) ic.style.transform = 'rotate(0deg)';
+                });
 
-            // Tıklanan kapalıysa aç
-            if (!isOpen) {
-                body.style.maxHeight = body.scrollHeight + 'px';
-                if (icon) icon.style.transform = 'rotate(180deg)';
-            }
-        });
+                // Tıklanan kapalıysa aç
+                if (!isOpen) {
+                    body.style.maxHeight = body.scrollHeight + 'px';
+                    if (icon) icon.style.transform = 'rotate(180deg)';
+                }
+            });
+        }
     });
 });
 

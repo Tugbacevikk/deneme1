@@ -856,22 +856,13 @@ a:hover {
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-/* --- CAMERAS TWO-COLUMN LAYOUT --- */
+/* --- CAMERA PREVIEW STICKY --- */
 @media (min-width: 1024px) {
-    .cameras-layout {
-        display: grid;
-        grid-template-columns: minmax(340px, 38%) 1fr;
-        gap: 20px;
-        align-items: start;
-    }
-    .cameras-col-left {
+    .camera-preview-sticky {
         position: sticky;
         top: 16px;
+        z-index: 5;
     }
-}
-@media (max-width: 1023px) {
-    .cameras-layout { display: block; }
-    .cameras-col-left { position: static; }
 }
 
 .sidebar {
