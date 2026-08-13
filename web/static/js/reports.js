@@ -346,6 +346,8 @@ if (mailInputEl) {
 const btnMailSend = document.getElementById('btn-mail-send');
 if (btnMailSend) {
     btnMailSend.addEventListener('click', async () => {
+        if (btnMailSend.disabled) return;
+
         const mailInput = document.getElementById('mail-input');
         const errorEl = document.getElementById('mail-input-error');
         const email = mailInput ? mailInput.value.trim() : '';

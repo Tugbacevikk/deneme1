@@ -1,4 +1,9 @@
+import smtplib
+import os
 import re
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 
 EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
 
@@ -45,5 +50,7 @@ def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str
             server.login(user, password)
             server.send_message(msg)
         return True, "Rapor e-posta ile gönderildi."
+    except smtplib.SMTPRecipientsRefused:
+        return False, "Bu e-posta adresi sunucu tarafından reddedildi, adresi kontrol edin."
     except Exception as e:
         return False, f"E-posta gönderilemedi: {e}"

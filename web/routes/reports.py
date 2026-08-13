@@ -332,28 +332,30 @@ EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
 @reports_bp.route('/api/reports/email_pdf', methods=['POST'])
 @login_required
 def api_reports_email_pdf():
-    data = request.get_json() or {}
-    to_email = data.get('email', '').strip()
-    if not to_email or not EMAIL_RE.match(to_email):
-        return jsonify({'success': False, 'message': 'Geçerli bir e-posta adresi girin.'}), 400
+    try:
+        data = request.get_json() or {}
+        to_email = data.get('email', '').strip()
+        if not to_email or not EMAIL_RE.match(to_email):
+            return jsonify({'success': False, 'message': 'Geçerli bir e-posta adresi girin.'}), 400
 
-    start = data.get('start', '')
-    end = data.get('end', '')
-    istasyon = data.get('istasyon', '')
-    worker = data.get('worker', '')
-    patron_id, is_super = get_current_patron_id()
+        start = data.get('start', ''); end = data.get('end', '')
+        istasyon = data.get('istasyon', ''); worker = data.get('worker', '')
+        patron_id, is_super = get_current_patron_id()
 
-    pdf_bytes = _generate_report_pdf(start, end, istasyon, worker, patron_id)
-    filename = f"calisan_raporu_{start or 'tum'}_{end or 'zamanlar'}.pdf"
-    tarih_araligi = f"{start or 'başlangıç'} — {end or 'bitiş'}"
+        pdf_bytes = _generate_report_pdf(start, end, istasyon, worker, patron_id)
+        filename = f"calisan_raporu_{start or 'tum'}_{end or 'zamanlar'}.pdf"
+        tarih_araligi = f"{start or 'başlangıç'} — {end or 'bitiş'}"
 
-    from web.services.mail_service import send_pdf_report
-    ok, msg = send_pdf_report(
-        to_email, pdf_bytes, filename,
-        subject=f"Çalışan Raporu ({tarih_araligi})",
-        body=f"Ekte {tarih_araligi} tarih aralığına ait çalışan raporu yer almaktadır."
-    )
-    return jsonify({'success': ok, 'message': msg}), (200 if ok else 500)
+        from web.services.mail_service import send_pdf_report
+        ok, msg = send_pdf_report(
+            to_email, pdf_bytes, filename,
+            subject=f"Çalışan Raporu ({tarih_araligi})",
+            body=f"Ekte {tarih_araligi} tarih aralığına ait çalışan raporu yer almaktadır."
+        )
+        return jsonify({'success': ok, 'message': msg}), (200 if ok else 500)
+    except Exception as e:
+        logger.error(f"E-posta gönderme hatası: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Rapor oluşturulurken/gönderilirken hata oluştu: {e}'}), 500
 
 
 
