@@ -157,3 +157,23 @@ def change_own_password(user_id, current_password, new_password):
         session.add(new_alarm)
         session.commit()
         return True, "Şifreniz başarıyla güncellendi."
+
+
+def update_own_email(user_id: int, new_email: str):
+    from core.database.models import User
+    import re
+    EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
+    if not new_email or not EMAIL_RE.match(new_email.strip()):
+        return False, "Geçerli bir e-posta adresi girin."
+    with db_manager.get_session() as session_orm:
+        existing = session_orm.scalars(
+            select(User).where(User.email == new_email.strip(), User.id != user_id)
+        ).first()
+        if existing:
+            return False, "Bu e-posta adresi başka bir hesap tarafından kullanılıyor."
+        user = session_orm.get(User, user_id)
+        if not user:
+            return False, "Kullanıcı bulunamadı."
+        user.email = new_email.strip()
+        session_orm.commit()
+    return True, "E-posta adresi güncellendi."

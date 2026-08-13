@@ -74,6 +74,26 @@
         </div>
     </div>
 
+    <!-- Kart 2: E-posta Güncelle -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <div class="card-header-left">
+                <i class="fa-solid fa-envelope card-header-icon" style="color:var(--accent);"></i>
+                <h2 class="card-title">E-posta Adresi</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="form-group" style="max-width:480px; margin:0;">
+                <label class="form-label" for="profile-email">E-posta Adresi</label>
+                <input type="email" class="form-input" id="profile-email" 
+                       value="{{ user.email or '' }}" placeholder="ornek@sirket.com">
+                <button class="btn btn-secondary" id="btn-update-email" 
+                        style="margin-top:8px;"><i class="fa-solid fa-envelope-circle-check"></i> E-postayı Güncelle</button>
+                <span id="email-update-msg" style="display:none; font-size:12px; margin-top:4px; font-weight:600;"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- Kart 2: Şifre Değiştir -->
     <div class="card" style="grid-column: 1 / -1;">
         <div class="card-header">
@@ -203,5 +223,29 @@ document.getElementById('form-change-password').addEventListener('submit', funct
         errBox.style.display = 'block';
     });
 });
+
+const btnUpdateEmail = document.getElementById('btn-update-email');
+if (btnUpdateEmail) {
+    btnUpdateEmail.addEventListener('click', async () => {
+        const email = document.getElementById('profile-email').value.trim();
+        const msgEl = document.getElementById('email-update-msg');
+        try {
+            const res = await fetch('/api/profile/update_email', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email})
+            });
+            const result = await res.json();
+            msgEl.textContent = result.message;
+            msgEl.style.color = result.success ? '#16A34A' : '#DC2626';
+            msgEl.style.display = 'block';
+            if (typeof showToast === 'function') showToast(result.message, result.success ? 'success' : 'error');
+        } catch (e) {
+            msgEl.textContent = 'Sunucu hatası, tekrar deneyin.';
+            msgEl.style.color = '#DC2626';
+            msgEl.style.display = 'block';
+        }
+    });
+}
 </script>
 {% endblock %}

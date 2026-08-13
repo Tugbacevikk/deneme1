@@ -330,3 +330,14 @@ def api_profile_change_password():
         socketio.emit('alarm_update', {'unread_count': get_unread_count()})
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
+
+
+@auth_bp.route('/api/profile/update_email', methods=['POST'])
+@login_required
+def api_profile_update_email():
+    from web.services.user_service import update_own_email
+    user_id = session.get('user_id')
+    data = request.get_json() or request.form
+    new_email = data.get('email', '').strip()
+    ok, msg = update_own_email(user_id, new_email)
+    return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
