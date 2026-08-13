@@ -1,10 +1,16 @@
-import smtplib
-import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.mime.text import MIMEText
+import re
+
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
+
 
 def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str, body: str):
+    if not to_email or not isinstance(to_email, str):
+        return False, "Lütfen bir e-posta adresi girin."
+    
+    to_email = to_email.strip()
+    if not EMAIL_RE.match(to_email):
+        return False, "Geçerli bir e-posta adresi girin (örn: ad@sirket.com)."
+
     # .env veya config.yaml üzerinden SMTP oku
     cfg_smtp = {}
     try:

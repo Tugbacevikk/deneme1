@@ -329,8 +329,17 @@ if (btnPdf) {
 }
 
 function isValidEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const re = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
     return re.test(email);
+}
+
+const mailInputEl = document.getElementById('mail-input');
+if (mailInputEl) {
+    mailInputEl.addEventListener('input', () => {
+        const errorEl = document.getElementById('mail-input-error');
+        if (errorEl) errorEl.style.display = 'none';
+        mailInputEl.classList.remove('input-error');
+    });
 }
 
 // Mail Gönder

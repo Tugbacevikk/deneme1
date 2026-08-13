@@ -326,7 +326,7 @@ def api_reports_export_pdf():
 
 
 import re
-EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
+EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
 
 
 @reports_bp.route('/api/reports/email_pdf', methods=['POST'])
