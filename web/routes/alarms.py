@@ -19,7 +19,11 @@ def alarms_page():
 @login_required
 def api_alarms():
     from web.services.user_service import get_pending_users
+    from web.helpers import get_current_patron_access
     
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
     alarms_list = []
     role = session.get('role') or session.get('rol')
     if role in ('admin', 'super_admin'):
@@ -34,14 +38,20 @@ def api_alarms():
                 'okundu': 0
             })
         
+    real_alarms = get_alarms(limit=50, stations=stations_param)
+    alarms_list.extend(real_alarms)
+
     return jsonify({'success': True, 'alarms': alarms_list})
 
 
 @alarms_bp.route('/api/alarms/unread_count', methods=['GET'])
 @login_required
 def api_alarms_unread_count():
-    from web.services.alarm_service import get_unread_count
-    count = get_unread_count()
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
+    count = get_unread_count(stations=stations_param)
     return jsonify({'success': True, 'unread_count': count})
 
 
@@ -56,7 +66,11 @@ def api_alarms_mark_read():
 @login_required
 def api_alarms_mark_single_read(alarm_id):
     from web.services.alarm_service import mark_single_alarm_read
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
     ok = mark_single_alarm_read(alarm_id)
     if ok:
-        return jsonify({'success': True, 'unread_count': get_unread_count()})
+        return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
     return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404

@@ -1202,8 +1202,8 @@ class CameraProcessor:
                     except Exception as e:
                         logger.warning(f"Durum kaydı ORM hatası: {e}")
 
-                if durum_degisti and (phone_detected_raw or genel_durum == DURUM_INAKTIF):
-                    alarm_turu = 'TELEFON' if phone_detected_raw else 'HAREKETSİZLİK'
+                if durum_degisti and phone_detected_raw:
+                    alarm_turu = 'TELEFON'
                     aciklama = f"{alarm_turu} tespit edildi ({self._hostname})"
                     try:
                         with self.db_manager.get_session() as session:

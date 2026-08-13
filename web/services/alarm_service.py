@@ -9,21 +9,28 @@ from core.database.connection import db_manager
 logger = logging.getLogger(__name__)
 
 
-def get_alarms(limit=50, unread_only=False):
-    """Alarmları getirir."""
+def get_alarms(limit=50, unread_only=False, stations=None):
+    """Alarmları getirir (Hareketsizlik hariç, Telefon ve Sistem alarmları)."""
     with db_manager.get_session() as session:
-        stmt = select(Alarm)
+        stmt = select(Alarm).where(Alarm.alarm_turu != 'HAREKETSİZLİK')
         if unread_only:
             stmt = stmt.where(Alarm.okundu == 0)
+        if stations is not None:
+            stmt = stmt.where(Alarm.istasyon_adi.in_(stations))
         stmt = stmt.order_by(Alarm.id.desc()).limit(limit)
         alarms = session.scalars(stmt).all()
         return [a.to_dict() for a in alarms]
 
 
-def get_unread_count():
-    """Okunmamış alarm sayısını döndürür."""
+def get_unread_count(stations=None):
+    """Okunmamış alarm sayısını döndürür (Hareketsizlik hariç)."""
     with db_manager.get_session() as session:
-        stmt = select(func.count(Alarm.id)).where(Alarm.okundu == 0)
+        stmt = select(func.count(Alarm.id)).where(
+            Alarm.okundu == 0,
+            Alarm.alarm_turu != 'HAREKETSİZLİK'
+        )
+        if stations is not None:
+            stmt = stmt.where(Alarm.istasyon_adi.in_(stations))
         count = session.scalar(stmt) or 0
         return count
 
