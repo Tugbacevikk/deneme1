@@ -6,7 +6,14 @@
 
 {% block content %}
 
-<!-- Card: Camera Selection -->
+<div class="two-col-layout">
+
+    <!-- ════════════════════════════════════════════
+         LEFT COLUMN
+    ════════════════════════════════════════════ -->
+    <div class="col-left">
+
+        <!-- Card: Camera Selection -->
         <div class="card">
             <div class="card-header">
                 <div class="card-header-left">
@@ -158,6 +165,15 @@
             </div>
         </div>
         <!-- END Live Preview Card -->
+
+    </div>
+    <!-- END LEFT COLUMN -->
+
+
+    <!-- ════════════════════════════════════════════
+         RIGHT COLUMN
+    ════════════════════════════════════════════ -->
+    <div class="col-right">
 
         <!-- Card: ROI Settings -->
         <div class="card">
@@ -332,7 +348,7 @@
         <!-- END Detection Settings Card -->
 
         <!-- Card: Manual Camera Image Adjustments -->
-        <div class="card">
+        <div class="card" style="margin-top:24px;">
             <div class="card-header">
                 <div class="card-header-left">
                     <i class="fa-solid fa-sliders card-header-icon" style="color:var(--accent);"></i>
@@ -441,6 +457,11 @@
             </div>
         </div>
         <!-- END Manual Camera Adjustments Card -->
+
+    </div>
+    <!-- END RIGHT COLUMN -->
+
+</div>
 
 {% endblock %}
 
@@ -750,7 +771,7 @@ document.getElementById('btn-save-roi').addEventListener('click', function() {
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
 
-    fetch('/api/camera/apply_settings', {
+    fetch('/api/settings/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roi_x1: x1, roi_y1: y1, roi_x2: x2, roi_y2: y2 })
@@ -779,7 +800,7 @@ document.getElementById('btn-save-detection').addEventListener('click', function
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kaydediliyor...';
 
-    fetch('/api/camera/apply_settings', {
+    fetch('/api/settings/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -814,7 +835,7 @@ document.getElementById('btn-save-img-adj').addEventListener('click', function()
     this.disabled = true;
     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uygulanıyor...';
 
-    fetch('/api/camera/apply_settings', {
+    fetch('/api/settings/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -108,22 +108,23 @@ a:hover {
 }
 
 /* --- LAYOUT STRUCTURE --- */
-.app-shell, .layout {
+.layout {
   display: flex;
   min-height: 100vh;
 }
 
 .sidebar {
-  position: relative;
   width: var(--sidebar-width);
-  flex-shrink: 0;
   background-color: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
   z-index: 100;
-  transition: width 0.3s ease, opacity 0.2s ease;
-  overflow: hidden;
+  transition: width var(--transition-speed);
 }
 
 .sidebar-header {
@@ -211,11 +212,11 @@ a:hover {
 }
 
 .page-wrapper {
+  margin-left: var(--sidebar-width);
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-left: 0;
 }
 
 .header {
@@ -595,30 +596,6 @@ a:hover {
 .btn-danger { background-color: var(--red); color: #fff; }
 .btn-secondary { background-color: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border-color); }
 
-.btn-chip {
-  padding: 5px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 500;
-  background-color: var(--bg-input);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: all var(--transition-speed);
-}
-
-.btn-chip:hover {
-  color: var(--text-primary);
-  border-color: var(--accent);
-}
-
-.btn-chip.active {
-  background-color: var(--accent);
-  color: #ffffff;
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
 .form-group {
   margin-bottom: 18px;
 }
@@ -856,19 +833,10 @@ a:hover {
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-.sidebar {
-    transition: width 0.3s ease, opacity 0.2s ease;
-    overflow: hidden;
-}
-.sidebar.collapsed {
-    width: 0;
-    opacity: 0;
-    border-right: none;
-}
-
 @media (max-width: 768px) {
   .sidebar { width: 70px; }
   .sidebar-title, .sidebar-version, .nav-item span { display: none; }
+  .page-wrapper { margin-left: 70px; }
   .header { padding: 0 16px; }
   .breadcrumb-sep, .breadcrumb-current { display: none; }
   .system-status-badge #sys-status-text { display: none; }
@@ -1403,8 +1371,4 @@ a:hover {
   font-size: 10px;
   color: var(--text-muted);
   margin-top: 4px;
-}
-
-.input-error {
-  border-color: #DC2626 !important;
 }
