@@ -70,6 +70,15 @@
                 <span class="nav-indicator"></span>
             </a>
 
+            <a href="/alarms" class="nav-item {% if request.path == '/alarms' or request.path == '/alarms_page' %}active{% endif %}">
+                <span class="nav-icon" style="position:relative;">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="alarm-count-badge" class="badge" style="display:none; position:absolute; top:-6px; right:-8px; background:#ef4444; color:#fff; border-radius:10px; padding:2px 6px; font-size:9px; font-weight:700; line-height:1; min-width:16px; justify-content:center; align-items:center;"></span>
+                </span>
+                <span class="nav-label">Alarmlar & Bildirimler</span>
+                <span class="nav-indicator"></span>
+            </a>
+
             <div class="sidebar-divider"></div>
             <span class="nav-section-label">SİSTEM</span>
 
@@ -103,10 +112,10 @@
         <!-- HEADER -->
         <header class="header">
             <div class="header-left">
-                <button class="sidebar-toggle" id="sidebar-toggle" title="Menüyü Aç/Kapat">
+                <button class="sidebar-toggle-btn" id="sidebar-toggle" title="Menüyü Daralt/Genişlet">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <div class="page-title-wrap">
+                <div class="header-breadcrumb">
                     <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
                     <span class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></span>
                     <span class="breadcrumb-current">{% block page_title_sub %}{% endblock %}</span>
@@ -126,7 +135,7 @@
                     <span id="current-time">--:--:--</span>
                 </div>
 
-                {% if current_user and current_user.rol in ['admin', 'super_admin'] %}
+                {% if current_user %}
                 <div class="notif-wrap" style="position:relative; margin-right: 12px; display:flex; align-items:center;">
                   <button id="notif-btn" class="header-icon-btn" title="Bildirimler">
                     <i class="fa-solid fa-bell"></i>
@@ -387,9 +396,14 @@ fetch('/api/alarms/unread_count')
     .then(r => r.json())
     .then(data => {
         const count = data.count || data.unread_count || 0;
-        const badge    = document.getElementById('alarm-count-badge');
+        const mainBadge  = document.getElementById('alarm-count-badge');
+        const notifBadge = document.getElementById('notif-badge');
         if (count > 0) {
-            if (badge) { badge.style.display = 'inline-flex'; badge.textContent = count > 9 ? '9+' : count; }
+            if (mainBadge) { mainBadge.style.display = 'inline-flex'; mainBadge.textContent = count > 9 ? '9+' : count; }
+            if (notifBadge) { notifBadge.style.display = 'flex'; notifBadge.textContent = count > 9 ? '9+' : count; }
+        } else {
+            if (mainBadge) { mainBadge.style.display = 'none'; }
+            if (notifBadge) { notifBadge.style.display = 'none'; }
         }
     }).catch(() => {});
 
