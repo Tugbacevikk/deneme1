@@ -131,7 +131,12 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
             gap = (next_dt - z_dt).total_seconds()
             dur = int(gap) if 0 < gap <= 300 else save_interval
         else:
-            dur = save_interval
+            now_dt = datetime.datetime.now()
+            if z_dt.date() == now_dt.date():
+                time_since = (now_dt - z_dt).total_seconds()
+                dur = int(time_since) if 0 < time_since <= 600 else save_interval
+            else:
+                dur = save_interval
 
         if cat == 'KAYNAK':
             kaynak_sec += dur
@@ -143,6 +148,14 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
             telefon_sec += dur
 
     toplam_sec = aktif_sec + kaynak_sec + inaktif_sec + telefon_sec
+
+    # Eğer Günlük Özet'ten gelen birikmiş süreler daha büyükse en yüksek tam süreyi al
+    if 'ozet_row' in locals() and ozet_row:
+        aktif_sec = max(aktif_sec, int(getattr(ozet_row, 'aktif_sec', 0) or 0))
+        kaynak_sec = max(kaynak_sec, int(getattr(ozet_row, 'kaynak_sec', 0) or 0))
+        inaktif_sec = max(inaktif_sec, int(getattr(ozet_row, 'inaktif_sec', 0) or 0))
+        telefon_sec = max(telefon_sec, int(getattr(ozet_row, 'telefon_sec', 0) or 0))
+        toplam_sec = aktif_sec + kaynak_sec + inaktif_sec + telefon_sec
 
     return {
         'aktif_sec': aktif_sec,
