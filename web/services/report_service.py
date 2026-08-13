@@ -167,14 +167,29 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
     }
 
 
+def _normalize_date_str(d_str: str) -> str:
+    """DD.MM.YYYY veya YYYY-MM-DD tarihini YYYY-MM-DD formatına dönüştürür."""
+    if not d_str:
+        return ''
+    d_str = str(d_str).strip()
+    if '.' in d_str:
+        parts = d_str.split('.')
+        if len(parts) == 3 and len(parts[2]) == 4:
+            return f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+    return d_str
+
+
 def _build_orm_filters(start: str, end: str, istasyon: str, worker: str = '', only_registered: bool = False, patron_id: int = None, model_cls=DurumKaydi):
     """Tarih, istasyon, çalışan, patron_id ve atanmış istasyon filtrelerini ORM koşul listesi olarak oluşturur."""
     filters = []
+    start_clean = _normalize_date_str(start)
+    end_clean = _normalize_date_str(end)
+
     zaman_str_expr = func.cast(model_cls.zaman, String)
-    if start:
-        filters.append(func.substr(zaman_str_expr, 1, 10) >= start)
-    if end:
-        filters.append(func.substr(zaman_str_expr, 1, 10) <= end)
+    if start_clean:
+        filters.append(func.substr(zaman_str_expr, 1, 10) >= start_clean)
+    if end_clean:
+        filters.append(func.substr(zaman_str_expr, 1, 10) <= end_clean)
     if istasyon:
         if 'VIDEO:' in istasyon.upper() or istasyon.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
             filters.append(model_cls.istasyon_adi.like(f"%{istasyon}%"))
