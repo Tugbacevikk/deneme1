@@ -334,7 +334,7 @@
             <label class="input-label" for="ad_soyad">Ad Soyad</label>
             <div class="input-wrap">
                 <input type="text" class="form-input" id="ad_soyad" name="ad_soyad"
-                       placeholder="Adınızı ve soyadınızı girin" required autofocus>
+                       placeholder="Adınızı ve soyadınızı girin" required autofocus autocomplete="off">
                 <i class="fa-solid fa-id-card input-icon"></i>
             </div>
         </div>
@@ -343,25 +343,35 @@
             <label class="input-label" for="username">Kullanıcı Adı</label>
             <div class="input-wrap">
                 <input type="text" class="form-input" id="username" name="username"
-                       placeholder="Kullanıcı adı belirleyin" required>
+                       placeholder="Kullanıcı adı belirleyin" required autocomplete="off">
                 <i class="fa-solid fa-user input-icon"></i>
             </div>
         </div>
 
         <div class="input-group">
-            <label class="input-label" for="firma_adi">Firma Adı</label>
+            <label class="input-label" for="reg-department">ÇALIŞTIĞI BİRİM</label>
             <div class="input-wrap">
-                <input type="text" class="form-input" id="firma_adi" name="firma_adi"
-                       placeholder="Firma adını girin" required>
+                <select class="form-input" id="reg-department" name="firma_adi" required autocomplete="off" style="appearance:auto; cursor:pointer;">
+                    <option value="">-- Birim Seçiniz --</option>
+                    <option value="Üretim">Üretim</option>
+                    <option value="Kalite Kontrol">Kalite Kontrol</option>
+                    <option value="Bakım / Teknik">Bakım / Teknik</option>
+                    <option value="Depo / Lojistik">Depo / Lojistik</option>
+                    <option value="İnsan Kaynakları">İnsan Kaynakları</option>
+                    <option value="Yönetim">Yönetim</option>
+                    <option value="__new__">+ Diğer (Yazınız)</option>
+                </select>
                 <i class="fa-solid fa-building input-icon"></i>
             </div>
+            <input type="text" id="reg-department-new" class="form-input" 
+                   placeholder="Birim adını yazın" style="display:none; margin-top:8px;" autocomplete="off">
         </div>
 
         <div class="input-group">
             <label class="input-label" for="reg-email">E-posta Adresi</label>
             <div class="input-wrap">
                 <input type="email" class="form-input" id="reg-email" name="email"
-                       placeholder="ornek@sirket.com" required>
+                       placeholder="ornek@sirket.com" required autocomplete="off">
                 <i class="fa-solid fa-envelope input-icon"></i>
             </div>
         </div>
@@ -370,7 +380,7 @@
             <label class="input-label" for="password">Şifre</label>
             <div class="input-wrap">
                 <input type="password" class="form-input" id="password" name="password"
-                       placeholder="••••••••" required>
+                       placeholder="••••••••" required autocomplete="off">
                 <i class="fa-solid fa-lock input-icon"></i>
                 <button type="button" class="pwd-toggle" id="toggle-pwd" title="Şifreyi Göster/Gizle">
                     <i class="fa-solid fa-eye" id="pwd-icon"></i>
@@ -382,7 +392,7 @@
             <label class="input-label" for="password_confirm">Şifre Tekrar</label>
             <div class="input-wrap">
                 <input type="password" class="form-input" id="password_confirm" name="password_confirm"
-                       placeholder="••••••••" required>
+                       placeholder="••••••••" required autocomplete="off">
                 <i class="fa-solid fa-lock input-icon"></i>
                 <button type="button" class="pwd-toggle" id="toggle-pwd-confirm" title="Şifreyi Göster/Gizle">
                     <i class="fa-solid fa-eye" id="pwd-confirm-icon"></i>
@@ -432,6 +442,22 @@ document.getElementById('toggle-pwd-confirm').addEventListener('click', function
     }
 });
 
+const regDeptSelect = document.getElementById('reg-department');
+const regDeptNewInput = document.getElementById('reg-department-new');
+if (regDeptSelect && regDeptNewInput) {
+    regDeptSelect.addEventListener('change', function() {
+        if (this.value === '__new__') {
+            regDeptNewInput.style.display = 'block';
+            regDeptNewInput.required = true;
+            regDeptNewInput.focus();
+        } else {
+            regDeptNewInput.style.display = 'none';
+            regDeptNewInput.required = false;
+            regDeptNewInput.value = '';
+        }
+    });
+}
+
 document.getElementById('reg-form').addEventListener('submit', function(e) {
     const pwd = document.getElementById('password').value;
     const pwdConfirm = document.getElementById('password_confirm').value;
@@ -442,8 +468,23 @@ document.getElementById('reg-form').addEventListener('submit', function(e) {
         e.preventDefault();
         errBox.style.display = 'flex';
         errMsg.textContent = 'Şifreler eşleşmiyor!';
+        return;
     } else {
         errBox.style.display = 'none';
+    }
+
+    if (regDeptSelect && regDeptSelect.value === '__new__') {
+        const newVal = regDeptNewInput ? regDeptNewInput.value.trim() : '';
+        if (!newVal) {
+            e.preventDefault();
+            errBox.style.display = 'flex';
+            errMsg.textContent = 'Lütfen çalıştığınız birim adını yazın!';
+            regDeptNewInput.focus();
+            return;
+        }
+        // Set value onto select's selected option or change name
+        let customOpt = regDeptSelect.querySelector('option[value="__new__"]');
+        if (customOpt) customOpt.value = newVal;
     }
 });
 </script>
