@@ -108,23 +108,22 @@ a:hover {
 }
 
 /* --- LAYOUT STRUCTURE --- */
-.layout {
+.app-shell, .layout {
   display: flex;
   min-height: 100vh;
 }
 
 .sidebar {
+  position: relative;
   width: var(--sidebar-width);
+  flex-shrink: 0;
   background-color: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
   z-index: 100;
-  transition: width var(--transition-speed);
+  transition: width 0.3s ease, opacity 0.2s ease;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -212,11 +211,11 @@ a:hover {
 }
 
 .page-wrapper {
-  margin-left: var(--sidebar-width);
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-left: 0;
 }
 
 .header {
@@ -866,17 +865,10 @@ a:hover {
     opacity: 0;
     border-right: none;
 }
-.page-wrapper {
-    transition: margin-left 0.3s ease;
-}
-.page-wrapper.sidebar-collapsed {
-    margin-left: 0;
-}
 
 @media (max-width: 768px) {
   .sidebar { width: 70px; }
   .sidebar-title, .sidebar-version, .nav-item span { display: none; }
-  .page-wrapper { margin-left: 70px; }
   .header { padding: 0 16px; }
   .breadcrumb-sep, .breadcrumb-current { display: none; }
   .system-status-badge #sys-status-text { display: none; }
