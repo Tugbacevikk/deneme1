@@ -58,21 +58,34 @@ def register():
         ad_soyad = (request.form.get('ad_soyad') or '').strip()
         username = (request.form.get('username') or '').strip()
         firma_adi = (request.form.get('firma_adi') or '').strip()
+        email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
         password_confirm = request.form.get('password_confirm') or ''
 
-        if not ad_soyad or not username or not password or not firma_adi:
+        if not ad_soyad or not username or not password or not firma_adi or not email:
             flash('Lütfen tüm zorunlu alanları doldurun.', 'danger')
+            return render_template('register.html')
+
+        from web.routes.reports import EMAIL_RE
+        if not email or not EMAIL_RE.match(email):
+            flash('Geçerli bir e-posta adresi girin.', 'danger')
             return render_template('register.html')
 
         if password != password_confirm:
             flash('Şifreler eşleşmiyor.', 'danger')
             return render_template('register.html')
 
+        with db_manager.get_session() as session_orm:
+            existing_email = session_orm.scalars(select(User).where(User.email == email)).first()
+            if existing_email:
+                flash('Bu e-posta adresi zaten kayıtlı.', 'danger')
+                return render_template('register.html')
+
         ok, res = create_user(
             kullanici_adi=username,
             sifre=password,
             ad_soyad=ad_soyad,
+            email=email,
             rol='patron',
             firma_adi=firma_adi,
             istasyonlar=None,
