@@ -127,3 +127,17 @@ def api_alarms_mark_single_read(alarm_id):
     if ok:
         return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
     return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404
+
+
+@alarms_bp.route('/api/alarms/<int:alarm_id>/mark_unread', methods=['POST'])
+@login_required
+def api_alarms_mark_single_unread(alarm_id):
+    from web.services.alarm_service import mark_single_alarm_unread
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
+    ok = mark_single_alarm_unread(alarm_id)
+    if ok:
+        return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
+    return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404

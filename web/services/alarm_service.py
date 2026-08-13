@@ -52,3 +52,14 @@ def mark_single_alarm_read(alarm_id):
             session.commit()
             return True
         return False
+
+
+def mark_single_alarm_unread(alarm_id):
+    """Belirli bir alarmı okunmadı olarak işaretler."""
+    with db_manager.get_session() as session:
+        alarm = session.get(Alarm, alarm_id)
+        if alarm:
+            alarm.okundu = 0
+            session.commit()
+            return True
+        return False
