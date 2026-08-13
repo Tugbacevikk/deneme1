@@ -62,21 +62,51 @@
                 <button class="btn btn-secondary" id="btn-pdf">
                     <i class="fa-solid fa-file-pdf"></i> PDF İndir
                 </button>
-                <div style="display:inline-flex; flex-direction:column; align-items:flex-start; margin-left:4px;">
-                    <div style="display:inline-flex; align-items:center; gap:6px;">
-                        <textarea id="mail-input" class="form-input form-input--sm" rows="2" placeholder="Birden fazla adres için virgül veya yeni satırla ayırın&#10;ornek1@sirket.com, ornek2@sirket.com" style="width:240px; resize:vertical; font-size:12px;"></textarea>
-                        <button class="btn btn-secondary" id="btn-mail-send" title="PDF Raporunu E-posta ile Gönder" style="align-self:flex-start;">
-                            <i class="fa-solid fa-paper-plane"></i> Mail Gönder
-                        </button>
-                    </div>
-                    <span id="mail-input-error" class="field-error" style="display:none; color:#DC2626; font-size:12px; margin-top:4px;"></span>
-                </div>
+                <button class="btn btn-secondary" id="btn-open-mail-panel" title="PDF Raporunu E-posta ile Gönder">
+                    <i class="fa-solid fa-envelope"></i> Mail Gönder
+                </button>
                 <button class="btn btn-secondary" id="btn-reset-filter" title="Filtreyi Sıfırla">
                     <i class="fa-solid fa-rotate-left"></i>
                 </button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Mail Gönderim Paneli Modalı -->
+<div class="modal-overlay" id="mail-panel-modal" style="display:none;" onclick="closeMailPanel(event)">
+  <div class="modal" style="max-width:480px; width:95%;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title"><i class="fa-solid fa-paper-plane" style="color:var(--accent);"></i> Raporu E-posta ile Gönder</h2>
+      <button class="modal-close" onclick="closeMailPanel()">&times;</button>
+    </div>
+    <div class="modal-tabs" style="display:flex; border-bottom:1px solid var(--border-color); background:var(--bg-secondary);">
+      <button class="modal-tab active" data-tab="all" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; border-bottom:2px solid var(--accent); color:var(--accent);">Herkese Gönder</button>
+      <button class="modal-tab" data-tab="select" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; color:var(--text-secondary);">Kişi Seç</button>
+      <button class="modal-tab" data-tab="manual" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; color:var(--text-secondary);">Elle Yaz</button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div id="tab-all" class="tab-panel">
+          <p style="font-size:13px; margin-bottom:8px; color:var(--text-primary);">Sistemdeki tüm admin ve patron hesaplarına (e-postası kayıtlı olanlara) gönderilecek.</p>
+          <div id="all-recipients-preview" style="font-size:13px; color:var(--text-secondary); background:var(--bg-secondary); padding:10px; border-radius:6px; border:1px solid var(--border-color); max-height:150px; overflow-y:auto;">
+              <i class="fa-solid fa-spinner fa-spin"></i> Kullanıcılar yükleniyor...
+          </div>
+      </div>
+      <div id="tab-select" class="tab-panel" style="display:none;">
+          <div id="recipient-checklist" style="display:flex; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding:4px;">
+              <!-- JS ile doldurulacak -->
+          </div>
+      </div>
+      <div id="tab-manual" class="tab-panel" style="display:none;">
+          <textarea id="mail-input" class="form-input" rows="3" placeholder="ornek@sirket.com, ornek2@sirket.com" style="width:100%; resize:vertical; font-size:13px;"></textarea>
+      </div>
+      <span id="mail-input-error" style="display:none; color:#DC2626; font-size:12px; margin-top:8px; font-weight:600;"></span>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border-color);">
+      <button class="btn btn-secondary" onclick="closeMailPanel()">Vazgeç</button>
+      <button class="btn btn-primary" id="btn-mail-send"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+    </div>
+  </div>
 </div>
 
 

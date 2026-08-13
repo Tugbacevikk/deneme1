@@ -142,6 +142,7 @@ function loadUsers() {
                                data-uid="${u.id}"
                                data-uname="${(u.kullanici_adi||'').replace(/"/g,'&quot;')}"
                                data-ufull="${(u.ad_soyad||'').replace(/"/g,'&quot;')}"
+                               data-uemail="${(u.email||'').replace(/"/g,'&quot;')}"
                                data-urol="${u.rol}"
                                data-ust="${(u.istasyonlar||'').replace(/"/g,'&quot;')}"
                                onclick="editUserFromBtn(this)">
@@ -265,15 +266,18 @@ function editUserFromBtn(btn) {
         btn.dataset.uid,
         btn.dataset.uname,
         btn.dataset.ufull,
+        btn.dataset.uemail || '',
         btn.dataset.urol,
         btn.dataset.ust
     );
 }
 
-function editUser(id, username, fullname, rol, istasyonlar) {
+function editUser(id, username, fullname, email, rol, istasyonlar) {
     document.getElementById('edit-user-id').value = id;
     document.getElementById('edit-username').value = username;
     document.getElementById('edit-fullname').value = fullname;
+    const emailEl = document.getElementById('edit-email');
+    if (emailEl) emailEl.value = email || '';
     document.getElementById('edit-role').value = rol;
     document.getElementById('edit-password').value = '';
 
@@ -326,6 +330,8 @@ function closeEditUserModal(event) {
 function saveEditUser() {
     const id       = document.getElementById('edit-user-id').value;
     const fullname = document.getElementById('edit-fullname').value.trim();
+    const emailEl  = document.getElementById('edit-email');
+    const email    = emailEl ? emailEl.value.trim() : '';
     const role     = document.getElementById('edit-role').value;
     const password = document.getElementById('edit-password').value;
 
@@ -348,6 +354,7 @@ function saveEditUser() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             ad_soyad: fullname,
+            email: email,
             rol: role,
             sifre: password,
             istasyonlar: stations,

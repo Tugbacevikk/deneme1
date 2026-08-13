@@ -155,6 +155,7 @@ class User(Base):
     kullanici_adi: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     sifre_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     ad_soyad: Mapped[str] = mapped_column(String(150), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     rol: Mapped[str] = mapped_column(String(50), default='patron')
     durum: Mapped[str] = mapped_column(String(20), default='bekliyor')
     firma_adi: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
@@ -172,6 +173,7 @@ class User(Base):
             'id': self.id,
             'kullanici_adi': self.kullanici_adi,
             'ad_soyad': self.ad_soyad,
+            'email': self.email or '',
             'rol': self.rol,
             'durum': self.durum,
             'firma_adi': self.firma_adi or '',

@@ -378,6 +378,87 @@ if (mailInputEl) {
     });
 }
 
+let fetchedMailUsers = [];
+let activeMailTab = 'all';
+
+function openMailPanel() {
+    const modal = document.getElementById('mail-panel-modal');
+    if (modal) modal.style.display = 'flex';
+    fetchMailUsers();
+}
+
+function closeMailPanel(event) {
+    if (!event || event.target.id === 'mail-panel-modal' || event.target.closest('.modal-close') || event.target.closest('.btn-secondary')) {
+        const modal = document.getElementById('mail-panel-modal');
+        if (modal) modal.style.display = 'none';
+        const errorEl = document.getElementById('mail-input-error');
+        if (errorEl) errorEl.style.display = 'none';
+    }
+}
+
+function fetchMailUsers() {
+    const previewEl = document.getElementById('all-recipients-preview');
+    const checklistEl = document.getElementById('recipient-checklist');
+    if (previewEl) previewEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kullanıcılar yükleniyor...';
+
+    fetch('/api/users/with_email')
+        .then(r => r.json())
+        .then(data => {
+            fetchedMailUsers = (data && data.users) ? data.users : [];
+            if (!fetchedMailUsers.length) {
+                if (previewEl) previewEl.innerHTML = '<span style="color:var(--text-muted);">Sistemde e-postası tanımlı onaylı kullanıcı bulunamadı.</span>';
+                if (checklistEl) checklistEl.innerHTML = '<span style="color:var(--text-muted); font-size:13px;">E-postası olan kullanıcı bulunamadı.</span>';
+                return;
+            }
+
+            if (previewEl) {
+                previewEl.innerHTML = fetchedMailUsers.map(u => 
+                    `<div style="margin-bottom:4px;"><strong>${u.ad_soyad}</strong> (${u.rol}) — <span style="color:var(--accent);">${u.email}</span></div>`
+                ).join('');
+            }
+
+            if (checklistEl) {
+                checklistEl.innerHTML = fetchedMailUsers.map(u => `
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-card);">
+                        <input type="checkbox" name="recipient-cb" value="${u.email}" checked style="accent-color:var(--accent);">
+                        <span><strong>${u.ad_soyad}</strong> (${u.rol}) — ${u.email}</span>
+                    </label>
+                `).join('');
+            }
+        })
+        .catch(err => {
+            if (previewEl) previewEl.innerHTML = '<span style="color:#DC2626;">Kullanıcı listesi yüklenemedi.</span>';
+        });
+}
+
+// Tab Switching
+document.addEventListener('click', function(e) {
+    const tabBtn = e.target.closest('.modal-tab');
+    if (tabBtn && tabBtn.dataset.tab) {
+        activeMailTab = tabBtn.dataset.tab;
+        document.querySelectorAll('.modal-tab').forEach(b => {
+            b.classList.remove('active');
+            b.style.borderBottom = 'none';
+            b.style.color = 'var(--text-secondary)';
+        });
+        tabBtn.classList.add('active');
+        tabBtn.style.borderBottom = '2px solid var(--accent)';
+        tabBtn.style.color = 'var(--accent)';
+
+        document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+        const activePanel = document.getElementById('tab-' + activeMailTab);
+        if (activePanel) activePanel.style.display = 'block';
+
+        const errorEl = document.getElementById('mail-input-error');
+        if (errorEl) errorEl.style.display = 'none';
+    }
+});
+
+const btnOpenMailPanel = document.getElementById('btn-open-mail-panel');
+if (btnOpenMailPanel) {
+    btnOpenMailPanel.addEventListener('click', openMailPanel);
+}
+
 // Mail Gönder
 const btnMailSend = document.getElementById('btn-mail-send');
 if (btnMailSend) {
@@ -386,18 +467,27 @@ if (btnMailSend) {
 
         const mailInput = document.getElementById('mail-input');
         const errorEl = document.getElementById('mail-input-error');
-        const email = mailInput ? mailInput.value.trim() : '';
 
         if (errorEl) errorEl.style.display = 'none';
         if (mailInput) mailInput.classList.remove('input-error');
 
-        const emails = parseEmailList(email);
+        let emails = [];
+        if (activeMailTab === 'all') {
+            emails = fetchedMailUsers.map(u => u.email).filter(Boolean);
+        } else if (activeMailTab === 'select') {
+            emails = Array.from(document.querySelectorAll('input[name="recipient-cb"]:checked'))
+                .map(cb => cb.value).filter(Boolean);
+        } else if (activeMailTab === 'manual') {
+            const rawVal = mailInput ? mailInput.value.trim() : '';
+            emails = parseEmailList(rawVal);
+        }
+
         if (emails.length === 0) {
             if (errorEl) {
-                errorEl.textContent = 'Lütfen en az bir e-posta adresi girin.';
+                errorEl.textContent = 'Lütfen en az bir e-posta adresi girin veya seçin.';
                 errorEl.style.display = 'block';
             }
-            if (mailInput) {
+            if (activeMailTab === 'manual' && mailInput) {
                 mailInput.classList.add('input-error');
                 mailInput.focus();
             }
@@ -410,7 +500,7 @@ if (btnMailSend) {
                 errorEl.textContent = `Geçersiz adres(ler): ${invalidOnes.join(', ')}`;
                 errorEl.style.display = 'block';
             }
-            if (mailInput) {
+            if (activeMailTab === 'manual' && mailInput) {
                 mailInput.classList.add('input-error');
                 mailInput.focus();
             }
@@ -424,7 +514,7 @@ if (btnMailSend) {
                     errorEl.textContent = `"${addr}" adresinde hata olabilir — "${addr.split('@')[0]}@${suggestion}" mi demek istediniz?`;
                     errorEl.style.display = 'block';
                 }
-                if (mailInput) {
+                if (activeMailTab === 'manual' && mailInput) {
                     mailInput.classList.add('input-error');
                     mailInput.focus();
                 }
@@ -436,10 +526,6 @@ if (btnMailSend) {
             if (errorEl) {
                 errorEl.textContent = 'Tek seferde en fazla 20 adrese gönderebilirsiniz.';
                 errorEl.style.display = 'block';
-            }
-            if (mailInput) {
-                mailInput.classList.add('input-error');
-                mailInput.focus();
             }
             return;
         }
@@ -460,8 +546,10 @@ if (btnMailSend) {
                 const successCount = result.results.filter(r => r.success).length;
                 const failCount = result.results.length - successCount;
                 showToast(`${successCount} adrese gönderildi${failCount > 0 ? `, ${failCount} adrese gönderilemedi` : ''}`, failCount > 0 ? 'error' : 'success');
+                if (result.success) closeMailPanel();
             } else {
                 showToast(result.message || 'E-posta gönderildi', result.success ? 'success' : 'error');
+                if (result.success) closeMailPanel();
             }
         } catch (e) {
             showToast('Sunucu bağlantı hatası', 'error');

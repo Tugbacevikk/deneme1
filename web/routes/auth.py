@@ -228,6 +228,7 @@ def api_users_update(user_id):
     rol = data.get('rol') or data.get('role')
     sifre = data.get('sifre') or data.get('password')
     istasyonlar = data.get('istasyonlar') or data.get('stations')
+    email = data.get('email')
 
     if not ad_soyad or not rol:
         return jsonify({'success': False, 'message': 'Ad Soyad ve Rol alanları zorunludur.'}), 400
@@ -244,6 +245,8 @@ def api_users_update(user_id):
             user.ad_soyad = ad_soyad
             user.rol = rol
             user.istasyonlar = istasyonlar
+            if email is not None:
+                user.email = email.strip()
             if sifre and sifre.strip():
                 user.sifre_hash = generate_password_hash(sifre)
             
@@ -251,6 +254,28 @@ def api_users_update(user_id):
             return jsonify({'success': True, 'message': 'Kullanıcı bilgileri başarıyla güncellendi.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@auth_bp.route('/api/users/with_email', methods=['GET'])
+@login_required
+def api_users_with_email():
+    with db_manager.get_session() as db_session:
+        stmt = select(User).where(
+            User.durum == 'onaylandi',
+            User.email != None,
+            User.email != ''
+        )
+        users = db_session.scalars(stmt).all()
+        result = [
+            {
+                'id': u.id,
+                'ad_soyad': u.ad_soyad,
+                'email': u.email,
+                'rol': u.rol
+            }
+            for u in users if u.email and u.email.strip()
+        ]
+        return jsonify({'success': True, 'users': result})
 
 
 @auth_bp.route('/profile', methods=['GET'])
