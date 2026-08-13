@@ -333,6 +333,38 @@ function isValidEmail(email) {
     return re.test(email);
 }
 
+const KNOWN_DOMAINS = [
+    'gmail.com', 'googlemail.com',
+    'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
+    'yahoo.com', 'yahoo.com.tr', 'ymail.com'
+];
+
+function levenshtein(a, b) {
+    const dp = Array.from({length: a.length + 1}, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+        }
+    }
+    return dp[a.length][b.length];
+}
+
+function checkDomainTypo(email) {
+    const parts = email.split('@');
+    if (parts.length !== 2) return null;
+    const domain = parts[1].toLowerCase();
+    if (KNOWN_DOMAINS.includes(domain)) return null;
+    for (const known of KNOWN_DOMAINS) {
+        if (levenshtein(domain, known) <= 2 && domain !== known) {
+            return known;
+        }
+    }
+    return null;
+}
+
 function parseEmailList(raw) {
     return raw.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 0);
 }
@@ -383,6 +415,21 @@ if (btnMailSend) {
                 mailInput.focus();
             }
             return;
+        }
+
+        for (const addr of emails) {
+            const suggestion = checkDomainTypo(addr);
+            if (suggestion) {
+                if (errorEl) {
+                    errorEl.textContent = `"${addr}" adresinde hata olabilir — "${addr.split('@')[0]}@${suggestion}" mi demek istediniz?`;
+                    errorEl.style.display = 'block';
+                }
+                if (mailInput) {
+                    mailInput.classList.add('input-error');
+                    mailInput.focus();
+                }
+                return;
+            }
         }
 
         if (emails.length > 20) {
