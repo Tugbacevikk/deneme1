@@ -1202,21 +1202,34 @@ class CameraProcessor:
                     except Exception as e:
                         logger.warning(f"Durum kaydı ORM hatası: {e}")
 
-                if durum_degisti and phone_detected_raw:
-                    alarm_turu = 'TELEFON'
-                    aciklama = f"{alarm_turu} tespit edildi ({self._hostname})"
-                    try:
-                        with self.db_manager.get_session() as session:
-                            alarm_obj = Alarm(
-                                istasyon_adi=self._hostname,
-                                alarm_turu=alarm_turu,
-                                aciklama=aciklama,
-                                zaman=zaman_str,
-                                okundu=0
-                            )
-                            session.add(alarm_obj)
-                    except Exception as e:
-                        logger.warning(f"Alarm kayıt ORM hatası: {e}")
+                # C) Telefon Tespiti Anında Canlı Alarm Oluştur ve SocketIO Bildirimi Gönder
+                if phone_detected_raw or phone_detected_in_roi:
+                    last_phone_time = getattr(self, '_last_phone_alarm_time', 0.0)
+                    if current_time - last_phone_time >= 10.0:
+                        self._last_phone_alarm_time = current_time
+                        alarm_turu = 'TELEFON'
+                        aciklama = f"Telefon kullanımı tespit edildi ({self._hostname})"
+                        try:
+                            with self.db_manager.get_session() as session:
+                                alarm_obj = Alarm(
+                                    istasyon_adi=self._hostname,
+                                    alarm_turu=alarm_turu,
+                                    aciklama=aciklama,
+                                    zaman=zaman_str,
+                                    okundu=0
+                                )
+                                session.add(alarm_obj)
+                                session.commit()
+                                alarm_dict = alarm_obj.to_dict()
+
+                            if self.socketio:
+                                try:
+                                    self.socketio.emit('new_alarm', alarm_dict)
+                                    logger.info(f"Canlı Telefon Alarmi SocketIO ile yayınlandı: {aciklama}")
+                                except Exception as se:
+                                    logger.debug(f"Alarm SocketIO emit hatası: {se}")
+                        except Exception as e:
+                            logger.warning(f"Alarm kayıt ORM hatası: {e}")
 
                 status_payload = self._build_status(
                     genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),

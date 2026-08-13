@@ -113,72 +113,85 @@ def pg_tablo_hazirla(engine) -> bool:
 
 def senkronize_et(db_mgr: DatabaseManager, engine, istasyon_adi: str) -> int:
     """
-    SQLite'taki gonderildi=0 kayıtları ORM ile çeker ve PostgreSQL'e
-    Code-First ORM (pg_insert on_conflict_do_nothing) ile aktarır.
+    SQLite'taki gonderildi=0 kayıtları ve genel tabloları ORM ile çeker, PostgreSQL'e
+    anlık olarak aktarır.
     """
     if engine is None or db_mgr is None:
         return 0
 
-    # 1. Yerel SQLite'tan gönderilmeyen kayıtları oku
-    values_list = []
-    local_ids = []
+    # 1. Yerel SQLite'tan gönderilmeyen DurumKaydi kayıtlarını oku ve aktar
+    inserted_count = 0
+    total_processed = 0
     try:
         with db_mgr.get_session() as local_session:
             stmt = select(DurumKaydi).where(DurumKaydi.gonderildi == 0).order_by(DurumKaydi.id.asc()).limit(200)
             kayitlar = local_session.scalars(stmt).all()
-            if not kayitlar:
-                return 0
-            for r in kayitlar:
-                st_name = r.istasyon_adi or istasyon_adi
-                if not st_name or st_name == 'auto':
-                    import socket
-                    st_name = socket.gethostname()
+            if kayitlar:
+                values_list = []
+                local_ids = []
+                for r in kayitlar:
+                    st_name = r.istasyon_adi or istasyon_adi
+                    if not st_name or st_name == 'auto':
+                        import socket
+                        st_name = socket.gethostname()
 
-                values_list.append({
-                    'istasyon_adi': st_name,
-                    'zaman': str(r.zaman),
-                    'durum': r.durum,
-                    'kaynak_id': r.id,
-                    'worker_id': r.worker_id,
-                    'worker_adi': r.worker_adi
-                })
-                local_ids.append(r.id)
+                    values_list.append({
+                        'istasyon_adi': st_name,
+                        'zaman': str(r.zaman),
+                        'durum': r.durum,
+                        'kaynak_id': r.id,
+                        'worker_id': r.worker_id,
+                        'worker_adi': r.worker_adi
+                    })
+                    local_ids.append(r.id)
+
+                if values_list:
+                    insert_stmt = pg_insert(CentralDurumKaydiModel).values(values_list)
+                    upsert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=['istasyon_adi', 'kaynak_id'])
+                    with Session(engine) as pg_session:
+                        res = pg_session.execute(upsert_stmt)
+                        pg_session.commit()
+                        inserted_count = res.rowcount if (res and res.rowcount is not None) else len(local_ids)
+
+                    local_session.execute(
+                        update(DurumKaydi)
+                        .where(DurumKaydi.id.in_(local_ids))
+                        .values(gonderildi=1)
+                    )
+                    local_session.commit()
+                    total_processed += len(local_ids)
     except Exception as e:
-        logger.error(f"[PG] Yerel SQLite okuma hatası: {e}")
-        return 0
+        logger.error(f"[PG] DurumKaydi senkronizasyon hatası: {e}")
 
-    if not values_list:
-        return 0
-
-    # 2. Merkezi PostgreSQL'e Code-First ORM pg_insert ile aktar
-    inserted_count = 0
+    # 2. Diğer tabloları (GunlukOzet, Alarm, Worker) PostgreSQL'e aktar
     try:
-        insert_stmt = pg_insert(CentralDurumKaydiModel).values(values_list)
-        upsert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=['istasyon_adi', 'kaynak_id'])
-        with Session(engine) as pg_session:
-            res = pg_session.execute(upsert_stmt)
-            pg_session.commit()
-            inserted_count = res.rowcount if (res and res.rowcount is not None) else len(local_ids)
-    except Exception as e:
-        logger.error(f"[PG] Merkezi PostgreSQL yazma hatası: {e}")
-        return -1
+        from core.database.models import GunlukOzet, Alarm, Worker, User
+        with db_mgr.get_session() as sqlite_session:
+            with Session(engine) as pg_session:
+                # Alarmlar
+                alarmlar = sqlite_session.scalars(select(Alarm)).all()
+                for a in alarmlar:
+                    data = {col.name: getattr(a, col.name) for col in a.__table__.columns}
+                    existing = pg_session.get(Alarm, data['id'])
+                    if not existing:
+                        pg_session.add(Alarm(**data))
+                
+                # Günlük Özetler
+                ozetler = sqlite_session.scalars(select(GunlukOzet)).all()
+                for oz in ozetler:
+                    data = {col.name: getattr(oz, col.name) for col in oz.__table__.columns}
+                    existing = pg_session.get(GunlukOzet, data['id'])
+                    if not existing:
+                        pg_session.add(GunlukOzet(**data))
+                    else:
+                        for k, v in data.items():
+                            setattr(existing, k, v)
 
-    # 3. Başarılı ise yerel SQLite tarafında gonderildi = 1 yap
-    try:
-        with db_mgr.get_session() as local_session:
-            local_session.execute(
-                update(DurumKaydi)
-                .where(DurumKaydi.id.in_(local_ids))
-                .values(gonderildi=1)
-            )
-        if inserted_count > 0:
-            logger.info(f"[PG] {inserted_count} adet yeni kayıt başarıyla PostgreSQL'e aktarıldı.")
-        else:
-            logger.warning(f"[PG] {len(local_ids)} kayıt işlendi ancak çakışma (on_conflict) nedeniyle PostgreSQL'e yeni satır eklenmedi. Lütfen bilgisayarın 'config.yaml' dosyasında 'istasyon_adi' değerinin benzersiz olduğundan emin olun.")
-        return len(local_ids)
+                pg_session.commit()
     except Exception as e:
-        logger.error(f"[PG] Yerel SQLite gonderildi güncelleme hatası: {e}")
-        return 0
+        logger.debug(f"[PG] Ek tablolar senkronizasyon uyarısı: {e}")
+
+    return total_processed
 
 
 def veritabanlarini_temizle(
@@ -245,7 +258,7 @@ class SenkronThread(threading.Thread):
         self._db_mgr = db_mgr or db_manager
         self._cfg = merkezi_db_cfg or {}
         self._istasyon_adi = istasyon_adi
-        self._aralik_sn = int(self._cfg.get('senkron_araligi_sn', 60))
+        self._aralik_sn = int(self._cfg.get('senkron_araligi_sn', 3))
         self._local_retention_days = int(self._cfg.get('local_retention_days', 7))
         self._pg_retention_days = int(self._cfg.get('pg_retention_days', 30))
         self._durdurma_olayi = threading.Event()
