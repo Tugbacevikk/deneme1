@@ -549,23 +549,42 @@ def api_reports_worker_detail():
         hourly_inaktif = [0] * 24
         hourly_telefon = [0] * 24
 
-        for k in kayitlar:
+        for i, k in enumerate(kayitlar):
             try:
+                z_str = str(k.zaman).replace('T', ' ').strip()
                 if isinstance(k.zaman, datetime.datetime):
-                    h = k.zaman.hour
+                    z_dt = k.zaman
                 else:
-                    h = int(str(k.zaman)[11:13])
-                st = (k.durum or '').upper()
-                if 'TELEFON' in st:
-                    hourly_telefon[h] += save_interval
-                elif 'KAYNAK' in st:
-                    hourly_kaynak[h] += save_interval
-                elif 'İNAKTİF' in st or 'INAKTIF' in st or 'NAKT' in st:
-                    hourly_inaktif[h] += save_interval
-                elif st.startswith('AKT'):
-                    hourly_aktif[h] += save_interval
+                    z_dt = datetime.datetime.strptime(z_str[:19], '%Y-%m-%d %H:%M:%S')
+                h = z_dt.hour
             except Exception:
-                pass
+                h = 0
+
+            # Gerçek geçen süreyi hesapla
+            if i < len(kayitlar) - 1:
+                next_k = kayitlar[i + 1]
+                try:
+                    next_str = str(next_k.zaman).replace('T', ' ').strip()
+                    if isinstance(next_k.zaman, datetime.datetime):
+                        next_dt = next_k.zaman
+                    else:
+                        next_dt = datetime.datetime.strptime(next_str[:19], '%Y-%m-%d %H:%M:%S')
+                    gap = int((next_dt - z_dt).total_seconds())
+                    dur_sec = gap if (0 < gap <= 300) else save_interval
+                except Exception:
+                    dur_sec = save_interval
+            else:
+                dur_sec = save_interval
+
+            st = (k.durum or '').upper()
+            if 'TELEFON' in st:
+                hourly_telefon[h] += dur_sec
+            elif 'KAYNAK' in st:
+                hourly_kaynak[h] += dur_sec
+            elif 'İNAKTİF' in st or 'INAKTIF' in st or 'NAKT' in st:
+                hourly_inaktif[h] += dur_sec
+            elif st.startswith('AKT'):
+                hourly_aktif[h] += dur_sec
 
         total_calc = max(toplam_sec, 1)
         aktif_pct = round((aktif_sec / total_calc * 100), 1)
