@@ -860,7 +860,7 @@ a:hover {
     transition: width 0.3s ease, opacity 0.2s ease;
     overflow: hidden;
 }
-.page-wrapper.sidebar-collapsed .sidebar {
+.sidebar.collapsed {
     width: 0;
     opacity: 0;
     border-right: none;
