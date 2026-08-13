@@ -63,3 +63,21 @@ def mark_single_alarm_unread(alarm_id):
             session.commit()
             return True
         return False
+
+
+def delete_alarm(alarm_id):
+    """Belirli bir alarmı siler."""
+    if str(alarm_id).startswith('pending_'):
+        return True
+    try:
+        alarm_id_int = int(alarm_id)
+    except (ValueError, TypeError):
+        return False
+
+    with db_manager.get_session() as session:
+        alarm = session.get(Alarm, alarm_id_int)
+        if alarm:
+            session.delete(alarm)
+            session.commit()
+            return True
+        return False

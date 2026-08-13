@@ -141,3 +141,19 @@ def api_alarms_mark_single_unread(alarm_id):
     if ok:
         return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
     return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404
+
+
+@alarms_bp.route('/api/alarms/delete/<alarm_id>', methods=['DELETE', 'POST'])
+@alarms_bp.route('/api/alarms/<alarm_id>/delete', methods=['DELETE', 'POST'])
+@alarms_bp.route('/api/alarms/<alarm_id>', methods=['DELETE'])
+@login_required
+def api_delete_alarm(alarm_id):
+    from web.services.alarm_service import delete_alarm
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
+    ok = delete_alarm(alarm_id)
+    if ok:
+        return jsonify({'success': True, 'message': 'Alarm silindi.', 'unread_count': get_unread_count(stations=stations_param)})
+    return jsonify({'success': False, 'message': 'Alarm bulunamadı veya silinemedi.'}), 404
