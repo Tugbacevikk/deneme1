@@ -328,18 +328,50 @@ if (btnPdf) {
     });
 }
 
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    return re.test(email);
+}
+
 // Mail Gönder
 const btnMailSend = document.getElementById('btn-mail-send');
 if (btnMailSend) {
     btnMailSend.addEventListener('click', async () => {
         const mailInput = document.getElementById('mail-input');
+        const errorEl = document.getElementById('mail-input-error');
         const email = mailInput ? mailInput.value.trim() : '';
-        if (!email) { showToast('E-posta adresi girin', 'error'); return; }
+
+        if (errorEl) errorEl.style.display = 'none';
+        if (mailInput) mailInput.classList.remove('input-error');
+
+        if (!email) {
+            if (errorEl) {
+                errorEl.textContent = 'Lütfen bir e-posta adresi girin.';
+                errorEl.style.display = 'block';
+            }
+            if (mailInput) {
+                mailInput.classList.add('input-error');
+                mailInput.focus();
+            }
+            return;
+        }
+        if (!isValidEmail(email)) {
+            if (errorEl) {
+                errorEl.textContent = 'Geçerli bir e-posta adresi girin (örn: ad@sirket.com).';
+                errorEl.style.display = 'block';
+            }
+            if (mailInput) {
+                mailInput.classList.add('input-error');
+                mailInput.focus();
+            }
+            return;
+        }
+
         btnMailSend.disabled = true;
-        const elStart = document.getElementById('filter-start').value;
-        const elEnd = document.getElementById('filter-end').value;
-        const elStation = document.getElementById('filter-station').value;
-        const elWorker = document.getElementById('filter-worker').value;
+        const elStart = document.getElementById('filter-start') ? document.getElementById('filter-start').value : '';
+        const elEnd = document.getElementById('filter-end') ? document.getElementById('filter-end').value : '';
+        const elStation = document.getElementById('filter-station') ? document.getElementById('filter-station').value : '';
+        const elWorker = document.getElementById('filter-worker') ? document.getElementById('filter-worker').value : '';
         try {
             const res = await fetch('/api/reports/email_pdf', {
                 method: 'POST',

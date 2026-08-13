@@ -1404,3 +1404,7 @@ a:hover {
   color: var(--text-muted);
   margin-top: 4px;
 }
+
+.input-error {
+  border-color: #DC2626 !important;
+}

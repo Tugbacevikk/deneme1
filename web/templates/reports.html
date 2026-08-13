@@ -62,11 +62,14 @@
                 <button class="btn btn-secondary" id="btn-pdf">
                     <i class="fa-solid fa-file-pdf"></i> PDF İndir
                 </button>
-                <div style="display:inline-flex; align-items:center; gap:6px; margin-left:4px;">
-                    <input type="email" class="form-input form-input--sm" id="mail-input" placeholder="E-posta adresi..." style="width:180px;">
-                    <button class="btn btn-secondary" id="btn-mail-send" title="PDF Raporunu E-posta ile Gönder">
-                        <i class="fa-solid fa-paper-plane"></i> Mail Gönder
-                    </button>
+                <div style="display:inline-flex; flex-direction:column; align-items:flex-start; margin-left:4px;">
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <input type="email" class="form-input form-input--sm" id="mail-input" placeholder="E-posta adresi..." style="width:180px;">
+                        <button class="btn btn-secondary" id="btn-mail-send" title="PDF Raporunu E-posta ile Gönder">
+                            <i class="fa-solid fa-paper-plane"></i> Mail Gönder
+                        </button>
+                    </div>
+                    <span id="mail-input-error" class="field-error" style="display:none; color:#DC2626; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <button class="btn btn-secondary" id="btn-reset-filter" title="Filtreyi Sıfırla">
                     <i class="fa-solid fa-rotate-left"></i>

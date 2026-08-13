@@ -325,12 +325,16 @@ def api_reports_export_pdf():
     return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
+import re
+EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
+
+
 @reports_bp.route('/api/reports/email_pdf', methods=['POST'])
 @login_required
 def api_reports_email_pdf():
     data = request.get_json() or {}
     to_email = data.get('email', '').strip()
-    if not to_email or '@' not in to_email:
+    if not to_email or not EMAIL_RE.match(to_email):
         return jsonify({'success': False, 'message': 'Geçerli bir e-posta adresi girin.'}), 400
 
     start = data.get('start', '')
