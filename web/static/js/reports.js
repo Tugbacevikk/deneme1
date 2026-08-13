@@ -432,27 +432,30 @@ function fetchMailUsers() {
 }
 
 // Tab Switching
-document.addEventListener('click', function(e) {
-    const tabBtn = e.target.closest('.modal-tab');
-    if (tabBtn && tabBtn.dataset.tab) {
-        activeMailTab = tabBtn.dataset.tab;
-        document.querySelectorAll('.modal-tab').forEach(b => {
-            b.classList.remove('active');
-            b.style.borderBottom = 'none';
-            b.style.color = 'var(--text-secondary)';
-        });
-        tabBtn.classList.add('active');
-        tabBtn.style.borderBottom = '2px solid var(--accent)';
-        tabBtn.style.color = 'var(--accent)';
+const mailModalTabs = document.querySelector('.modal-tabs');
+if (mailModalTabs) {
+    mailModalTabs.addEventListener('click', function(e) {
+        const tabBtn = e.target.closest('.modal-tab');
+        if (tabBtn && tabBtn.dataset.tab) {
+            activeMailTab = tabBtn.dataset.tab;
+            document.querySelectorAll('.modal-tab').forEach(b => {
+                b.classList.remove('active');
+                b.style.borderBottom = 'none';
+                b.style.color = 'var(--text-secondary)';
+            });
+            tabBtn.classList.add('active');
+            tabBtn.style.borderBottom = '2px solid var(--accent)';
+            tabBtn.style.color = 'var(--accent)';
 
-        document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
-        const activePanel = document.getElementById('tab-' + activeMailTab);
-        if (activePanel) activePanel.style.display = 'block';
+            document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+            const activePanel = document.getElementById('tab-' + activeMailTab);
+            if (activePanel) activePanel.style.display = 'block';
 
-        const errorEl = document.getElementById('mail-input-error');
-        if (errorEl) errorEl.style.display = 'none';
-    }
-});
+            const errorEl = document.getElementById('mail-input-error');
+            if (errorEl) errorEl.style.display = 'none';
+        }
+    });
+}
 
 const btnOpenMailPanel = document.getElementById('btn-open-mail-panel');
 if (btnOpenMailPanel) {
