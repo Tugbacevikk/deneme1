@@ -6,7 +6,7 @@ import logging
 import datetime
 from contextlib import contextmanager
 from sqlalchemy import select, func, and_, or_, String
-from core.database.models import DurumKaydi, Worker, User
+from core.database.models import DurumKaydi, Worker, User, GunlukOzet
 from core.database.connection import db_manager
 
 logger = logging.getLogger(__name__)
@@ -14,9 +14,54 @@ logger = logging.getLogger(__name__)
 
 def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', start_date='', end_date='', istasyon='', save_interval=5, model_cls=DurumKaydi):
     """
-    Belirli bir çalışan, istasyon ve tarih aralığı için ham durum kayıtlarını inceleyerek 
-    kesintisiz aktif, inaktif ve telefon sürelerini tam olarak hesaplar.
+    Belirli bir çalışan, istasyon ve tarih aralığı için ham durum kayıtlarını ve günlük özetleri inceleyerek 
+    kesintisiz aktif, inaktif, kaynak ve telefon sürelerini tam kesinlikle hesaplar.
     """
+    # 1. Önce Günlük Özet (GunlukOzet) Tablosundan Kesin Birikmiş Süreleri Kontrol Et
+    try:
+        ozet_filters = []
+        if start_date:
+            ozet_filters.append(GunlukOzet.tarih >= start_date)
+        if end_date:
+            ozet_filters.append(GunlukOzet.tarih <= end_date)
+        if istasyon:
+            ozet_filters.append(GunlukOzet.istasyon_adi == istasyon)
+        if worker_id and str(worker_id).isdigit() and int(worker_id) > 0:
+            ozet_filters.append(or_(
+                GunlukOzet.worker_id == int(worker_id),
+                GunlukOzet.worker_adi == worker_name
+            ))
+        elif worker_name and worker_name != 'Atanmamış Çalışan':
+            ozet_filters.append(GunlukOzet.worker_adi == worker_name)
+
+        stmt_ozet = select(
+            func.coalesce(func.sum(GunlukOzet.toplam_aktif_sn), 0).label('aktif_sec'),
+            func.coalesce(func.sum(GunlukOzet.toplam_kaynak_sn), 0).label('kaynak_sec'),
+            func.coalesce(func.sum(GunlukOzet.toplam_inaktif_sn), 0).label('inaktif_sec'),
+            func.coalesce(func.sum(GunlukOzet.toplam_telefon_sn), 0).label('telefon_sec')
+        )
+        if ozet_filters:
+            stmt_ozet = stmt_ozet.where(and_(*ozet_filters))
+        
+        ozet_row = session_orm.execute(stmt_ozet).first()
+        if ozet_row and (ozet_row.aktif_sec > 0 or ozet_row.kaynak_sec > 0 or ozet_row.inaktif_sec > 0 or ozet_row.telefon_sec > 0):
+            a_sec = int(ozet_row.aktif_sec)
+            k_sec = int(ozet_row.kaynak_sec)
+            i_sec = int(ozet_row.inaktif_sec)
+            t_sec = int(ozet_row.telefon_sec)
+            toplam_sn = a_sec + k_sec + i_sec + t_sec
+            return {
+                'aktif_sec': a_sec,
+                'kaynak_sec': k_sec,
+                'inaktif_sec': i_sec,
+                'telefon_sec': t_sec,
+                'toplam_sec': toplam_sn,
+                'kayitlar_count': 1
+            }
+    except Exception as e:
+        logger.debug(f"GunlukOzet sorgulama atlandı: {e}")
+
+    # 2. Günlük Özet Yoksa veya 0 İse Ham Durum Kayıtlarından Hesapla
     zaman_str_expr = func.cast(model_cls.zaman, String)
     filters = []
     if start_date:
@@ -84,7 +129,7 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
                 next_dt = z_dt
 
             gap = (next_dt - z_dt).total_seconds()
-            dur = int(gap) if 0 < gap <= 15 else save_interval
+            dur = int(gap) if 0 < gap <= 300 else save_interval
         else:
             dur = save_interval
 
