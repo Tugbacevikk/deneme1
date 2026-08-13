@@ -1,23 +1,294 @@
 {% extends 'base.html' %}
 
-{% block title %}Alarmlar{% endblock %}
-{% block page_title %}Alarmlar{% endblock %}
-{% block page_title_sub %}Bildirimler & Uyarılar{% endblock %}
+{% block title %}Alarmlar & Bildirimler{% endblock %}
+{% block page_title %}Alarmlar & Bildirimler{% endblock %}
+{% block page_title_sub %}Sistem ve Güvenlik İhlal Takibi{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── ALARMS PAGE PREMIUM MODERN STYLES ────────────────────────── */
+.top-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.count-badge--orange {
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+}
+.count-badge--red {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FCA5A5;
+}
+.search-wrap {
+    position: relative;
+    width: 240px;
+}
+.search-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    font-size: 13px;
+}
+.search-wrap input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    background: #F8FAFC;
+    transition: all 0.2s ease;
+}
+.search-wrap input:focus {
+    background: #ffffff;
+    border-color: #E30613;
+    box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.1);
+}
+
+/* Filter Tabs */
+.filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #E2E8F0;
+    background: #ffffff;
+    color: #64748B;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.filter-tab:hover {
+    background: #F1F5F9;
+    color: #1E293B;
+}
+.filter-tab--active {
+    background: #1E293B;
+    color: #ffffff;
+    border-color: #1E293B;
+}
+.tab-count {
+    background: rgba(0,0,0,0.06);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.filter-tab--active .tab-count {
+    background: rgba(255,255,255,0.2);
+    color: #ffffff;
+}
+
+/* Alarm List & Cards */
+.alarm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.alarm-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+.alarm-card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+}
+.alarm-card--unread {
+    background: #FFFAFA;
+    border-left: 4px solid #E30613;
+}
+.alarm-card-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.alarm-icon-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+.alarm-icon-circle--red {
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+}
+.alarm-icon-circle--blue {
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+}
+.alarm-icon-circle--orange {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25);
+}
+
+.alarm-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+.alarm-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.alarm-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.alarm-type-badge--red {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FCA5A5;
+}
+.alarm-type-badge--blue {
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+}
+.alarm-type-badge--orange {
+    background: #FFFBEB;
+    color: #D97706;
+    border: 1px solid #FDE68A;
+}
+
+.alarm-station {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.unread-dot {
+    width: 8px;
+    height: 8px;
+    background: #E30613;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.alarm-description {
+    margin: 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1E293B;
+    line-height: 1.4;
+}
+
+.alarm-footer-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #94A3B8;
+}
+.alarm-time {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.alarm-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+}
+
+.alarm-empty {
+    text-align: center;
+    padding: 60px 20px;
+    background: #ffffff;
+    border: 1px dashed #CBD5E1;
+    border-radius: 16px;
+}
+.alarm-empty-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 
-<!-- ── TOP BAR ───────────────────────────────────────────────── -->
+<!-- ── TOP ACTION BAR ───────────────────────────────────────── -->
 <div class="top-action-bar">
     <div class="top-bar-left">
-        <button class="btn btn--outline" id="btn-mark-all-read">
-            <i class="fa-solid fa-check-double"></i> Tümünü Okundu İşaretle
+        <button class="btn btn--outline" id="btn-mark-all-read" style="padding:8px 14px; font-size:13px; border-radius:8px;">
+            <i class="fa-solid fa-check-double" style="color:#10B981;"></i> Tümünü Okundu İşaretle
         </button>
-        <button class="btn btn--outline" id="btn-refresh-alarms">
+        <button class="btn btn--outline" id="btn-refresh-alarms" style="padding:8px 14px; font-size:13px; border-radius:8px;">
             <i class="fa-solid fa-rotate-right"></i> Yenile
         </button>
         <span class="count-badge count-badge--orange" id="alarm-total-badge">
             <i class="fa-solid fa-bell"></i>
-            {{ alarms|length if alarms else 0 }} Alarm
+            <span id="total-count-text">{{ alarms|length if alarms else 0 }}</span> Alarm
         </span>
         <span class="count-badge count-badge--red" id="alarm-unread-badge" style="display:none;">
             <i class="fa-solid fa-circle-dot"></i>
@@ -27,8 +298,7 @@
     <div class="top-bar-right">
         <div class="search-wrap">
             <i class="fa-solid fa-search search-icon"></i>
-            <input type="text" class="form-input form-input--sm" id="alarm-search"
-                   placeholder="Alarm ara..." oninput="filterAlarms(this.value)">
+            <input type="text" id="alarm-search" placeholder="Alarm veya istasyon ara..." oninput="filterAlarms(this.value)">
         </div>
     </div>
 </div>
@@ -40,12 +310,12 @@
         <span class="tab-count" id="tab-count-all">{{ alarms|length if alarms else 0 }}</span>
     </button>
     <button class="filter-tab" data-filter="telefon" onclick="setFilter('telefon', this)">
-        <i class="fa-solid fa-phone"></i> Telefon
+        <i class="fa-solid fa-mobile-screen-button"></i> Telefon
         <span class="tab-count" id="tab-count-telefon">0</span>
     </button>
-    <button class="filter-tab" data-filter="inaktif" onclick="setFilter('inaktif', this)">
-        <i class="fa-solid fa-person-walking-arrow-right"></i> İnaktif
-        <span class="tab-count" id="tab-count-inaktif">0</span>
+    <button class="filter-tab" data-filter="kayıt" onclick="setFilter('kayıt', this)">
+        <i class="fa-solid fa-user-plus"></i> Kayıt Başvuruları
+        <span class="tab-count" id="tab-count-kayit">0</span>
     </button>
     <button class="filter-tab" data-filter="today" onclick="setFilter('today', this)">
         <i class="fa-regular fa-calendar-day"></i> Bugün
@@ -58,67 +328,71 @@
 
     {% if alarms %}
         {% for alarm in alarms %}
-        <div class="alarm-card {% if not alarm.read %}alarm-card--unread{% endif %}"
+        {% set a_type = (alarm.type or alarm.alarm_turu or 'Alarm') %}
+        {% set a_time = (alarm.created_at or alarm.time or alarm.zaman or '—') %}
+        {% set a_is_read = alarm.read or (alarm.okundu == 1) %}
+        {% set is_phone = 'telefon' in a_type|lower %}
+        {% set is_reg = 'kayıt' in a_type|lower or 'basvuru' in a_type|lower %}
+        
+        <div class="alarm-card {% if not a_is_read %}alarm-card--unread{% endif %}"
              data-id="{{ alarm.id }}"
-             data-type="{{ (alarm.type or alarm.alarm_turu or '')|lower }}"
-             data-time="{{ alarm.created_at or alarm.time or '' }}"
-             data-read="{{ 'true' if alarm.read else 'false' }}">
+             data-type="{{ a_type|lower }}"
+             data-time="{{ a_time }}"
+             data-read="{{ 'true' if a_is_read else 'false' }}">
 
-            <!-- Left: Icon Circle -->
-            <div class="alarm-icon-circle alarm-icon-circle--{{ 'red' if (alarm.type or '')|lower == 'telefon' else 'orange' }}">
-                {% if (alarm.type or '')|lower == 'telefon' %}
-                    <i class="fa-solid fa-phone"></i>
-                {% else %}
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                {% endif %}
-            </div>
-
-            <!-- Content -->
-            <div class="alarm-content">
-                <div class="alarm-header-row">
-                    <span class="alarm-type-badge alarm-type-badge--{{ 'red' if (alarm.type or '')|lower == 'telefon' else 'orange' }}">
-                        {{ alarm.type or alarm.alarm_turu or 'Alarm' }}
-                    </span>
-                    <span class="alarm-station">
-                        <i class="fa-solid fa-industry"></i>
-                        {{ alarm.station or alarm.istasyon or '—' }}
-                    </span>
-                    {% if not alarm.read %}
-                    <span class="unread-dot" title="Okunmadı"></span>
+            <div class="alarm-card-left">
+                <!-- Icon Circle -->
+                <div class="alarm-icon-circle alarm-icon-circle--{{ 'red' if is_phone else ('blue' if is_reg else 'orange') }}">
+                    {% if is_phone %}
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    {% elif is_reg %}
+                        <i class="fa-solid fa-user-plus"></i>
+                    {% else %}
+                        <i class="fa-solid fa-triangle-exclamation"></i>
                     {% endif %}
                 </div>
-                <p class="alarm-description">
-                    {{ alarm.description or alarm.aciklama or 'Alarm tetiklendi' }}
-                </p>
-                <div class="alarm-footer-row">
-                    <span class="alarm-time">
-                        <i class="fa-regular fa-clock"></i>
-                        {{ alarm.created_at or alarm.time or '—' }}
-                    </span>
-                    {% if alarm.worker_name %}
-                    <span class="alarm-worker">
-                        <i class="fa-solid fa-user"></i>
-                        {{ alarm.worker_name }}
-                    </span>
-                    {% endif %}
+
+                <!-- Content -->
+                <div class="alarm-content">
+                    <div class="alarm-header-row">
+                        <span class="alarm-type-badge alarm-type-badge--{{ 'red' if is_phone else ('blue' if is_reg else 'orange') }}">
+                            {{ a_type }}
+                        </span>
+                        <span class="alarm-station">
+                            <i class="fa-solid fa-industry"></i>
+                            {{ alarm.station or alarm.istasyon_adi or 'Genel' }}
+                        </span>
+                        {% if not a_is_read %}
+                        <span class="unread-dot" title="Okunmadı"></span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="alarm-description">
+                        {{ alarm.description or alarm.aciklama or 'Sistem ihlal uyarısı tetiklendi.' }}
+                    </p>
+                    
+                    <div class="alarm-footer-row">
+                        <span class="alarm-time">
+                            <i class="fa-regular fa-clock"></i>
+                            {{ a_time }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right: Actions -->
+            <!-- Actions -->
             <div class="alarm-actions">
-                {% if not alarm.read %}
-                <button class="btn btn--outline btn--xs" data-id="{{ alarm.id }}" onclick="markRead(this)"
-                        title="Okundu işaretle">
-                    <i class="fa-solid fa-check"></i>
+                {% if not a_is_read %}
+                <button class="btn btn--outline" style="padding:6px 12px; font-size:12px; border-radius:8px;" data-id="{{ alarm.id }}" onclick="markRead(this)" title="Okundu işaretle">
+                    <i class="fa-solid fa-check" style="color:#10B981;"></i>
                 </button>
                 {% else %}
-                <button class="btn btn--outline btn--xs" disabled title="Okundu">
+                <button class="btn btn--outline" style="padding:6px 12px; font-size:12px; border-radius:8px; opacity:0.6;" disabled title="Okundu">
                     <i class="fa-solid fa-check-double"></i>
                 </button>
                 {% endif %}
-                <button class="btn btn--danger btn--xs" data-id="{{ alarm.id }}" onclick="deleteAlarm(this)"
-                        title="Sil">
-                    <i class="fa-solid fa-trash"></i>
+                <button class="btn btn--danger" style="padding:6px 12px; font-size:12px; border-radius:8px; background:#FEF2F2; color:#EF4444; border:1px solid #FCA5A5;" data-id="{{ alarm.id }}" onclick="deleteAlarm('{{ alarm.id }}', this)" title="Sil">
+                    <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>
 
@@ -129,18 +403,19 @@
         <!-- Empty State -->
         <div class="alarm-empty" id="alarm-empty-state">
             <div class="alarm-empty-icon">🔕</div>
-            <h3>Alarm Bulunamadı</h3>
-            <p>Şu an için herhangi bir alarm kaydı bulunmamaktadır.</p>
-            <p class="alarm-empty-sub">Sistem aktif alarmları otomatik olarak burada gösterecektir.</p>
+            <h3 style="margin:0 0 6px 0; color:#1E293B; font-size:18px;">Alarm Bulunamadı</h3>
+            <p style="margin:0 0 4px 0; color:#64748B; font-size:14px;">Şu an için herhangi bir ihlal kaydı bulunmamaktadır.</p>
+            <span style="font-size:12px; color:#94A3B8;">Sistem yeni alarmları otomatik olarak burada gösterecektir.</span>
         </div>
     {% endif %}
 
 </div>
 
 <!-- No filter results -->
-<div class="empty-state" id="alarm-no-results" style="display:none;">
-    <i class="fa-solid fa-bell-slash"></i>
-    <p>Bu filtre için alarm bulunamadı</p>
+<div class="alarm-empty" id="alarm-no-results" style="display:none; margin-top:20px;">
+    <div class="alarm-empty-icon">🔍</div>
+    <h3 style="margin:0 0 6px 0; color:#1E293B; font-size:16px;">Sonuç Bulunamadı</h3>
+    <p style="margin:0; color:#64748B; font-size:13px;">Seçilen filtreye veya aramaya uygun alarm bulunamadı.</p>
 </div>
 
 {% endblock %}
@@ -148,45 +423,50 @@
 
 {% block extra_scripts %}
 <script>
-// ═══════════════════════════════════════════════
-// Alarms JS
-// ═══════════════════════════════════════════════
-
 let activeFilter = 'all';
 let searchQuery  = '';
 
-// ── Count Tabs on Load ────────────────────────────────────────
 function countTabs() {
     const cards   = document.querySelectorAll('.alarm-card');
     const today   = new Date().toISOString().split('T')[0];
-    let telefon   = 0, inaktif = 0, todayCount = 0, unread = 0;
+    let telefon   = 0, kayit = 0, todayCount = 0, unread = 0;
 
     cards.forEach(card => {
         const type = (card.dataset.type || '').toLowerCase();
         const time = card.dataset.time || '';
         const isRead = card.dataset.read === 'true';
 
-        if (type === 'telefon') telefon++;
-        else inaktif++;
-        if (time.startsWith(today)) todayCount++;
+        if (type.includes('telefon')) telefon++;
+        if (type.includes('kayıt') || type.includes('basvuru')) kayit++;
+        if (time.includes(today)) todayCount++;
         if (!isRead) unread++;
     });
 
-    document.getElementById('tab-count-all').textContent     = cards.length;
-    document.getElementById('tab-count-telefon').textContent = telefon;
-    document.getElementById('tab-count-inaktif').textContent = inaktif;
-    document.getElementById('tab-count-today').textContent   = todayCount;
-    document.getElementById('alarm-total-badge').innerHTML   =
-        `<i class="fa-solid fa-bell"></i> ${cards.length} Alarm`;
+    const elAll = document.getElementById('tab-count-all');
+    if (elAll) elAll.textContent = cards.length;
+    const elTel = document.getElementById('tab-count-telefon');
+    if (elTel) elTel.textContent = telefon;
+    const elKay = document.getElementById('tab-count-kayit');
+    if (elKay) elKay.textContent = kayit;
+    const elTod = document.getElementById('tab-count-today');
+    if (elTod) elTod.textContent = todayCount;
+    
+    const elTotBadge = document.getElementById('total-count-text');
+    if (elTotBadge) elTotBadge.textContent = cards.length;
 
-    if (unread > 0) {
-        document.getElementById('alarm-unread-badge').style.display = 'inline-flex';
-        document.getElementById('unread-count-text').textContent    = unread;
+    const unreadBadge = document.getElementById('alarm-unread-badge');
+    const unreadText  = document.getElementById('unread-count-text');
+    if (unreadBadge && unreadText) {
+        if (unread > 0) {
+            unreadBadge.style.display = 'inline-flex';
+            unreadText.textContent = unread;
+        } else {
+            unreadBadge.style.display = 'none';
+        }
     }
 }
 countTabs();
 
-// ── Filter Tabs ───────────────────────────────────────────────
 function setFilter(filter, el) {
     activeFilter = filter;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('filter-tab--active'));
@@ -211,33 +491,32 @@ function applyFilters() {
 
         let show = true;
 
-        // Filter tab
-        if (activeFilter === 'telefon' && type !== 'telefon') show = false;
-        if (activeFilter === 'inaktif' && type === 'telefon') show = false;
-        if (activeFilter === 'today'   && !time.startsWith(today)) show = false;
+        if (activeFilter === 'telefon' && !type.includes('telefon')) show = false;
+        if (activeFilter === 'kayıt' && (!type.includes('kayıt') && !type.includes('basvuru'))) show = false;
+        if (activeFilter === 'today' && !time.includes(today)) show = false;
 
-        // Search
         if (searchQuery && !text.includes(searchQuery)) show = false;
 
-        card.style.display = show ? '' : 'none';
+        card.style.display = show ? 'flex' : 'none';
         if (show) visible++;
     });
 
-    document.getElementById('alarm-no-results').style.display =
-        (visible === 0 && (activeFilter !== 'all' || searchQuery)) ? 'flex' : 'none';
+    const noRes = document.getElementById('alarm-no-results');
+    if (noRes) {
+        noRes.style.display = (visible === 0 && (activeFilter !== 'all' || searchQuery)) ? 'block' : 'none';
+    }
 }
 
-// ── Mark Single Read ──────────────────────────────────────────
-function markRead(btn, id) {
+function markRead(btn) {
+    let id;
     if (btn && typeof btn === 'object' && btn.dataset) {
         id = btn.dataset.id;
     } else if (typeof btn === 'number' || typeof btn === 'string') {
         id = btn;
     }
-    fetch('/api/alarms/mark_read', {
+    fetch(`/api/alarms/${id}/mark_read`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alarm_id: id })
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(r => r.json())
     .then(() => {
@@ -258,7 +537,6 @@ function markRead(btn, id) {
     .catch(() => showToast('Hata oluştu', 'error'));
 }
 
-// ── Mark All Read ─────────────────────────────────────────────
 const btnMarkAll = document.getElementById('btn-mark-all-read');
 if (btnMarkAll) {
     btnMarkAll.addEventListener('click', function() {
@@ -278,6 +556,8 @@ if (btnMarkAll) {
             if (unreadB) unreadB.style.display = 'none';
             const badge = document.getElementById('alarm-count-badge');
             if (badge) badge.style.display = 'none';
+            const notifB = document.getElementById('notif-badge');
+            if (notifB) notifB.style.display = 'none';
             showToast('Tüm alarmlar okundu işaretlendi', 'success');
             countTabs();
         })
@@ -289,75 +569,35 @@ if (btnMarkAll) {
     });
 }
 
-// ── Delete Alarm ──────────────────────────────────────────────
-async function deleteAlarm(id, btn) {
-    const ok = await showConfirm('Bu alarmı silmek istediğinizden emin misiniz?', { title: 'Alarm Sil', okText: 'Sil' });
-    if (!ok) return;
-
-    fetch(`/api/alarms/delete/${id}`, { method: 'DELETE' })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success || data.status === 'ok') {
-            const card = document.querySelector(`.alarm-card[data-id="${id}"]`);
-            if (card) {
-                card.style.transition = 'opacity 0.3s, transform 0.3s';
-                card.style.opacity    = '0';
-                card.style.transform  = 'translateX(20px)';
-                setTimeout(() => { card.remove(); countTabs(); }, 300);
+function deleteAlarm(id, btn) {
+    showConfirm('Bu alarmı silmek istediğinizden emin misiniz?', { title: 'Alarm Sil', okText: 'Sil' }).then(ok => {
+        if (!ok) return;
+        fetch(`/api/alarms/delete/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success || data.status === 'ok') {
+                const card = document.querySelector(`.alarm-card[data-id="${id}"]`);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity    = '0';
+                    card.style.transform  = 'translateX(20px)';
+                    setTimeout(() => { card.remove(); countTabs(); }, 300);
+                }
+                showToast('Alarm silindi', 'success');
+            } else {
+                showToast(data.message || 'Silme hatası', 'error');
             }
-            showToast('Alarm silindi', 'success');
-        } else {
-            showToast(data.message || 'Silme hatası', 'error');
-        }
-    })
-    .catch(() => showToast('Sunucu bağlantı hatası', 'error'));
+        })
+        .catch(() => showToast('Sunucu bağlantı hatası', 'error'));
+    });
 }
 
-// ── Refresh ───────────────────────────────────────────────────
-document.getElementById('btn-refresh-alarms').addEventListener('click', function() {
-    this.querySelector('i').classList.add('fa-spin');
-    setTimeout(() => location.reload(), 400);
-});
-
-// ── Real-time new alarm via Socket ─────────────────────────────
-if (window._socket) {
-    window._socket.on('new_alarm', function(data) {
-        const list  = document.getElementById('alarm-list');
-        const empty = document.getElementById('alarm-empty-state');
-        if (empty) empty.remove();
-
-        const iconClass = (data.type || '').toLowerCase() === 'telefon' ? 'fa-phone' : 'fa-triangle-exclamation';
-        const colorClass = (data.type || '').toLowerCase() === 'telefon' ? 'red' : 'orange';
-
-        const card = document.createElement('div');
-        card.className = 'alarm-card alarm-card--unread alarm-card--new';
-        card.dataset.id   = data.id || '';
-        card.dataset.type = (data.type || '').toLowerCase();
-        card.dataset.time = data.created_at || data.time || '';
-        card.dataset.read = 'false';
-        card.innerHTML = `
-            <div class="alarm-icon-circle alarm-icon-circle--${colorClass}">
-                <i class="fa-solid ${iconClass}"></i>
-            </div>
-            <div class="alarm-content">
-                <div class="alarm-header-row">
-                    <span class="alarm-type-badge alarm-type-badge--${colorClass}">${data.type || 'Alarm'}</span>
-                    <span class="alarm-station"><i class="fa-solid fa-industry"></i> ${data.station || data.istasyon || '—'}</span>
-                    <span class="unread-dot"></span>
-                </div>
-                <p class="alarm-description">${data.description || data.aciklama || 'Alarm tetiklendi'}</p>
-                <div class="alarm-footer-row">
-                    <span class="alarm-time"><i class="fa-regular fa-clock"></i> ${data.created_at || data.time || 'Şimdi'}</span>
-                </div>
-            </div>
-            <div class="alarm-actions">
-                <button class="btn btn--outline btn--xs" onclick="markRead(${data.id}, this)"><i class="fa-solid fa-check"></i></button>
-                <button class="btn btn--danger btn--xs" onclick="deleteAlarm(${data.id}, this)"><i class="fa-solid fa-trash"></i></button>
-            </div>
-        `;
-        list.insertBefore(card, list.firstChild);
-        countTabs();
-        showToast(`Yeni alarm: ${data.type || 'Alarm'} — ${data.station || ''}`, 'warning');
+const btnRef = document.getElementById('btn-refresh-alarms');
+if (btnRef) {
+    btnRef.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+        setTimeout(() => location.reload(), 400);
     });
 }
 </script>

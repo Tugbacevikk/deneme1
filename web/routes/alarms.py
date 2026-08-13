@@ -12,6 +12,7 @@ alarms_bp = Blueprint('alarms', __name__)
 @alarms_bp.route('/alarms_page')
 @login_required
 def alarms_page():
+    import datetime
     from web.services.user_service import get_pending_users
     from web.helpers import get_current_patron_access
     
@@ -23,12 +24,18 @@ def alarms_page():
     if role in ('admin', 'super_admin'):
         pending_users = get_pending_users()
         for u in pending_users:
+            z_time = u.get('kayit_tarihi') or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             alarms_list.append({
                 'id': f"pending_{u['id']}",
                 'istasyon_adi': 'Sistem',
+                'station': 'Sistem',
                 'alarm_turu': 'Kayıt Başvurusu',
+                'type': 'Kayıt Başvurusu',
                 'aciklama': f"Yeni patron başvurdu: {u['ad_soyad']} ({u['firma_adi'] or 'Firma Belirtilmemiş'}) onay bekliyor.",
-                'zaman': u['kayit_tarihi'],
+                'description': f"Yeni patron başvurdu: {u['ad_soyad']} ({u['firma_adi'] or 'Firma Belirtilmemiş'}) onay bekliyor.",
+                'zaman': z_time,
+                'created_at': z_time,
+                'time': z_time,
                 'okundu': 0,
                 'read': False
             })
@@ -36,6 +43,11 @@ def alarms_page():
     real_alarms = get_alarms(limit=50, stations=stations_param)
     for a in real_alarms:
         a['read'] = (a.get('okundu') == 1)
+        a['type'] = a.get('alarm_turu') or 'Alarm'
+        a['station'] = a.get('istasyon_adi') or 'Genel'
+        a['description'] = a.get('aciklama') or ''
+        a['created_at'] = a.get('zaman') or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        a['time'] = a['created_at']
         alarms_list.append(a)
 
     return render_template('alarms.html', alarms=alarms_list)
@@ -44,6 +56,7 @@ def alarms_page():
 @alarms_bp.route('/api/alarms', methods=['GET'])
 @login_required
 def api_alarms():
+    import datetime
     from web.services.user_service import get_pending_users
     from web.helpers import get_current_patron_access
     
@@ -55,17 +68,31 @@ def api_alarms():
     if role in ('admin', 'super_admin'):
         pending_users = get_pending_users()
         for u in pending_users:
+            z_time = u.get('kayit_tarihi') or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             alarms_list.append({
                 'id': f"pending_{u['id']}",
                 'istasyon_adi': 'Sistem',
+                'station': 'Sistem',
                 'alarm_turu': 'Kayıt Başvurusu',
+                'type': 'Kayıt Başvurusu',
                 'aciklama': f"Yeni patron başvurdu: {u['ad_soyad']} ({u['firma_adi'] or 'Firma Belirtilmemiş'}) onay bekliyor.",
-                'zaman': u['kayit_tarihi'],
-                'okundu': 0
+                'description': f"Yeni patron başvurdu: {u['ad_soyad']} ({u['firma_adi'] or 'Firma Belirtilmemiş'}) onay bekliyor.",
+                'zaman': z_time,
+                'created_at': z_time,
+                'time': z_time,
+                'okundu': 0,
+                'read': False
             })
         
     real_alarms = get_alarms(limit=50, stations=stations_param)
-    alarms_list.extend(real_alarms)
+    for a in real_alarms:
+        a['read'] = (a.get('okundu') == 1)
+        a['type'] = a.get('alarm_turu') or 'Alarm'
+        a['station'] = a.get('istasyon_adi') or 'Genel'
+        a['description'] = a.get('aciklama') or ''
+        a['created_at'] = a.get('zaman') or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        a['time'] = a['created_at']
+        alarms_list.append(a)
 
     return jsonify({'success': True, 'alarms': alarms_list})
 
