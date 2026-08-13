@@ -165,16 +165,22 @@ class CameraProcessor:
                 stmt = select(Worker).where(
                     Worker.istasyon_adi == self._hostname,
                     Worker.aktif == 1
-                )
+                ).order_by(Worker.id.desc())
                 w = session.scalars(stmt).first()
+                if not w:
+                    stmt_any = select(Worker).where(
+                        Worker.istasyon_adi == self._hostname
+                    ).order_by(Worker.id.desc())
+                    w = session.scalars(stmt_any).first()
                 if w:
                     w_id = w.id
-                    w_name = f"{w.ad} {w.soyad}"
+                    w_name = f"{w.ad} {w.soyad}".strip()
         except Exception as e:
             logger.debug(f"İstasyon çalışan sorgu hatası: {e}")
 
         self._cached_assigned_worker = (w_id, w_name)
         return w_id, w_name
+
 
 
     def update_config(self, new_config: dict):

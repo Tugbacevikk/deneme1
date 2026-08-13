@@ -309,10 +309,13 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
             station_worker_map = {}
             try:
                 with db_manager.get_session() as local_sess:
-                    w_all = local_sess.scalars(select(Worker).where(Worker.aktif == 1)).all()
+                    # Aktif ve pasif TÜM çalışanları istasyona göre haritala (Aktifler öncelikli)
+                    w_all = local_sess.scalars(select(Worker).order_by(Worker.aktif.desc(), Worker.id.desc())).all()
                     for w in w_all:
                         if w.istasyon_adi and w.istasyon_adi.strip():
-                            station_worker_map[w.istasyon_adi.strip()] = (w.id, f"{w.ad} {w.soyad}".strip())
+                            st_key = w.istasyon_adi.strip()
+                            if st_key not in station_worker_map:
+                                station_worker_map[st_key] = (w.id, f"{w.ad} {w.soyad}".strip())
             except Exception:
                 pass
 
@@ -348,9 +351,27 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
                     clean_vid_name = st_name.replace('VIDEO: ', '').strip()
                     w_name = f"Video: {clean_vid_name}"
                 else:
-                    w_name = w_tuple[1] if w_tuple else 'Atanmamış Çalışan'
+                    w_name = w_tuple[1] if w_tuple else None
 
-                tarih_val = r.tarih or ''
+                # Eğer istasyon haritasında çalışan bulunamadıysa DurumKaydi veya GunlukOzet'teki kaydedilmiş adı sorgula
+                if not w_name or w_name in ['Atanmamış Çalışan', 'Bilinmeyen Çalışan']:
+                    try:
+                        rec_w = session_orm.scalars(
+                            select(model_cls.worker_adi).where(
+                                model_cls.istasyon_adi == st_name,
+                                model_cls.worker_adi.isnot(None),
+                                model_cls.worker_adi != '',
+                                model_cls.worker_adi != 'Atanmamış Çalışan',
+                                model_cls.worker_adi != 'Bilinmeyen Çalışan'
+                            ).limit(1)
+                        ).first()
+                        if rec_w:
+                            w_name = rec_w
+                    except Exception:
+                        pass
+
+                if not w_name:
+                    w_name = 'Atanmamış Çalışan'
                 toplam = r.toplam_kayit or 0
 
                 dur_info = _calculate_worker_durations(
