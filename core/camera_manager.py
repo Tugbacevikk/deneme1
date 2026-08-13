@@ -272,30 +272,58 @@ class CameraProcessor:
         cap = None
 
         for attempt in range(max_attempts):
+            candidates = []
             if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
-                cam_idx = int(cam_id)
-                if system == 'Windows':
-                    cap = cv2.VideoCapture(cam_idx, cv2.CAP_DSHOW)
-                    if not (cap and cap.isOpened()):
-                        if cap: cap.release()
-                        cap = cv2.VideoCapture(cam_idx, cv2.CAP_MSMF)
-                    if not (cap and cap.isOpened()):
-                        if cap: cap.release()
-                        cap = cv2.VideoCapture(cam_idx, cv2.CAP_ANY)
-                else:
-                    cap = cv2.VideoCapture(cam_idx, cv2.CAP_V4L2)
-                    if not (cap and cap.isOpened()):
-                        if cap: cap.release()
-                        cap = cv2.VideoCapture(cam_idx, cv2.CAP_ANY)
+                c_idx = int(cam_id)
+                candidates = [c_idx, 0, 1, 2, 4, "/dev/video0", "/dev/video1", "/dev/video2"]
             else:
-                cap = cv2.VideoCapture(str(cam_id))
+                candidates = [str(cam_id), 0, 1, 2, 4, "/dev/video0"]
+
+            # Tekrarları temizle, sırayı koru
+            seen_c = set()
+            clean_candidates = []
+            for c in candidates:
+                if c not in seen_c:
+                    seen_c.add(c)
+                    clean_candidates.append(c)
+
+            for target in clean_candidates:
+                try:
+                    if system == 'Windows':
+                        if isinstance(target, int):
+                            cap = cv2.VideoCapture(target, cv2.CAP_DSHOW)
+                            if not (cap and cap.isOpened()):
+                                if cap: cap.release()
+                                cap = cv2.VideoCapture(target, cv2.CAP_MSMF)
+                        else:
+                            cap = cv2.VideoCapture(str(target))
+                    else:
+                        if isinstance(target, int):
+                            cap = cv2.VideoCapture(target, cv2.CAP_V4L2)
+                            if not (cap and cap.isOpened()):
+                                if cap: cap.release()
+                                cap = cv2.VideoCapture(target, cv2.CAP_ANY)
+                        else:
+                            cap = cv2.VideoCapture(str(target), cv2.CAP_V4L2)
+                            if not (cap and cap.isOpened()):
+                                if cap: cap.release()
+                                cap = cv2.VideoCapture(str(target))
+
+                    if cap and cap.isOpened():
+                        # Kare okuma doğrulaması yap (Linux V4L2 metadata cihaz çakışmalarını önler)
+                        ret_test, frame_test = cap.read()
+                        if ret_test and frame_test is not None and frame_test.size > 0:
+                            logger.info(f"Kamera {target} başarıyla açıldı ve görüntü verdi.")
+                            break
+                        else:
+                            cap.release()
+                            cap = None
+                except Exception as ex:
+                    if cap: cap.release()
+                    cap = None
 
             if cap and cap.isOpened():
                 break
-
-            if cap:
-                cap.release()
-                cap = None
 
             if attempt < max_attempts - 1:
                 logger.info(f"Kamera ({cam_id}) bekleniyor ve açılmaya çalışılıyor... (Deneme {attempt + 1}/{max_attempts})")
@@ -304,14 +332,6 @@ class CameraProcessor:
         self.cap = cap
 
         if not self.cap or not self.cap.isOpened():
-            logger.warning(f"Kamera ({cam_id}) doğrudan açılamadı. Kullanılabilir kameralar taranıyor...")
-            cams = CameraProcessor.scan_cameras()
-            if cams and not getattr(self, '_fallback_attempted', False):
-                self._fallback_attempted = True
-                first_cam = cams[0]['id']
-                logger.info(f"Takılı olan ilk kamera (ID: {first_cam}) otomatik seçilip başlatılıyor.")
-                self.camera_id = first_cam
-                return self._open_camera()
             logger.error(f"Kamera açılamadı: {cam_id}")
             return None
         self._fallback_attempted = False
