@@ -856,15 +856,6 @@ a:hover {
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-/* --- CAMERA PREVIEW STICKY --- */
-@media (min-width: 1024px) {
-    .camera-preview-sticky {
-        position: sticky;
-        top: 16px;
-        z-index: 5;
-    }
-}
-
 .sidebar {
     transition: width 0.3s ease, opacity 0.2s ease;
     overflow: hidden;
