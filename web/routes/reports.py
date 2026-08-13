@@ -334,9 +334,18 @@ EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
 def api_reports_email_pdf():
     try:
         data = request.get_json() or {}
-        to_email = data.get('email', '').strip()
-        if not to_email or not EMAIL_RE.match(to_email):
+        emails = data.get('emails', data.get('email', []))
+        if isinstance(emails, str):
+            emails = [emails]
+        emails = [e.strip() for e in emails if e and isinstance(e, str) and e.strip()]
+        if not emails:
             return jsonify({'success': False, 'message': 'Geçerli bir e-posta adresi girin.'}), 400
+        if len(emails) > 20:
+            return jsonify({'success': False, 'message': 'Tek seferde en fazla 20 adrese gönderebilirsiniz.'}), 400
+
+        invalid = [e for e in emails if not EMAIL_RE.match(e)]
+        if invalid:
+            return jsonify({'success': False, 'message': f"Geçersiz adres(ler): {', '.join(invalid)}"}), 400
 
         start = data.get('start', ''); end = data.get('end', '')
         istasyon = data.get('istasyon', ''); worker = data.get('worker', '')
@@ -347,15 +356,20 @@ def api_reports_email_pdf():
         tarih_araligi = f"{start or 'başlangıç'} — {end or 'bitiş'}"
 
         from web.services.mail_service import send_pdf_report
-        ok, msg = send_pdf_report(
-            to_email, pdf_bytes, filename,
-            subject=f"Çalışan Raporu ({tarih_araligi})",
-            body=f"Ekte {tarih_araligi} tarih aralığına ait çalışan raporu yer almaktadır."
-        )
-        return jsonify({'success': ok, 'message': msg}), (200 if ok else 500)
+        results = []
+        for addr in emails:
+            ok, msg = send_pdf_report(
+                addr, pdf_bytes, filename,
+                subject=f"Çalışan Raporu ({tarih_araligi})",
+                body=f"Ekte {tarih_araligi} tarih aralığına ait çalışan raporu yer almaktadır."
+            )
+            results.append({'email': addr, 'success': ok, 'message': msg})
+
+        overall_success = any(r['success'] for r in results)
+        return jsonify({'success': overall_success, 'results': results}), 200
     except Exception as e:
-        logger.error(f"E-posta gönderme hatası: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Rapor oluşturulurken/gönderilirken hata oluştu: {e}'}), 500
+        logger.error(f"Toplu e-posta gönderme hatası: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Hata: {e}'}), 500
 
 
 

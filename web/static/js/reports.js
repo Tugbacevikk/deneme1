@@ -333,6 +333,10 @@ function isValidEmail(email) {
     return re.test(email);
 }
 
+function parseEmailList(raw) {
+    return raw.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 0);
+}
+
 const mailInputEl = document.getElementById('mail-input');
 if (mailInputEl) {
     mailInputEl.addEventListener('input', () => {
@@ -355,9 +359,10 @@ if (btnMailSend) {
         if (errorEl) errorEl.style.display = 'none';
         if (mailInput) mailInput.classList.remove('input-error');
 
-        if (!email) {
+        const emails = parseEmailList(email);
+        if (emails.length === 0) {
             if (errorEl) {
-                errorEl.textContent = 'Lütfen bir e-posta adresi girin.';
+                errorEl.textContent = 'Lütfen en az bir e-posta adresi girin.';
                 errorEl.style.display = 'block';
             }
             if (mailInput) {
@@ -366,9 +371,23 @@ if (btnMailSend) {
             }
             return;
         }
-        if (!isValidEmail(email)) {
+
+        const invalidOnes = emails.filter(e => !isValidEmail(e));
+        if (invalidOnes.length > 0) {
             if (errorEl) {
-                errorEl.textContent = 'Geçerli bir e-posta adresi girin (örn: ad@sirket.com).';
+                errorEl.textContent = `Geçersiz adres(ler): ${invalidOnes.join(', ')}`;
+                errorEl.style.display = 'block';
+            }
+            if (mailInput) {
+                mailInput.classList.add('input-error');
+                mailInput.focus();
+            }
+            return;
+        }
+
+        if (emails.length > 20) {
+            if (errorEl) {
+                errorEl.textContent = 'Tek seferde en fazla 20 adrese gönderebilirsiniz.';
                 errorEl.style.display = 'block';
             }
             if (mailInput) {
@@ -387,10 +406,16 @@ if (btnMailSend) {
             const res = await fetch('/api/reports/email_pdf', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email, start: elStart, end: elEnd, istasyon: elStation, worker: elWorker})
+                body: JSON.stringify({emails, start: elStart, end: elEnd, istasyon: elStation, worker: elWorker})
             });
             const result = await res.json();
-            showToast(result.message, result.success ? 'success' : 'error');
+            if (result && Array.isArray(result.results)) {
+                const successCount = result.results.filter(r => r.success).length;
+                const failCount = result.results.length - successCount;
+                showToast(`${successCount} adrese gönderildi${failCount > 0 ? `, ${failCount} adrese gönderilemedi` : ''}`, failCount > 0 ? 'error' : 'success');
+            } else {
+                showToast(result.message || 'E-posta gönderildi', result.success ? 'success' : 'error');
+            }
         } catch (e) {
             showToast('Sunucu bağlantı hatası', 'error');
         } finally {
