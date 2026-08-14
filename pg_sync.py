@@ -42,57 +42,78 @@ class CentralDurumKaydiModel(CentralBase):
     )
 
 
-def pg_baglan(cfg: dict):
+_SHARED_PG_ENGINE = None
+_SHARED_PG_LOCK = threading.Lock()
+
+
+def pg_baglan(cfg: dict = None):
     """
     Merkezi PostgreSQL veritabanı bağlantısı oluşturur ve SQLAlchemy Engine nesnesi döndürür.
+    Tek bir paylaşımlı Engine (Connection Pool) kullanır.
     """
-    env_host = os.getenv('POSTGRES_HOST')
-    env_user = os.getenv('POSTGRES_USER')
-    env_pass = os.getenv('POSTGRES_PASSWORD')
-    env_db   = os.getenv('POSTGRES_DB')
-    env_port = os.getenv('POSTGRES_PORT')
+    global _SHARED_PG_ENGINE
+    if _SHARED_PG_ENGINE is not None:
+        try:
+            with _SHARED_PG_ENGINE.connect() as conn:
+                return _SHARED_PG_ENGINE
+        except Exception:
+            _SHARED_PG_ENGINE = None
 
-    host = cfg.get('host') or cfg.get('postgres_host')
-    if not host or host == '127.0.0.1':
-        host = env_host or host or '127.0.0.1'
+    with _SHARED_PG_LOCK:
+        if _SHARED_PG_ENGINE is not None:
+            return _SHARED_PG_ENGINE
 
-    port = int(cfg.get('port') or cfg.get('postgres_port') or env_port or 5432)
-    dbname = cfg.get('dbname') or cfg.get('postgres_db') or cfg.get('db') or env_db or 'fabrika_takip'
+        if cfg is None:
+            cfg = {}
 
-    user = cfg.get('kullanici') or cfg.get('user') or cfg.get('postgres_user')
-    if not user or user == 'postgres':
-        user = env_user or user or 'postgres'
+        env_host = os.getenv('POSTGRES_HOST')
+        env_user = os.getenv('POSTGRES_USER')
+        env_pass = os.getenv('POSTGRES_PASSWORD')
+        env_db   = os.getenv('POSTGRES_DB')
+        env_port = os.getenv('POSTGRES_PORT')
 
-    password = cfg.get('sifre') if cfg.get('sifre') is not None else cfg.get('password')
-    if password is None or password == '':
-        password = env_pass or cfg.get('postgres_password', '')
+        host = cfg.get('host') or cfg.get('postgres_host')
+        if not host or host == '127.0.0.1':
+            host = env_host or host or '127.0.0.1'
 
-    pg_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-    try:
-        engine = create_engine(
-            pg_url,
-            connect_args={"connect_timeout": 5},
-            pool_pre_ping=True,
-            isolation_level="AUTOCOMMIT",
-            use_native_hstore=False,
-            echo=False
-        )
-        with engine.connect() as conn:
-            pass
-        logger.info(f"[PG] Merkezi PostgreSQL'e bağlandı -> {host}:{port}/{dbname}")
-        return engine
-    except Exception as e:
-        logger.warning(f"[PG] Bağlantı hatası: {e}")
-        return None
+        port = int(cfg.get('port') or cfg.get('postgres_port') or env_port or 5432)
+        dbname = cfg.get('dbname') or cfg.get('postgres_db') or cfg.get('db') or env_db or 'fabrika_takip'
+
+        user = cfg.get('kullanici') or cfg.get('user') or cfg.get('postgres_user')
+        if not user or user == 'postgres':
+            user = env_user or user or 'postgres'
+
+        password = cfg.get('sifre') if cfg.get('sifre') is not None else cfg.get('password')
+        if password is None or password == '':
+            password = env_pass or cfg.get('postgres_password', '')
+
+        pg_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+        try:
+            engine = create_engine(
+                pg_url,
+                connect_args={"connect_timeout": 5},
+                pool_pre_ping=True,
+                pool_size=5,
+                max_overflow=10,
+                pool_recycle=300,
+                isolation_level="AUTOCOMMIT",
+                use_native_hstore=False,
+                echo=False
+            )
+            with engine.connect() as conn:
+                pass
+            _SHARED_PG_ENGINE = engine
+            logger.info(f"[PG] Merkezi PostgreSQL'e bağlandı -> {host}:{port}/{dbname}")
+            return _SHARED_PG_ENGINE
+        except Exception as e:
+            logger.warning(f"[PG] Bağlantı hatası: {e}")
+            return None
 
 
 def pg_baglantiyi_kapat(engine):
-    """SQLAlchemy motorunu ve bağlantı havuzunu kapatır."""
-    if engine is not None:
-        try:
-            engine.dispose()
-        except Exception as e:
-            logger.debug(f"[PG] Engine dispose hatası: {e}")
+    """SQLAlchemy motorunu ve bağlantı havuzunu güvenle yönetir."""
+    pass
+
 
 
 def pg_tablo_hazirla(engine) -> bool:
