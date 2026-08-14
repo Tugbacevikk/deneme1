@@ -349,12 +349,12 @@ def inject_user():
 
 @app.route('/api/video_feed')
 @app.route('/video_feed')
-@login_required
 def video_feed():
     return Response(
         generate_frames(),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
+
 
 
 @app.route('/api/cameras/is_local/<int:cam_id>')
