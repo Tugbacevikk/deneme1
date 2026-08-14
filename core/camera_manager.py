@@ -424,10 +424,15 @@ class CameraProcessor:
                 devices = []
                 for d in devs:
                     idx_str = d.replace('/dev/video', '')
-                    if idx_str.isdigit() and int(idx_str) % 2 == 0:
+                    if idx_str.isdigit():
                         cam_id = int(idx_str)
-                        devices.append({'id': cam_id, 'name': f"Kamera {cam_id} ({d})", 'active': True})
+                        # Raspberry Pi V4L2 sanal ISP ve donanım kodlayıcı/çözücü düğümlerini (video20 - video35) hariç tut
+                        if 20 <= cam_id <= 35:
+                            continue
+                        if cam_id % 2 == 0 or cam_id == 0:
+                            devices.append({'id': cam_id, 'name': f"Kamera {cam_id} ({d})", 'active': True})
                 return devices
+
         except Exception as e:
             logger.debug(f"Kamera cihaz isimleri alma hatası: {e}")
         return []
