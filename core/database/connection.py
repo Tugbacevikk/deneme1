@@ -109,8 +109,8 @@ class DatabaseManager:
             session.close()
 
 
-    def cleanup_old_records(self, days: int = 30) -> int:
-        """30 günden (veya belirtilen gün sayısından) eski ham DurumKaydi loglarını temizler."""
+    def cleanup_old_records(self, days: int = 60) -> int:
+        """60 günden (veya belirtilen gün sayısından) eski ham DurumKaydi loglarını temizler."""
         import datetime
         cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
         cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")

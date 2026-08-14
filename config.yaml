@@ -12,3 +12,7 @@ saturation: 1.15
 station_name: Istasyon-2
 welding_conf: 0.25
 welding_imgsz: 320
+pg_retention_days: 60
+local_retention_days: 14
+
+

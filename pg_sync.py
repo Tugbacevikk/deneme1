@@ -197,12 +197,12 @@ def senkronize_et(db_mgr: DatabaseManager, engine, istasyon_adi: str) -> int:
 def veritabanlarini_temizle(
     db_mgr: DatabaseManager,
     engine,
-    local_retention_days: int = 7,
-    pg_retention_days: int = 30
+    local_retention_days: int = 14,
+    pg_retention_days: int = 60
 ) -> dict:
     """
-    1. Yerel SQLite: PostgreSQL'e aktarılmış (gonderildi=1) ve local_retention_days (7 gün) günden eski kayıtları siler.
-    2. Merkezi PostgreSQL: pg_retention_days (30 gün) günden eski ham durum kayıtlarını siler.
+    1. Yerel SQLite: PostgreSQL'e aktarılmış (gonderildi=1) ve local_retention_days (14 gün) günden eski kayıtları siler.
+    2. Merkezi PostgreSQL: pg_retention_days (60 gün) günden eski ham durum kayıtlarını siler.
     """
     res = {'local_deleted': 0, 'pg_deleted': 0}
     now = datetime.datetime.now()
@@ -259,13 +259,16 @@ class SenkronThread(threading.Thread):
         self._cfg = merkezi_db_cfg or {}
         self._istasyon_adi = istasyon_adi
         self._aralik_sn = int(self._cfg.get('senkron_araligi_sn', 3))
-        self._local_retention_days = int(self._cfg.get('local_retention_days', 7))
-        self._pg_retention_days = int(self._cfg.get('pg_retention_days', 30))
+        env_local_ret = os.getenv('LOCAL_RETENTION_DAYS')
+        self._local_retention_days = int(self._cfg.get('local_retention_days') or env_local_ret or 14)
+        env_pg_ret = os.getenv('POSTGRES_RETENTION_DAYS')
+        self._pg_retention_days = int(self._cfg.get('pg_retention_days') or env_pg_ret or 60)
         self._durdurma_olayi = threading.Event()
         self._pg_engine = None
         self._last_cleanup_time = 0.0
 
     def durdur(self):
+
         """Thread'e durma sinyali gönder."""
         self._durdurma_olayi.set()
 
