@@ -220,6 +220,35 @@ const SocketManager = {
     }
 };
 
+// --- SİDEBAR AÇILIR/KAPANIR YÖNETİMİ ---
+const SidebarManager = {
+    init() {
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+        if (isCollapsed) {
+            document.body.classList.add('sidebar-collapsed');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.add('collapsed');
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.toggle();
+            });
+        }
+    },
+
+    toggle() {
+        const body = document.body;
+        const sidebar = document.getElementById('sidebar');
+        const isCollapsed = body.classList.toggle('sidebar-collapsed');
+        if (sidebar) sidebar.classList.toggle('collapsed', isCollapsed);
+        localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+    }
+};
+
 // --- CANLI SAAT GÜNCELLEMESİ ---
 function updateClock() {
     const clockEl = document.getElementById('current-time');
@@ -232,6 +261,7 @@ function updateClock() {
 // --- DOM YÜKLENDİĞİNDE BAŞLAT ---
 document.addEventListener('DOMContentLoaded', () => {
     ThemeManager.init();
+    SidebarManager.init();
     SocketManager.init();
     
     setInterval(updateClock, 1000);
@@ -240,3 +270,4 @@ document.addEventListener('DOMContentLoaded', () => {
     SocketManager.updateAlarmCount();
     setInterval(() => SocketManager.updateAlarmCount(), 30000);
 });
+

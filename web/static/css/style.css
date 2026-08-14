@@ -124,7 +124,58 @@ a:hover {
   bottom: 0;
   left: 0;
   z-index: 100;
-  transition: width var(--transition-speed);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- SIDEBAR COLLAPSED STATES --- */
+body.sidebar-collapsed .sidebar,
+.sidebar.collapsed {
+  width: 70px !important;
+}
+
+body.sidebar-collapsed .page-wrapper {
+  margin-left: 70px !important;
+}
+
+body.sidebar-collapsed .nav-label,
+body.sidebar-collapsed .nav-section-label,
+body.sidebar-collapsed .sidebar-footer-info span,
+body.sidebar-collapsed .nav-indicator,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .sidebar-footer-info span,
+.sidebar.collapsed .nav-indicator {
+  display: none !important;
+}
+
+body.sidebar-collapsed .nav-item,
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 12px 0;
+  gap: 0;
+}
+
+body.sidebar-collapsed .sidebar-logo,
+.sidebar.collapsed .sidebar-logo {
+  padding: 12px 8px !important;
+  justify-content: center !important;
+}
+
+body.sidebar-collapsed .sidebar-logo div,
+.sidebar.collapsed .sidebar-logo div {
+  padding: 6px !important;
+  justify-content: center !important;
+}
+
+body.sidebar-collapsed .sidebar-logo img,
+.sidebar.collapsed .sidebar-logo img {
+  height: 24px !important;
+  max-width: 100% !important;
+}
+
+body.sidebar-collapsed .sidebar-footer-info,
+.sidebar.collapsed .sidebar-footer-info {
+  justify-content: center !important;
 }
 
 .sidebar-header {
@@ -217,7 +268,9 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 
 .header {
   height: 64px;
