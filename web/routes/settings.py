@@ -49,14 +49,16 @@ def api_settings_save():
             with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
                 cfg = yaml.safe_load(f) or {}
 
-        if 'merkezi_db' in data:
-            cfg['merkezi_db'] = data['merkezi_db']
+        cfg.update(data)
 
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
             yaml.safe_dump(cfg, f, allow_unicode=True)
 
         import web.extensions as ext
         ext.config = cfg
+
+        if ext.camera_processor is not None and hasattr(ext.camera_processor, 'cfg'):
+            ext.camera_processor.cfg.update(data)
 
         return jsonify({'success': True, 'message': 'Ayarlar başarıyla kaydedildi.'})
     except Exception as e:
@@ -99,6 +101,38 @@ def api_settings_test_db():
         engine.dispose()
         return jsonify({'success': True, 'message': 'PostgreSQL veritabanı bağlantısı başarılı!'})
     return jsonify({'success': False, 'message': 'Veritabanına bağlanılamadı.'}), 400
+
+
+@settings_bp.route('/api/settings/test_smtp', methods=['POST'])
+@admin_required
+def api_settings_test_smtp():
+    import smtplib
+    data = request.get_json() or {}
+    host = data.get('smtp_host', 'smtp.gmail.com')
+    port = int(data.get('smtp_port', 587))
+    user = data.get('smtp_user', '').strip()
+    password = data.get('smtp_password', '').strip()
+
+    if not host or not user or not password:
+        return jsonify({'success': False, 'message': 'Lütfen SMTP Sunucu, Kullanıcı ve Şifre alanlarını doldurun.'}), 400
+
+    try:
+        with smtplib.SMTP(host, port, timeout=10) as server:
+            server.starttls()
+            server.login(user, password)
+        return jsonify({'success': True, 'message': 'SMTP E-posta sunucu bağlantısı başarılı!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'SMTP Bağlantı Hatası: {e}'}), 400
+
+
+@settings_bp.route('/api/settings/cleanup_db', methods=['POST'])
+@admin_required
+def api_settings_cleanup_db():
+    from core.database.connection import db_manager
+    data = request.get_json() or {}
+    days = int(data.get('days', 30))
+    deleted_count = db_manager.cleanup_old_records(days=days)
+    return jsonify({'success': True, 'message': f'{days} günden eski {deleted_count} adet ham kayıt başarıyla temizlendi.', 'count': deleted_count})
 
 
 @settings_bp.route('/api/settings/theme', methods=['POST'])

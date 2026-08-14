@@ -111,8 +111,12 @@ def api_alarms_unread_count():
 @alarms_bp.route('/api/alarms/mark_read', methods=['POST'])
 @login_required
 def api_alarms_mark_read():
-    mark_alarms_read()
-    return jsonify({'success': True, 'message': 'Tüm alarmlar okundu olarak işaretlendi.'})
+    from web.helpers import get_current_patron_access
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    stations_param = None if is_super else patron_stations
+
+    mark_alarms_read(stations=stations_param)
+    return jsonify({'success': True, 'message': 'Alarmlar okundu olarak işaretlendi.', 'unread_count': get_unread_count(stations=stations_param)})
 
 
 @alarms_bp.route('/api/alarms/<int:alarm_id>/mark_read', methods=['POST'])
@@ -123,10 +127,10 @@ def api_alarms_mark_single_read(alarm_id):
     patron_id, is_super, patron_stations = get_current_patron_access()
     stations_param = None if is_super else patron_stations
 
-    ok = mark_single_alarm_read(alarm_id)
+    ok = mark_single_alarm_read(alarm_id, stations=stations_param)
     if ok:
         return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
-    return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404
+    return jsonify({'success': False, 'message': 'Alarm bulunamadı veya yetkiniz yok.'}), 404
 
 
 @alarms_bp.route('/api/alarms/<int:alarm_id>/mark_unread', methods=['POST'])
@@ -137,10 +141,10 @@ def api_alarms_mark_single_unread(alarm_id):
     patron_id, is_super, patron_stations = get_current_patron_access()
     stations_param = None if is_super else patron_stations
 
-    ok = mark_single_alarm_unread(alarm_id)
+    ok = mark_single_alarm_unread(alarm_id, stations=stations_param)
     if ok:
         return jsonify({'success': True, 'unread_count': get_unread_count(stations=stations_param)})
-    return jsonify({'success': False, 'message': 'Alarm bulunamadı.'}), 404
+    return jsonify({'success': False, 'message': 'Alarm bulunamadı veya yetkiniz yok.'}), 404
 
 
 @alarms_bp.route('/api/alarms/delete/<alarm_id>', methods=['DELETE', 'POST'])
@@ -153,7 +157,7 @@ def api_delete_alarm(alarm_id):
     patron_id, is_super, patron_stations = get_current_patron_access()
     stations_param = None if is_super else patron_stations
 
-    ok = delete_alarm(alarm_id)
+    ok = delete_alarm(alarm_id, stations=stations_param)
     if ok:
         return jsonify({'success': True, 'message': 'Alarm silindi.', 'unread_count': get_unread_count(stations=stations_param)})
     return jsonify({'success': False, 'message': 'Alarm bulunamadı veya silinemedi.'}), 404

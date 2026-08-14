@@ -117,17 +117,18 @@
                     <span class="live-dot"></span> CANLI
                 </span>
             </div>
-                <div class="camera-preview-wrap" style="position:relative; width:100%; border-radius: 0 0 12px 12px; overflow:hidden; background:#000; display:flex; align-items:center; justify-content:center;">
+                <div class="camera-preview-wrap" style="position:relative; width:100%; min-height:400px; aspect-ratio:16/9; border-radius: 0 0 12px 12px; overflow:hidden; background:#0f172a; display:flex; align-items:center; justify-content:center;">
                     <img src="/api/video_feed"
                          id="preview-feed"
                          alt="Canlı Önizleme"
                          style="width:100%; max-height:540px; object-fit:contain; display:block; border-radius: 0 0 12px 12px;"
-                         onload="this.style.display='block'; var ns=document.getElementById('preview-no-signal'); if(ns) ns.style.display='none';"
-                         onerror="this.style.display='none'; var ns=document.getElementById('preview-no-signal'); if(ns) ns.style.display='flex';">
+                         onload="this.style.display='block'; var ns=document.getElementById('preview-no-signal'); if(ns) ns.style.display='none'; var roi=document.getElementById('preview-roi-overlay'); if(roi) roi.style.display='block';"
+                         onerror="this.style.display='none'; var ns=document.getElementById('preview-no-signal'); if(ns) ns.style.display='flex'; var roi=document.getElementById('preview-roi-overlay'); if(roi) roi.style.display='none';">
 
-                    <div class="no-signal preview-no-signal" id="preview-no-signal" style="display:none;">
-                        <i class="fa-solid fa-video-slash"></i>
-                        <p>Görüntü Yok</p>
+                    <div class="no-signal preview-no-signal" id="preview-no-signal" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; font-size:16px; color:#94a3b8; text-align:center; padding:40px; width:100%; min-height:380px;">
+                        <i class="fa-solid fa-video-slash" style="font-size:52px; color:#f43f5e; margin-bottom:4px;"></i>
+                        <p style="font-size:18px; font-weight:700; color:#f8fafc; margin:0;">Kamera Pasif / Görüntü Yok</p>
+                        <small style="font-size:13px; color:#94a3b8;">Canlı görüntüyü açmak için "Kamerayı Başlat" butonuna basın</small>
                     </div>
 
                     <!-- Canlı ROI Overlay (kaydırıcılara bağlı) -->
@@ -551,6 +552,8 @@ document.getElementById('btn-cam-start').addEventListener('click', function() {
             feed.src = '/api/video_feed?' + Date.now();
             feed.style.display = 'block';
             document.getElementById('preview-no-signal').style.display = 'none';
+            const roiOverlay = document.getElementById('preview-roi-overlay');
+            if (roiOverlay) roiOverlay.style.display = 'block';
         } else {
             showToast(data.message || 'Kamera başlatılamadı', 'error');
         }
@@ -576,6 +579,8 @@ document.getElementById('btn-cam-stop').addEventListener('click', function() {
         const feed = document.getElementById('preview-feed');
         feed.style.display = 'none';
         document.getElementById('preview-no-signal').style.display = 'flex';
+        const roiOverlay = document.getElementById('preview-roi-overlay');
+        if (roiOverlay) roiOverlay.style.display = 'none';
     })
     .catch(() => showToast('Sunucu bağlantı hatası', 'error'))
     .finally(() => {

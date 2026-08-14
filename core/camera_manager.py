@@ -216,9 +216,20 @@ class CameraProcessor:
 
             cfg = cfg or {}
             base_dir = Path(__file__).parent.parent
-            pose_path    = base_dir / cfg.get('pose_model_path', 'yolov8n-pose.pt')
-            det_path     = base_dir / cfg.get('det_model_path', 'yolov8n.pt')
-            welding_path = base_dir / cfg.get('welding_model_path', 'welding_det.pt')
+            
+            # ONNX ivmelendirilmiş modelleri (.onnx) önce kontrol et, yoksa .pt yükle
+            def _resolve_model_path(cfg_key, default_file):
+                configured = cfg.get(cfg_key, default_file)
+                p = base_dir / configured
+                onnx_p = p.with_suffix('.onnx')
+                if onnx_p.exists():
+                    logger.info(f"YOLO ONNX ivmelendirilmiş model bulundu: {onnx_p.name}")
+                    return onnx_p
+                return p
+
+            pose_path    = _resolve_model_path('pose_model_path', 'yolov8n-pose.pt')
+            det_path     = _resolve_model_path('det_model_path', 'yolov8n.pt')
+            welding_path = _resolve_model_path('welding_model_path', 'welding_det.pt')
 
             dummy_frame = np.zeros((320, 320, 3), dtype=np.uint8)
 
@@ -922,8 +933,22 @@ class CameraProcessor:
                         break
 
                 if not ret or frame is None:
-                    time.sleep(0.005)
+                    consecutive_failures = getattr(self, '_read_fail_count', 0) + 1
+                    self._read_fail_count = consecutive_failures
+                    if consecutive_failures > 150:  # ~5 saniye üst üste kare alınamadığında
+                        logger.warning(f"Kamera {self.camera_id} bağlantısı koptu. Otomatik yeniden bağlanılıyor...")
+                        try:
+                            if cap: cap.release()
+                        except Exception:
+                            pass
+                        time.sleep(1.0)
+                        cap = self._open_camera()
+                        self._read_fail_count = 0
+                    else:
+                        time.sleep(0.01)
                     continue
+
+            self._read_fail_count = 0
 
 
             # 0. Görüntü Ayarları

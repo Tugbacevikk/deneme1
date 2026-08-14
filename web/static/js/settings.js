@@ -444,6 +444,81 @@ async function rejectUser(id) {
         .catch(() => showToast('Bağlantı hatası', 'error'));
 }
 
+function saveSMTPSettings() {
+    const btn = document.getElementById('btn-save-smtp');
+    const payload = {
+        smtp_host: document.getElementById('s-smtp-host').value.trim(),
+        smtp_port: parseInt(document.getElementById('s-smtp-port').value || '587'),
+        smtp_user: document.getElementById('s-smtp-user').value.trim(),
+        smtp_password: document.getElementById('s-smtp-pass').value.trim()
+    };
+    saveSettings(payload, btn, 'SMTP E-posta ayarları başarıyla kaydedildi.');
+}
+
+function testSMTPConnection() {
+    const btn = document.getElementById('btn-test-smtp');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Test Ediliyor...';
+
+    const payload = {
+        smtp_host: document.getElementById('s-smtp-host').value.trim(),
+        smtp_port: parseInt(document.getElementById('s-smtp-port').value || '587'),
+        smtp_user: document.getElementById('s-smtp-user').value.trim(),
+        smtp_password: document.getElementById('s-smtp-pass').value.trim()
+    };
+
+    fetch('/api/settings/test_smtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message || 'SMTP Test Hatası', 'error');
+        }
+    })
+    .catch(() => showToast('Sunucu bağlantı hatası', 'error'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+    });
+}
+
+async function executeDBCleanup() {
+    const daysSelect = document.getElementById('s-cleanup-days');
+    const days = daysSelect ? daysSelect.value : '30';
+    const ok = await showConfirm(`${days} günden eski ham kamera logları silinecek. Onaylıyor musunuz?`, { title: 'Veritabanı Temizliği', okText: 'Evet, Temizle' });
+    if (!ok) return;
+
+    const btn = document.getElementById('btn-cleanup-db');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Temizleniyor...';
+
+    fetch('/api/settings/cleanup_db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: parseInt(days) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message || 'Temizlik hatası', 'error');
+        }
+    })
+    .catch(() => showToast('Sunucu bağlantı hatası', 'error'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
 });

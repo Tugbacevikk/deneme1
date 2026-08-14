@@ -35,38 +35,45 @@ def get_unread_count(stations=None):
         return count
 
 
-def mark_alarms_read():
-    """Tüm alarmları okundu olarak işaretler."""
+def mark_alarms_read(stations=None):
+    """Tüm alarmları (veya yetkili olunan istasyon alarmlarını) okundu olarak işaretler."""
     with db_manager.get_session() as session:
-        session.query(Alarm).filter(Alarm.okundu == 0).update({Alarm.okundu: 1})
+        query = session.query(Alarm).filter(Alarm.okundu == 0)
+        if stations is not None:
+            query = query.filter(Alarm.istasyon_adi.in_(stations))
+        query.update({Alarm.okundu: 1}, synchronize_session=False)
         session.commit()
         return True
 
 
-def mark_single_alarm_read(alarm_id):
-    """Belirli bir alarmı okundu olarak işaretler."""
+def mark_single_alarm_read(alarm_id, stations=None):
+    """Belirli bir alarmı okundu olarak işaretler (istasyon yetkisi kontrolü ile)."""
     with db_manager.get_session() as session:
         alarm = session.get(Alarm, alarm_id)
         if alarm:
+            if stations is not None and alarm.istasyon_adi and alarm.istasyon_adi not in stations:
+                return False
             alarm.okundu = 1
             session.commit()
             return True
         return False
 
 
-def mark_single_alarm_unread(alarm_id):
-    """Belirli bir alarmı okunmadı olarak işaretler."""
+def mark_single_alarm_unread(alarm_id, stations=None):
+    """Belirli bir alarmı okunmadı olarak işaretler (istasyon yetkisi kontrolü ile)."""
     with db_manager.get_session() as session:
         alarm = session.get(Alarm, alarm_id)
         if alarm:
+            if stations is not None and alarm.istasyon_adi and alarm.istasyon_adi not in stations:
+                return False
             alarm.okundu = 0
             session.commit()
             return True
         return False
 
 
-def delete_alarm(alarm_id):
-    """Belirli bir alarmı siler."""
+def delete_alarm(alarm_id, stations=None):
+    """Belirli bir alarmı siler (istasyon yetkisi kontrolü ile)."""
     if str(alarm_id).startswith('pending_'):
         return True
     try:
@@ -77,6 +84,8 @@ def delete_alarm(alarm_id):
     with db_manager.get_session() as session:
         alarm = session.get(Alarm, alarm_id_int)
         if alarm:
+            if stations is not None and alarm.istasyon_adi and alarm.istasyon_adi not in stations:
+                return False
             session.delete(alarm)
             session.commit()
             return True

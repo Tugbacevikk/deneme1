@@ -60,6 +60,79 @@
 
 
 
+        <!-- Card 2: SMTP / E-posta Sunucu Ayarları -->
+        <div class="card" style="margin-top:20px;">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <i class="fa-solid fa-envelope card-header-icon" style="color:var(--accent);"></i>
+                    <h2 class="card-title">E-posta (SMTP) Yapılandırması</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" for="s-smtp-host">SMTP Sunucu Adresi</label>
+                        <input type="text" class="form-input" id="s-smtp-host" placeholder="smtp.gmail.com" value="{{ config.get('smtp_host', 'smtp.gmail.com') if config else 'smtp.gmail.com' }}">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" for="s-smtp-port">SMTP Port</label>
+                        <input type="number" class="form-input" id="s-smtp-port" placeholder="587" value="{{ config.get('smtp_port', 587) if config else 587 }}">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" for="s-smtp-user">Gönderen E-posta Adresi</label>
+                        <input type="email" class="form-input" id="s-smtp-user" placeholder="ornek@gmail.com" value="{{ config.get('smtp_user', '') if config else '' }}">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" for="s-smtp-pass">E-posta / Uygulama Şifresi</label>
+                        <input type="password" class="form-input" id="s-smtp-pass" placeholder="••••••••••••" value="{{ config.get('smtp_password', '') if config else '' }}">
+                    </div>
+                </div>
+                <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block; margin-bottom:14px;">
+                    Gmail için Gmail hesap ayarlarınızdan 16 haneli 'Uygulama Şifresi' (App Password) oluşturmanız önerilir.
+                </small>
+
+                <div class="form-group-row" style="display:flex; justify-content:space-between; align-items:center;">
+                    <button class="btn btn-secondary" id="btn-test-smtp" type="button" onclick="testSMTPConnection()">
+                        <i class="fa-solid fa-plug"></i> Bağlantıyı Test Et
+                    </button>
+                    <button class="btn btn-primary" id="btn-save-smtp" type="button" onclick="saveSMTPSettings()">
+                        <i class="fa-solid fa-floppy-disk"></i> SMTP Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Veritabanı Bakım ve Log Temizleme -->
+        <div class="card" style="margin-top:20px;">
+            <div class="card-header">
+                <div class="card-header-left">
+                    <i class="fa-solid fa-database card-header-icon" style="color:var(--orange);"></i>
+                    <h2 class="card-title">Veritabanı Bakımı & Otomatik Temizlik</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+                    Geçmiş günlük özetleriniz ve çalışan kayıtlarınız <strong style="color:var(--green);">ASLA SİLİNMEZ</strong>. Yalnızca belirtilen günden eski anlık kamera 5-saniyelik ham logları temizlenir.
+                </p>
+
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+                    <label class="form-label" style="margin:0; white-space:nowrap;">Temizleme Limiti:</label>
+                    <select class="form-select" id="s-cleanup-days" style="width:180px;">
+                        <option value="15">15 Günden Eski</option>
+                        <option value="30" selected>30 Günden Eski (Önerilen)</option>
+                        <option value="60">60 Günden Eski</option>
+                        <option value="90">90 Günden Eski</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end;">
+                    <button class="btn btn-danger" id="btn-cleanup-db" type="button" onclick="executeDBCleanup()">
+                        <i class="fa-solid fa-trash-can"></i> Eski Ham Logları Temizle
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
     <!-- END LEFT COLUMN -->
 

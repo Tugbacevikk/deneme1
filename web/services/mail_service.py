@@ -24,11 +24,12 @@ def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str
     except Exception:
         pass
 
-    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER') or cfg_smtp.get('host') or cfg_smtp.get('server')
-    port = int(os.getenv('SMTP_PORT') or cfg_smtp.get('port') or 587)
-    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL') or cfg_smtp.get('user') or cfg_smtp.get('email')
-    password = os.getenv('SMTP_PASSWORD') or cfg_smtp.get('password')
-    sender = os.getenv('SMTP_FROM') or cfg_smtp.get('from') or user
+    ext_cfg = (ext.config or {}) if 'ext' in locals() and hasattr(ext, 'config') else {}
+    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER') or cfg_smtp.get('host') or cfg_smtp.get('server') or ext_cfg.get('smtp_host', 'smtp.gmail.com')
+    port = int(os.getenv('SMTP_PORT') or cfg_smtp.get('port') or ext_cfg.get('smtp_port', 587))
+    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL') or cfg_smtp.get('user') or cfg_smtp.get('email') or ext_cfg.get('smtp_user', '')
+    password = os.getenv('SMTP_PASSWORD') or cfg_smtp.get('password') or ext_cfg.get('smtp_password', '')
+    sender = os.getenv('SMTP_FROM') or cfg_smtp.get('from') or ext_cfg.get('smtp_from') or user
 
     if not host or not user or not password:
         return False, "SMTP ayarları yapılandırılmamış (.env veya config.yaml dosyasını kontrol edin)."

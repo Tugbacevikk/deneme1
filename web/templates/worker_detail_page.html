@@ -38,6 +38,12 @@
                 <button class="btn btn-primary" id="wdp-btn-refresh" style="padding:6px 14px; font-size:13px;">
                     <i class="fa-solid fa-rotate"></i> Yenile
                 </button>
+                <button class="btn btn-outline" id="wdp-btn-pdf" style="padding:6px 14px; font-size:13px; border-color:#ef4444; color:#ef4444;">
+                    <i class="fa-solid fa-file-pdf"></i> PDF İndir
+                </button>
+                <button class="btn btn-outline" id="wdp-btn-mail" style="padding:6px 14px; font-size:13px; border-color:#3b82f6; color:#3b82f6;">
+                    <i class="fa-solid fa-envelope"></i> Raporu Mail At
+                </button>
             </div>
         </div>
     </div>
@@ -176,6 +182,42 @@
     </div>
 </div>
 
+<!-- Mail Gönderim Paneli Modalı (Fotoğraf 1 Tasarımı Birebir) -->
+<div class="modal-overlay" id="mail-panel-modal" style="display:none; align-items:center; justify-content:center; z-index:9999; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);" onclick="closeMailPanel(event)">
+  <div class="modal" style="max-width:480px; width:95%; background:var(--bg-card); border-radius:16px; border:1px solid var(--border-color); overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+    <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+      <h2 class="modal-title" style="font-size:18px; font-weight:700; margin:0;"><i class="fa-solid fa-paper-plane" style="color:var(--accent);"></i> Raporu E-posta ile Gönder</h2>
+      <button class="modal-close btn btn-secondary btn-icon" onclick="closeMailPanel()" style="font-size:16px; padding:4px 10px;">&times;</button>
+    </div>
+    <div class="modal-tabs" style="display:flex; border-bottom:1px solid var(--border-color); background:var(--bg-secondary);">
+      <button class="modal-tab active" data-tab="all" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; border-bottom:2px solid var(--accent); color:var(--accent);">Herkese Gönder</button>
+      <button class="modal-tab" data-tab="select" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; color:var(--text-secondary);">Kişi Seç</button>
+      <button class="modal-tab" data-tab="manual" style="flex:1; padding:10px; border:none; background:none; cursor:pointer; font-weight:600; color:var(--text-secondary);">Elle Yaz</button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div id="tab-all" class="tab-panel">
+          <p style="font-size:13px; margin-bottom:8px; color:var(--text-primary);">Sistemdeki tüm admin ve patron hesaplarına (e-postası kayıtlı olanlara) gönderilecek.</p>
+          <div id="all-recipients-preview" style="font-size:13px; color:var(--text-secondary); background:var(--bg-secondary); padding:10px; border-radius:6px; border:1px solid var(--border-color); max-height:150px; overflow-y:auto;">
+              <i class="fa-solid fa-spinner fa-spin"></i> Kullanıcılar yükleniyor...
+          </div>
+      </div>
+      <div id="tab-select" class="tab-panel" style="display:none;">
+          <div id="recipient-checklist" style="display:flex; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; padding:4px;">
+              <!-- JS ile doldurulacak -->
+          </div>
+      </div>
+      <div id="tab-manual" class="tab-panel" style="display:none;">
+          <textarea id="mail-input" class="form-input" rows="3" placeholder="ornek@sirket.com, ornek2@sirket.com" style="width:100%; resize:vertical; font-size:13px;"></textarea>
+      </div>
+      <span id="mail-input-error" style="display:none; color:#DC2626; font-size:12px; margin-top:8px; font-weight:600;"></span>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border-color);">
+      <button class="btn btn-secondary" onclick="closeMailPanel()">Vazgeç</button>
+      <button class="btn btn-primary" id="btn-mail-send"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_head %}
@@ -184,6 +226,64 @@
 <script>
 let wdpDonutInst = null;
 let wdpHourlyInst = null;
+
+let fetchedMailUsers = [];
+let activeMailTab = 'all';
+
+function openMailPanel() {
+    const modal = document.getElementById('mail-panel-modal');
+    if (modal) modal.style.display = 'flex';
+    fetchMailUsers();
+}
+
+function closeMailPanel(event) {
+    if (!event || event.target.id === 'mail-panel-modal' || event.target.classList.contains('modal-close') || event.target.classList.contains('btn-secondary')) {
+        const modal = document.getElementById('mail-panel-modal');
+        if (modal) modal.style.display = 'none';
+        const errorEl = document.getElementById('mail-input-error');
+        if (errorEl) errorEl.style.display = 'none';
+    }
+}
+
+function fetchMailUsers() {
+    const previewEl = document.getElementById('all-recipients-preview');
+    const checklistEl = document.getElementById('recipient-checklist');
+    if (previewEl) previewEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+    if (checklistEl) checklistEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+
+    fetch('/api/users/with_email')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.users)) {
+                fetchedMailUsers = data.users.filter(u => u.email);
+                if (previewEl) {
+                    if (fetchedMailUsers.length === 0) {
+                        previewEl.innerHTML = '<span style="color:#EF4444;">E-posta adresi tanımlı kullanıcı bulunamadı.</span>';
+                    } else {
+                        previewEl.innerHTML = fetchedMailUsers.map(u => 
+                            `<div><strong>${u.ad_soyad || u.kullanici_adi}</strong> (${u.rol || 'user'}) — <span style="color:#ef4444; font-weight:600;">${u.email}</span></div>`
+                        ).join('');
+                    }
+                }
+                if (checklistEl) {
+                    if (fetchedMailUsers.length === 0) {
+                        checklistEl.innerHTML = '<span style="color:#EF4444;">Kullanıcı yok.</span>';
+                    } else {
+                        checklistEl.innerHTML = fetchedMailUsers.map(u => `
+                            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                                <input type="checkbox" name="recipient-cb" value="${u.email}" checked>
+                                <span><strong>${u.ad_soyad || u.kullanici_adi}</strong> (${u.rol}) — <span style="color:#ef4444; font-weight:600;">${u.email}</span></span>
+                            </label>
+                        `).join('');
+                    }
+                }
+            } else {
+                if (previewEl) previewEl.innerHTML = '<span style="color:#EF4444;">Yüklenemedi.</span>';
+            }
+        }).catch(() => {
+            if (previewEl) previewEl.innerHTML = '<span style="color:#EF4444;">Bağlantı hatası.</span>';
+        });
+}
 
 function getUrlParams() {
     const p = new URLSearchParams(window.location.search);
@@ -223,7 +323,7 @@ async function loadWorkerDetail() {
         const data = await res.json();
 
         if (data.error) {
-            alert('Veri yüklenemedi: ' + data.error);
+            showToast('Veri yüklenemedi: ' + data.error, 'error');
             return;
         }
 
@@ -346,6 +446,106 @@ document.addEventListener('DOMContentLoaded', () => {
     initDates();
     loadWorkerDetail();
     document.getElementById('wdp-btn-refresh').addEventListener('click', loadWorkerDetail);
+
+    // Tab switching for mail modal
+    document.querySelectorAll('.modal-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.modal-tab').forEach(t => {
+                t.classList.remove('active');
+                t.style.borderBottom = 'none';
+                t.style.color = 'var(--text-secondary)';
+            });
+            tab.classList.add('active');
+            tab.style.borderBottom = '2px solid var(--accent)';
+            tab.style.color = 'var(--accent)';
+
+            activeMailTab = tab.dataset.tab;
+            document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+            const activePanel = document.getElementById('tab-' + activeMailTab);
+            if (activePanel) activePanel.style.display = 'block';
+        });
+    });
+
+    document.getElementById('wdp-btn-pdf').addEventListener('click', () => {
+        const params = getUrlParams();
+        const start = document.getElementById('wdp-filter-start').value;
+        const end = document.getElementById('wdp-filter-end').value;
+        const wName = params.worker_name || '';
+        const q = new URLSearchParams();
+        if (start) q.set('start', start);
+        if (end) q.set('end', end);
+        if (wName) q.set('worker', wName);
+        if (params.istasyon) q.set('istasyon', params.istasyon);
+        window.open('/api/reports/export_pdf?' + q.toString(), '_blank');
+    });
+
+    document.getElementById('wdp-btn-mail').addEventListener('click', () => {
+        openMailPanel();
+    });
+
+    const btnMailSend = document.getElementById('btn-mail-send');
+    if (btnMailSend) {
+        btnMailSend.addEventListener('click', async () => {
+            if (btnMailSend.disabled) return;
+
+            const mailInput = document.getElementById('mail-input');
+            const errorEl = document.getElementById('mail-input-error');
+            if (errorEl) errorEl.style.display = 'none';
+
+            let emails = [];
+            if (activeMailTab === 'all') {
+                emails = fetchedMailUsers.map(u => u.email).filter(Boolean);
+            } else if (activeMailTab === 'select') {
+                emails = Array.from(document.querySelectorAll('input[name="recipient-cb"]:checked'))
+                    .map(cb => cb.value).filter(Boolean);
+            } else if (activeMailTab === 'manual') {
+                const rawVal = mailInput ? mailInput.value.trim() : '';
+                emails = rawVal.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 0);
+            }
+
+            if (emails.length === 0) {
+                if (errorEl) {
+                    errorEl.textContent = 'Lütfen en az bir e-posta adresi girin veya seçin.';
+                    errorEl.style.display = 'block';
+                }
+                return;
+            }
+
+            btnMailSend.disabled = true;
+            btnMailSend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
+
+            const params = getUrlParams();
+            const start = document.getElementById('wdp-filter-start').value;
+            const end = document.getElementById('wdp-filter-end').value;
+            const wName = params.worker_name || document.getElementById('wdp-worker-name').textContent;
+
+            try {
+                const res = await fetch('/api/reports/email_pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        emails: emails,
+                        start: start,
+                        end: end,
+                        worker: wName,
+                        istasyon: params.istasyon || ''
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast('E-posta başarıyla gönderildi!', 'success');
+                    closeMailPanel();
+                } else {
+                    showToast('E-posta gönderilemedi: ' + (result.message || 'Hata oluştu'), 'error');
+                }
+            } catch (e) {
+                showToast('Sunucu bağlantı hatası!', 'error');
+            } finally {
+                btnMailSend.disabled = false;
+                btnMailSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gönder';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

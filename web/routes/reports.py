@@ -55,7 +55,7 @@ def api_reports_summary():
 
     config = _get_app_config()
     save_interval = config.get('save_interval', 5)
-    patron_id, is_super = get_current_patron_id()
+    patron_id, is_super, patron_stations = get_current_patron_access()
 
     try:
         with _get_reports_db_context(config) as (session_orm, model_cls):
@@ -91,8 +91,10 @@ def api_reports_summary():
                 toplam_alarm = local_session.scalar(stmt_alarm) or 0
                 
                 stmt_workers = select(func.count(Worker.id)).where(Worker.aktif == 1)
-                if patron_id is not None:
-                    stmt_workers = stmt_workers.where(Worker.patron_id == patron_id)
+                if not is_super and patron_stations:
+                    stmt_workers = stmt_workers.where(Worker.istasyon_adi.in_(patron_stations))
+                elif not is_super:
+                    stmt_workers = stmt_workers.where(Worker.id == -1)
                 toplam_calisan = local_session.scalar(stmt_workers) or 0
 
         aktif_sure_dk = round((aktif_cnt * save_interval) / 60.0, 1)
@@ -490,8 +492,8 @@ def api_reports_worker_detail():
                         else:
                             next_dt = datetime.datetime.strptime(str(next_k.zaman).replace('T', ' ')[:19], '%Y-%m-%d %H:%M:%S')
                         gap = int((next_dt - z_dt).total_seconds())
-                        is_gap_too_large = (gap > 20)
-                        dur_sec = save_interval if is_gap_too_large else (gap if (0 < gap <= 20) else save_interval)
+                        is_gap_too_large = (gap > 15)
+                        dur_sec = save_interval if is_gap_too_large else (gap if (0 < gap <= 15) else save_interval)
                     except Exception:
                         dur_sec = save_interval
                 else:

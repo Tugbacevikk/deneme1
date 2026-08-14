@@ -270,6 +270,7 @@ def api_users_update(user_id):
 
 
 @auth_bp.route('/api/users/with_email', methods=['GET'])
+@auth_bp.route('/api/users/mail_recipients', methods=['GET'])
 @login_required
 def api_users_with_email():
     with db_manager.get_session() as db_session:

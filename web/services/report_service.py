@@ -14,54 +14,9 @@ logger = logging.getLogger(__name__)
 
 def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', start_date='', end_date='', istasyon='', save_interval=5, model_cls=DurumKaydi):
     """
-    Belirli bir çalışan, istasyon ve tarih aralığı için ham durum kayıtlarını ve günlük özetleri inceleyerek 
+    Belirli bir çalışan, istasyon ve tarih aralığı için ham durum kayıtlarını inceleyerek 
     kesintisiz aktif, inaktif, kaynak ve telefon sürelerini tam kesinlikle hesaplar.
     """
-    # 1. Önce Günlük Özet (GunlukOzet) Tablosundan Kesin Birikmiş Süreleri Kontrol Et
-    try:
-        ozet_filters = []
-        if start_date:
-            ozet_filters.append(GunlukOzet.tarih >= start_date)
-        if end_date:
-            ozet_filters.append(GunlukOzet.tarih <= end_date)
-        if istasyon:
-            ozet_filters.append(GunlukOzet.istasyon_adi == istasyon)
-        if worker_id and str(worker_id).isdigit() and int(worker_id) > 0:
-            ozet_filters.append(or_(
-                GunlukOzet.worker_id == int(worker_id),
-                GunlukOzet.worker_adi == worker_name
-            ))
-        elif worker_name and worker_name != 'Atanmamış Çalışan':
-            ozet_filters.append(GunlukOzet.worker_adi == worker_name)
-
-        stmt_ozet = select(
-            func.coalesce(func.sum(GunlukOzet.toplam_aktif_sn), 0).label('aktif_sec'),
-            func.coalesce(func.sum(GunlukOzet.toplam_kaynak_sn), 0).label('kaynak_sec'),
-            func.coalesce(func.sum(GunlukOzet.toplam_inaktif_sn), 0).label('inaktif_sec'),
-            func.coalesce(func.sum(GunlukOzet.toplam_telefon_sn), 0).label('telefon_sec')
-        )
-        if ozet_filters:
-            stmt_ozet = stmt_ozet.where(and_(*ozet_filters))
-        
-        ozet_row = session_orm.execute(stmt_ozet).first()
-        if ozet_row and (ozet_row.aktif_sec > 0 or ozet_row.kaynak_sec > 0 or ozet_row.inaktif_sec > 0 or ozet_row.telefon_sec > 0):
-            a_sec = int(ozet_row.aktif_sec)
-            k_sec = int(ozet_row.kaynak_sec)
-            i_sec = int(ozet_row.inaktif_sec)
-            t_sec = int(ozet_row.telefon_sec)
-            toplam_sn = a_sec + k_sec + i_sec + t_sec
-            return {
-                'aktif_sec': a_sec,
-                'kaynak_sec': k_sec,
-                'inaktif_sec': i_sec,
-                'telefon_sec': t_sec,
-                'toplam_sec': toplam_sn,
-                'kayitlar_count': 1
-            }
-    except Exception as e:
-        logger.debug(f"GunlukOzet sorgulama atlandı: {e}")
-
-    # 2. Günlük Özet Yoksa veya 0 İse Ham Durum Kayıtlarından Hesapla
     zaman_str_expr = func.cast(model_cls.zaman, String)
     filters = []
     if start_date:
@@ -129,14 +84,9 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
                 next_dt = z_dt
 
             gap = (next_dt - z_dt).total_seconds()
-            dur = int(gap) if 0 < gap <= 300 else save_interval
+            dur = int(gap) if 0 < gap <= 15 else save_interval
         else:
-            now_dt = datetime.datetime.now()
-            if z_dt.date() == now_dt.date():
-                time_since = (now_dt - z_dt).total_seconds()
-                dur = int(time_since) if 0 < time_since <= 600 else save_interval
-            else:
-                dur = save_interval
+            dur = save_interval
 
         if cat == 'KAYNAK':
             kaynak_sec += dur
@@ -149,21 +99,13 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
 
     toplam_sec = aktif_sec + kaynak_sec + inaktif_sec + telefon_sec
 
-    # Eğer Günlük Özet'ten gelen birikmiş süreler daha büyükse en yüksek tam süreyi al
-    if 'ozet_row' in locals() and ozet_row:
-        aktif_sec = max(aktif_sec, int(getattr(ozet_row, 'aktif_sec', 0) or 0))
-        kaynak_sec = max(kaynak_sec, int(getattr(ozet_row, 'kaynak_sec', 0) or 0))
-        inaktif_sec = max(inaktif_sec, int(getattr(ozet_row, 'inaktif_sec', 0) or 0))
-        telefon_sec = max(telefon_sec, int(getattr(ozet_row, 'telefon_sec', 0) or 0))
-        toplam_sec = aktif_sec + kaynak_sec + inaktif_sec + telefon_sec
-
     return {
         'aktif_sec': aktif_sec,
         'kaynak_sec': kaynak_sec,
         'inaktif_sec': inaktif_sec,
         'telefon_sec': telefon_sec,
         'toplam_sec': toplam_sec,
-        'kayitlar_count': len(kayitlar)
+        'kayitlar_count': num_kayitlar
     }
 
 
@@ -236,11 +178,11 @@ def _build_orm_filters(start: str, end: str, istasyon: str, worker: str = '', on
                 if u and u.istasyonlar:
                     stations = [s.strip() for s in u.istasyonlar.split(',') if s.strip()]
 
-                cond_w = [Worker.patron_id == patron_id]
+                cond_w = []
                 if stations:
                     cond_w.append(Worker.istasyon_adi.in_(stations))
 
-                patron_worker_ids = local_session.scalars(select(Worker.id).where(or_(*cond_w))).all()
+                patron_worker_ids = local_session.scalars(select(Worker.id).where(or_(*cond_w))).all() if cond_w else []
         except Exception:
             pass
 
@@ -351,9 +293,36 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
             )
             if filters:
                 stmt = stmt.where(and_(*filters))
-
             stmt = stmt.group_by(tarih_col, istasyon_col).order_by(desc('tarih'), desc('toplam_kayit'))
             rows = session_orm.execute(stmt).all()
+
+            # Eğer PostgreSQL ortamından 0 kayıt geldiyse yerel SQLite veritabanından çek (Yedekleme garantisi)
+            if not rows and model_cls != DurumKaydi:
+                try:
+                    with db_manager.get_session() as local_sess:
+                        filters_l = _build_orm_filters(start, end, istasyon, worker=worker, patron_id=patron_id, model_cls=DurumKaydi)
+                        z_str_l = func.cast(DurumKaydi.zaman, String)
+                        tarih_col_l = func.substr(z_str_l, 1, 10)
+                        ist_col_l = func.coalesce(DurumKaydi.istasyon_adi, default_st)
+                        stmt_l = select(
+                            tarih_col_l.label('tarih'),
+                            ist_col_l.label('istasyon_adi'),
+                            func.count(DurumKaydi.id).label('toplam_kayit'),
+                            func.sum(case((DurumKaydi.durum.like('AKT%'), 1), else_=0)).label('aktif_kayit'),
+                            func.sum(case((DurumKaydi.durum.like('%KAYNAK%'), 1), else_=0)).label('kaynak_kayit'),
+                            func.sum(case((DurumKaydi.durum.like('%NAKT%'), 1), else_=0)).label('inaktif_kayit'),
+                            func.sum(case((DurumKaydi.durum.like('%TELEFON%'), 1), else_=0)).label('telefon_kayit'),
+                            func.min(DurumKaydi.zaman).label('ilk_gorulme'),
+                            func.max(DurumKaydi.zaman).label('son_gorulme')
+                        )
+                        if filters_l:
+                            stmt_l = stmt_l.where(and_(*filters_l))
+                        stmt_l = stmt_l.group_by(tarih_col_l, ist_col_l).order_by(desc('tarih'), desc('toplam_kayit'))
+                        rows = local_sess.execute(stmt_l).all()
+                        session_orm = local_sess
+                        model_cls = DurumKaydi
+                except Exception as ex_l:
+                    logger.debug(f"SQLite yedek sorgu hatası: {ex_l}")
 
             for r in rows:
                 st_name = r.istasyon_adi
@@ -387,6 +356,7 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
 
                 if not w_name:
                     w_name = 'Atanmamış Çalışan'
+                tarih_val = r.tarih or ''
                 toplam = r.toplam_kayit or 0
 
                 dur_info = _calculate_worker_durations(

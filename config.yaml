@@ -1,6 +1,6 @@
-brightness: 0
+brightness: 10
 camera_id: 0
-contrast: 1
+contrast: 1.2
 flip_h: false
 flip_v: false
 istasyon_adi: Istasyon-2
@@ -12,6 +12,3 @@ saturation: 1.15
 station_name: Istasyon-2
 welding_conf: 0.25
 welding_imgsz: 320
-
-
-

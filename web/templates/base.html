@@ -227,7 +227,7 @@
 
 <script>
 window.addEventListener('error', function(e) {
-    alert("JS HATA: " + e.message + "\nDosya: " + e.filename + "\nSatır: " + e.lineno);
+    console.error("JS HATA:", e.message, "Dosya:", e.filename, "Satır:", e.lineno);
 });
 </script>
 

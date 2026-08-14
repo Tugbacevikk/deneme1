@@ -82,32 +82,27 @@
 
 
             <div class="card-body p-0">
-                <div class="camera-container">
+                <div class="camera-container" style="position:relative; width:100%; min-height:380px; aspect-ratio:16/9; border-radius: 0 0 12px 12px; overflow:hidden; background:#0f172a; display:flex; align-items:center; justify-content:center;">
                     <img id="camera-feed"
                          src="/api/video_feed"
                          alt="Kamera Görüntüsü"
+                         style="width:100%; max-height:540px; object-fit:contain; display:block; border-radius: 0 0 12px 12px;"
                          onload="var o=document.getElementById('camera-overlay'); if(o) o.style.display='none'; this.style.display='block';"
-                         onerror="var o=document.getElementById('camera-overlay'); if(o) o.style.display='flex';"
+                         onerror="var o=document.getElementById('camera-overlay'); if(o) o.style.display='flex'; this.style.display='none';"
                     >
 
-                    <!-- Overlay when no signal -->
-                    <div class="camera-overlay" id="camera-overlay" style="display:none;">
-                        <div class="no-signal">
-                            <i class="fa-solid fa-video-slash"></i>
-                            <p>Kamera Bağlantısı Yok</p>
-                            <small>Kamerayı başlatmak için 'Başlat' butonuna basın</small>
+                    <!-- Overlay when no signal / camera stopped -->
+                    <div class="camera-overlay" id="camera-overlay" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:#0f172a; text-align:center; padding:40px; width:100%; height:100%;">
+                        <div class="no-signal" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;">
+                            <i class="fa-solid fa-video-slash" style="font-size:52px; color:#f43f5e; margin-bottom:4px;"></i>
+                            <p style="font-size:18px; font-weight:700; color:#f8fafc; margin:0;">Kamera Pasif / Görüntü Yok</p>
+                            <small style="font-size:13px; color:#94a3b8;">Kamerayı başlatmak için "Kamerayı Başlat" butonuna basın</small>
                         </div>
                     </div>
                     <!-- Scanning line animation -->
                     <div class="scan-line" id="scan-line"></div>
-                    <!-- Corner decorators -->
-                    <div class="cam-corner cam-corner--tl"></div>
-                    <div class="cam-corner cam-corner--tr"></div>
-                    <div class="cam-corner cam-corner--bl"></div>
-                    <div class="cam-corner cam-corner--br"></div>
                 </div>
-
-                </div>
+            </div>
         </div>
     </div>
     <!-- END LEFT -->
