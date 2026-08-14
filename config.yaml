@@ -3,13 +3,14 @@ camera_id: 0
 contrast: 1.2
 flip_h: false
 flip_v: false
-istasyon_adi: Istasyon-2
+istasyon_adi: Istasyon-1
 roi_x1: 0.08
 roi_x2: 0.84
 roi_y1: 0
 roi_y2: 0.98
 saturation: 1.15
-station_name: Istasyon-2
+station_name: Istasyon-1
+
 welding_conf: 0.25
 welding_imgsz: 320
 pg_retention_days: 60
