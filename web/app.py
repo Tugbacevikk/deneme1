@@ -585,9 +585,15 @@ def api_start_camera():
 
     cfg = dict(config)
     cfg['camera_id'] = target_source
-    if station_override:
+
+    local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
+    if local_st and local_st.lower() != 'auto':
+        cfg['station_name'] = local_st
+        cfg['istasyon_adi'] = local_st
+    elif station_override:
         cfg['station_name'] = station_override
         cfg['istasyon_adi'] = station_override
+
 
     if ext.camera_processor is None:
         ext.camera_processor = CameraProcessor(
