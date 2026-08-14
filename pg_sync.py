@@ -279,62 +279,6 @@ class SenkronThread(threading.Thread):
         if self._pg_engine:
             pg_tablo_hazirla(self._pg_engine)
 
-def get_my_local_ip() -> str:
-    """Cihazın ağ üzerindeki gerçek IPv4 adresini otomatik tespit eder."""
-    try:
-        import socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(0.5)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        try:
-            import socket
-            return socket.gethostbyname(socket.gethostname())
-        except Exception:
-            return '127.0.0.1'
-
-
-def otomatik_ip_guncelle(db_mgr: DatabaseManager, engine, istasyon_adi: str):
-    """Cihazın ağ üzerindeki IP adresini otomatik tespit eder, SQLite ve PostgreSQL 'cameras' tablosunda günceller."""
-    if not istasyon_adi or str(istasyon_adi).strip().lower() in ('auto', ''):
-        return
-    my_ip = get_my_local_ip()
-    if not my_ip or my_ip == '127.0.0.1':
-        return
-    try:
-        from core.database.models import Camera
-        # 1. Yerel SQLite Güncelle/Ekle
-        if db_mgr:
-            with db_mgr.get_session() as sq_sess:
-                cam = sq_sess.scalars(select(Camera).where(Camera.istasyon_adi == istasyon_adi)).first()
-                if cam:
-                    if cam.ip_adresi != my_ip:
-                        cam.ip_adresi = my_ip
-                        sq_sess.commit()
-                        logger.info(f"[IP OTO] Yerel SQLite '{istasyon_adi}' IP adresi güncellendi: {my_ip}")
-                else:
-                    sq_sess.add(Camera(istasyon_adi=istasyon_adi, ip_adresi=my_ip, aktif=1))
-                    sq_sess.commit()
-
-        # 2. Merkezi PostgreSQL Güncelle/Ekle
-        if engine:
-            with Session(engine) as pg_sess:
-                pg_cam = pg_sess.scalars(select(Camera).where(Camera.istasyon_adi == istasyon_adi)).first()
-                if pg_cam:
-                    if pg_cam.ip_adresi != my_ip:
-                        pg_cam.ip_adresi = my_ip
-                        pg_sess.commit()
-                        logger.info(f"[IP OTO] Merkezi PostgreSQL '{istasyon_adi}' IP adresi güncellendi: {my_ip}")
-                else:
-                    pg_sess.add(Camera(istasyon_adi=istasyon_adi, ip_adresi=my_ip, aktif=1))
-                    pg_sess.commit()
-    except Exception as e:
-        logger.debug(f"[IP OTO] Otomatik IP güncelleme uyarısı: {e}")
-
-
     def run(self):
         logger.info(f"[PG] Senkronizasyon thread'i başlatıldı (aralık: {self._aralik_sn}s, istasyon: {self._istasyon_adi})")
         self._yeniden_baglan()
@@ -342,13 +286,6 @@ def otomatik_ip_guncelle(db_mgr: DatabaseManager, engine, istasyon_adi: str):
         while not self._durdurma_olayi.is_set():
             if self._pg_engine is None:
                 self._yeniden_baglan()
-
-            # Otomatik IP Kaydı / Güncellemesi
-            try:
-                otomatik_ip_guncelle(self._db_mgr, self._pg_engine, self._istasyon_adi)
-            except Exception:
-                pass
-
 
             if self._pg_engine:
                 gonderilen = senkronize_et(self._db_mgr, self._pg_engine, self._istasyon_adi)
