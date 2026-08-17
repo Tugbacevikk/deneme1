@@ -63,14 +63,23 @@ def pg_baglan(cfg: dict = None):
         if _SHARED_PG_ENGINE is not None:
             return _SHARED_PG_ENGINE
 
-        if cfg is None:
-            cfg = {}
+        if cfg is None or not isinstance(cfg, dict) or not cfg:
+            try:
+                import yaml
+                from pathlib import Path
+                cfg_path = Path(__file__).resolve().parent / 'config.yaml'
+                if cfg_path.exists():
+                    with open(cfg_path, 'r', encoding='utf-8') as f:
+                        cfg = yaml.safe_load(f) or {}
+            except Exception:
+                cfg = {}
 
         env_host = os.getenv('POSTGRES_HOST')
         env_user = os.getenv('POSTGRES_USER')
         env_pass = os.getenv('POSTGRES_PASSWORD')
         env_db   = os.getenv('POSTGRES_DB')
         env_port = os.getenv('POSTGRES_PORT')
+
 
         host = cfg.get('host') or cfg.get('postgres_host') or cfg.get('pg_host')
         if not host or host == '127.0.0.1':
