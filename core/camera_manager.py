@@ -348,18 +348,22 @@ class CameraProcessor:
                     if cap and cap.isOpened():
                         try:
                             cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                            cap.set(cv2.CAP_PROP_FPS, 30)
                         except Exception:
                             pass
-                        # Kare okuma doğrulaması yap (Linux V4L2 metadata cihaz çakışmalarını önler)
                         ret_test, frame_test = cap.read()
+                        if not (ret_test and frame_test is not None and frame_test.size > 0):
+                            try:
+                                cap.release()
+                                cap = cv2.VideoCapture(target)
+                                ret_test, frame_test = cap.read() if (cap and cap.isOpened()) else (False, None)
+                            except Exception:
+                                pass
+
                         if ret_test and frame_test is not None and frame_test.size > 0:
                             logger.info(f"Kamera {target} başarıyla açıldı ve görüntü verdi.")
                             break
                         else:
-                            cap.release()
+                            if cap: cap.release()
                             cap = None
                 except Exception as ex:
                     if cap: cap.release()
