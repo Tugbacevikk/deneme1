@@ -229,7 +229,10 @@ class CameraProcessor:
         try:
             import torch
             try:
-                torch.set_num_threads(1)
+                cpu_cores = os.cpu_count() or 4
+                torch.set_num_threads(cpu_cores)
+                cv2.setNumThreads(cpu_cores)
+                cv2.setUseOptimized(True)
             except Exception:
                 pass
 
