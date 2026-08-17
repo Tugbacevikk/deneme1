@@ -1402,7 +1402,7 @@ class CameraProcessor:
         conf_fixed = round(conf_val, 1)
 
         raw_fps = fps if (fps and float(fps) > 0) else getattr(self, '_fps', 0.0)
-        fps_val = round(float(raw_fps or 0.0), 1) if self.running else 0.0
+        fps_val = round(float(raw_fps or 0.0), 1) if (self.running or getattr(self, 'is_running', False)) else 0.0
 
         return {
             'durum': durum,
