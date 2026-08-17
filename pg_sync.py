@@ -74,7 +74,11 @@ def pg_baglan(cfg: dict = None):
             except Exception:
                 cfg = {}
 
+        if isinstance(cfg.get('merkezi_db'), dict):
+            cfg = cfg['merkezi_db']
+
         env_host = os.getenv('POSTGRES_HOST')
+
         env_user = os.getenv('POSTGRES_USER')
         env_pass = os.getenv('POSTGRES_PASSWORD')
         env_db   = os.getenv('POSTGRES_DB')
