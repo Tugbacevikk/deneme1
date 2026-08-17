@@ -309,11 +309,18 @@ class CameraProcessor:
 
         for attempt in range(max_attempts):
             candidates = []
-            if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
-                c_idx = int(cam_id)
-                candidates = [c_idx, 0, 1, 2, 4, "/dev/video0", "/dev/video1", "/dev/video2"]
+            if system == 'Windows':
+                if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
+                    c_idx = int(cam_id)
+                    candidates = [c_idx, 0, 1, 2]
+                else:
+                    candidates = [str(cam_id), 0, 1]
             else:
-                candidates = [str(cam_id), 0, 1, 2, 4, "/dev/video0"]
+                if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
+                    c_idx = int(cam_id)
+                    candidates = [c_idx, 0, 1, 2, "/dev/video0", "/dev/video1"]
+                else:
+                    candidates = [str(cam_id), 0, 1, "/dev/video0"]
 
             # Tekrarları temizle, sırayı koru
             seen_c = set()
@@ -346,10 +353,11 @@ class CameraProcessor:
                                 cap = cv2.VideoCapture(str(target))
 
                     if cap and cap.isOpened():
-                        try:
-                            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                        except Exception:
-                            pass
+                        if system != 'Windows':
+                            try:
+                                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                            except Exception:
+                                pass
                         ret_test, frame_test = cap.read()
                         if not (ret_test and frame_test is not None and frame_test.size > 0):
                             try:
@@ -959,7 +967,11 @@ class CameraProcessor:
 
         while self.running:
             loop_start = time.time()
-            ret, frame = cap.read()
+            try:
+                ret, frame = cap.read()
+            except Exception as read_ex:
+                logger.debug(f"Kamera kare okuma istisnası: {read_ex}")
+                ret, frame = False, None
             if not ret or frame is None:
                 if isinstance(self.camera_id, str) and not str(self.camera_id).isdigit():
                     loop_video = self.cfg.get('loop_video', False)
