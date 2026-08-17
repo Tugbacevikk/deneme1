@@ -101,17 +101,20 @@ setInterval(fetchSystemInfo, 5000);
 // ── Kullanıcı Yönetimi (Admin Only) ───────────────────────────
 function loadUsers() {
     const tbody = document.getElementById('users-table-tbody');
-    if (!tbody) return;
+    if (!tbody) return Promise.resolve();
 
-    fetch('/api/users/list')
+    return fetch('/api/users/list')
         .then(r => {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const contentType = r.headers.get('content-type') || '';
+            if (!r.ok || !contentType.includes('application/json')) {
+                throw new Error('Geçersiz yanıt veya yetkisiz erişim');
+            }
             return r.json();
         })
         .then(data => {
             const users = Array.isArray(data) ? data : (data.users || data.data || []);
             if (!users.length) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-secondary);">Kullanıcı bulunamadı.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-secondary);">Kayıtlı kullanıcı bulunamadı.</td></tr>';
                 return;
             }
 
@@ -143,7 +146,8 @@ function loadUsers() {
                             <i class="fa-solid fa-user-xmark"></i> Reddet
                         </button>
                     `;
-                }                let editBtn = '';
+                }
+                let editBtn = '';
                 if (u.kullanici_adi !== 'admin') {
                     const editButtonHtml = u.durum === 'onaylandi' ? `
                            <button class="btn btn--outline btn--sm" style="padding:4px 8px;font-size:12px;"
@@ -173,6 +177,7 @@ function loadUsers() {
                     <tr>
                         <td style="font-weight:700;">${u.kullanici_adi}</td>
                         <td>${u.ad_soyad || '—'}</td>
+                        <td>${u.email || u.eposta || '—'}</td>
                         <td>${u.firma_adi || 'Fabrika'}</td>
                         <td><span class="badge badge--outline" style="font-size:11px;"><i class="fa-solid fa-industry"></i> ${stStr}</span></td>
                         <td><span class="status-badge ${roleBadgeClass}">${roleLabel}</span></td>
@@ -184,7 +189,7 @@ function loadUsers() {
         })
         .catch(err => {
             console.error('Kullanıcı yükleme hatası:', err);
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:var(--red);">Kullanıcı listesi yüklenemedi. (Yönetici girişi gereklidir)</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:15px; color:var(--red);">Kullanıcı listesi yüklenemedi. (Yönetici girişi gereklidir)</td></tr>';
         });
 }
 
@@ -192,10 +197,13 @@ function addUserSubmit(e) {
     e.preventDefault();
     const username = document.getElementById('u-username').value.trim();
     const fullname = document.getElementById('u-fullname').value.trim();
+    const emailEl  = document.getElementById('u-email');
+    const email    = emailEl ? emailEl.value.trim() : '';
+    const companyEl = document.getElementById('u-company');
+    const company  = companyEl && companyEl.value.trim() ? companyEl.value.trim() : 'Fabrika';
     const password = document.getElementById('u-password').value;
     const role     = document.getElementById('u-role').value;
 
-    // Collect checked station checkboxes → comma-separated string
     const checked = Array.from(document.querySelectorAll('input[name="u-station-cb"]:checked')).map(cb => cb.value);
     const stations = checked.join(', ');
     const hiddenStations = document.getElementById('u-stations');
@@ -214,8 +222,9 @@ function addUserSubmit(e) {
             username: username,
             ad_soyad: fullname,
             fullname: fullname,
-            firma_adi: 'Fabrika',
-            company: 'Fabrika',
+            email: email,
+            firma_adi: company,
+            company: company,
             sifre: password,
             password: password,
             rol: role,
@@ -224,19 +233,24 @@ function addUserSubmit(e) {
             stations: stations
         })
     })
-    .then(r => r.json())
+    .then(r => {
+        const contentType = r.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Sunucudan geçersiz yanıt alındı (HTML/500). Lütfen tekrar deneyin.');
+        }
+        return r.json();
+    })
     .then(data => {
         if (data.success) {
             showToast(data.message || 'Kullanıcı başarıyla eklendi', 'success');
             document.getElementById('form-add-user').reset();
-            // Uncheck all checkboxes after reset
             document.querySelectorAll('input[name="u-station-cb"]').forEach(cb => cb.checked = false);
-            loadUsers();
+            setTimeout(() => { loadUsers(); }, 300);
         } else {
             showToast(data.message || data.error || 'Hata oluştu', 'error');
         }
     })
-    .catch(err => showToast('Bağlantı hatası: ' + err.message, 'error'));
+    .catch(err => showToast('İşlem Hatası: ' + err.message, 'error'));
 }
 
 const formAddUser = document.getElementById('form-add-user');

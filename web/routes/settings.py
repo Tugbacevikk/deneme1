@@ -101,8 +101,11 @@ def api_settings_save():
         import web.extensions as ext
         ext.config = cfg
 
-        if ext.camera_processor is not None and hasattr(ext.camera_processor, 'cfg'):
-            ext.camera_processor.cfg.update(data)
+        if ext.camera_processor is not None:
+            if hasattr(ext.camera_processor, 'update_config'):
+                ext.camera_processor.update_config(cfg)
+            elif hasattr(ext.camera_processor, 'cfg'):
+                ext.camera_processor.cfg.update(cfg)
 
         return jsonify({'success': True, 'message': 'Ayarlar başarıyla kaydedildi.'})
     except Exception as e:

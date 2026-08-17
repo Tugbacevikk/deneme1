@@ -107,6 +107,10 @@
                         <input type="text" class="form-input" id="u-fullname" placeholder="Örn: Kadir Kaya" required>
                     </div>
                     <div class="form-group" style="margin:0;">
+                        <label class="form-label"><i class="fa-solid fa-envelope" style="color:var(--accent);"></i> E-posta Adresi</label>
+                        <input type="email" class="form-input" id="u-email" placeholder="Örn: patron@sirket.com">
+                    </div>
+                    <div class="form-group" style="margin:0;">
                         <label class="form-label">Şifre *</label>
                         <input type="password" class="form-input" id="u-password" placeholder="••••••••" required>
                     </div>
@@ -116,6 +120,10 @@
                             <option value="patron">Patron</option>
                             <option value="operator">Operatör</option>
                         </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Firma / Birim Adı</label>
+                        <input type="text" class="form-input" id="u-company" placeholder="Örn: ÜÇGE Mağaza Ekipmanları">
                     </div>
                     <div class="form-group" style="margin:0; grid-column: 1 / -1;">
                         <label class="form-label"><i class="fa-solid fa-industry" style="color:var(--accent);"></i> İzleyebileceği İstasyonlar & Çalışanlar</label>
@@ -162,6 +170,7 @@
                         <tr>
                             <th>Kullanıcı Adı</th>
                             <th>Ad Soyad</th>
+                            <th>E-posta</th>
                             <th>Firma / Birim</th>
                             <th>Atanan İstasyonlar</th>
                             <th>Rol / Yetki</th>
@@ -175,6 +184,7 @@
                             <tr>
                                 <td style="font-weight:700;">{{ u.kullanici_adi }}</td>
                                 <td>{{ u.ad_soyad or '—' }}</td>
+                                <td>{{ u.email or u.eposta or '—' }}</td>
                                 <td>{{ u.firma_adi or '—' }}</td>
                                 <td>
                                     <span class="badge badge--outline" style="font-size:11px;">
@@ -198,7 +208,7 @@
                                 <td style="text-align:right;">
                                     {% if u.rol not in ['admin', 'super_admin'] %}
                                         <button class="btn btn-outline" style="padding:4px 10px; font-size:12px; margin-right:4px;"
-                                                onclick="openEditUserModal({{ u.id }}, '{{ u.kullanici_adi }}', '{{ u.ad_soyad or '' }}', '{{ u.rol or 'patron' }}', '{{ u.eposta or '' }}', '{{ u.istasyonlar or '' }}')">
+                                                onclick="openEditUserModal({{ u.id }}, '{{ u.kullanici_adi }}', '{{ u.ad_soyad or '' }}', '{{ u.rol or 'patron' }}', '{{ u.eposta or u.email or '' }}', '{{ u.istasyonlar or '' }}')">
                                             <i class="fa-solid fa-pen-to-square"></i> Düzenle
                                         </button>
                                         <button class="btn btn-danger" style="padding:4px 10px; font-size:12px; background:#e11d48; border-color:#e11d48; color:#fff;"
@@ -215,7 +225,7 @@
                             {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">
+                            <td colspan="8" style="text-align:center; padding:20px; color:var(--text-secondary);">
                                 Kayıtlı kullanıcı bulunamadı.
                             </td>
                         </tr>

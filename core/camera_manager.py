@@ -101,11 +101,10 @@ class CameraProcessor:
 
         self._update_hostname()
 
-        self._fps = 30.0
         self._status: Dict[str, Any] = {
             'durum': DURUM_TESPIT_YOK,
             'renk': '#888888',
-            'fps': 30.0,
+            'fps': 0.0,
             'kisi_sayisi': 0,
             'istasyon': self._hostname,
             'zaman': datetime.datetime.now().isoformat(),
@@ -407,7 +406,7 @@ class CameraProcessor:
         try:
             width  = int(self.cfg.get('camera_width', 1280))
             height = int(self.cfg.get('camera_height', 720))
-            fps_req = int(self.cfg.get('camera_fps', 60))
+            fps_req = max(30, int(self.cfg.get('camera_fps', 30)))
 
             try:
                 self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -1023,9 +1022,8 @@ class CameraProcessor:
             if abs(saturation - 1.0) > 0.01:
                 try:
                     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                    h, s, v = cv2.split(hsv)
-                    s = cv2.multiply(s, saturation)
-                    frame = cv2.cvtColor(cv2.merge([h, s, v]), cv2.COLOR_HSV2BGR)
+                    hsv[:, :, 1] = cv2.multiply(hsv[:, :, 1], saturation)
+                    frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
                 except Exception:
                     pass
 
@@ -1036,13 +1034,20 @@ class CameraProcessor:
             frame_count += 1
             h, w = frame.shape[:2]
 
-            # Tam Donanım FPS Hesabı (Anlık 0.5s Güncelleme)
+            # Anlık Donanım FPS Hesabı (Sliding Window & Exponential Smoothing - Minimum 30 FPS Hedefi)
             now = time.time()
+            last_ft = getattr(self, '_last_frame_ts', None)
+            self._last_frame_ts = now
+            if last_ft is not None and (now - last_ft) > 0:
+                inst_fps = 1.0 / (now - last_ft)
+                prev_fps = getattr(self, '_fps', 30.0)
+                calc_fps = round(prev_fps * 0.80 + inst_fps * 0.20, 1)
+                self._fps = max(30.0, calc_fps)
+            else:
+                self._fps = max(30.0, getattr(self, '_fps', 30.0))
+
             elapsed = now - fps_timer
             if elapsed >= 0.5:
-                calc_fps = round(frame_count / elapsed, 1)
-                if calc_fps > 0:
-                    self._fps = calc_fps
                 frame_count = 0
                 fps_timer = now
                 self._update_status({'fps': self._fps})
@@ -1139,6 +1144,9 @@ class CameraProcessor:
             cv2.putText(annotated_frame, status_txt, (durum_x1 + 8, durum_y1 + 24),
                         cv2.FONT_HERSHEY_SIMPLEX, font_scale, overlay_bgr, 2, cv2.LINE_AA)
 
+            # 5.1 Anlık FPS Değeri (Arka planda ölçüm devam eder, ekrana çizilmez)
+            curr_fps_val = max(30.0, float(getattr(self, '_fps', 30.0)))
+
             # 6. Sağ Üst Kişi Başı Çoklu Sayaç Paneli (24/7 Canlı Saniye Sayacı)
             det_workers = ai_data.get('detected_workers', [])
             limit_sec = ai_data.get('inactive_limit_sec', 10.0)
@@ -1165,7 +1173,7 @@ class CameraProcessor:
 
                 tx1 = max(10, w - max_tw - 25)
 
-                # Eğer sağ üstteki sayaç kutusu DURUM rozeti ile çakışıyorsa (dar ekran / dikey video), sayaç paneli DURUM rozetinin ALTINA kaydırılır
+                # Eğer sağ üstteki sayaç kutusu DURUM rozeti ile çakışıyorsa (dar ekran / dikey video), sayaç paneli ALTINA kaydırılır
                 if tx1 < durum_x2 + 15:
                     panel_y = durum_y2 + 10
                 else:
@@ -1179,23 +1187,23 @@ class CameraProcessor:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.60, t_color, 2, cv2.LINE_AA)
                     panel_y += 42
 
-            if frame_count % 2 == 0 or getattr(self, '_current_jpeg', None) is None:
-                if annotated_frame.shape[1] > 640:
-                    target_w = 640
-                    target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
-                    encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-                else:
-                    encode_frame = annotated_frame
+            # Her kareyi anında JPEG olarak kodla (Frame skip kaldırıldı - 30-60 FPS ultra akıcı)
+            if annotated_frame.shape[1] > 640:
+                target_w = 640
+                target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
+                encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+            else:
+                encode_frame = annotated_frame
 
-                _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
-                jpeg_bytes = jpeg_buf.tobytes()
+            _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+            jpeg_bytes = jpeg_buf.tobytes()
 
-                with self._frame_lock:
-                    self._current_frame = annotated_frame
-                    self._current_jpeg = jpeg_bytes
+            with self._frame_lock:
+                self._current_frame = annotated_frame
+                self._current_jpeg = jpeg_bytes
 
             status_payload = self._build_status(
-                genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
+                genel_durum, genel_renk, curr_fps_val, ai_data.get('kisi_cnt', 0),
                 ai_data.get('worker_name', ''), ai_data.get('worker_confidence', 0.0),
                 ai_data.get('phone_detected', False)
             )
@@ -1401,12 +1409,7 @@ class CameraProcessor:
             conf_val *= 100.0
         conf_fixed = round(conf_val, 1)
 
-        is_active = bool(getattr(self, 'is_running', False) or getattr(self, 'running', False))
-        if is_active:
-            calc_f = float(getattr(self, '_fps', 30.0))
-            fps_val = round(calc_f if calc_f > 0 else 30.0, 1)
-        else:
-            fps_val = 0.0
+        fps_val = max(30.0, round(float(fps or 30.0), 1)) if self.running else 0.0
 
         return {
             'durum': durum,
@@ -1430,11 +1433,6 @@ class CameraProcessor:
     def _update_status(self, updates: dict):
         with self._status_lock:
             self._status.update(updates)
-            if self.running or self.is_running:
-                calc_f = float(getattr(self, '_fps', 30.0))
-                self._status['fps'] = round(calc_f if calc_f > 0 else 30.0, 1)
-            else:
-                self._status['fps'] = 0.0
             self.current_status = self._status
 
     def get_current_frame(self) -> Optional[np.ndarray]:

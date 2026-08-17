@@ -17,7 +17,8 @@ def login():
         kullanici_adi = (request.form.get('username') or request.form.get('kullanici_adi') or '').strip()
         sifre = (request.form.get('password') or request.form.get('sifre') or '')
 
-        with db_manager.get_session() as db_session:
+        from web.services.user_service import _get_user_session
+        with _get_user_session() as db_session:
             user = db_session.scalars(select(User).where(User.kullanici_adi.ilike(kullanici_adi))).first()
             if not user:
                 user = db_session.scalars(select(User).where(User.kullanici_adi == kullanici_adi)).first()
@@ -128,20 +129,30 @@ def api_patrons_list():
 @auth_bp.route('/api/users/add', methods=['POST'])
 @admin_required
 def api_users_add():
-    data = request.get_json() or request.form
-    kullanici_adi = data.get('kullanici_adi')
-    sifre = data.get('sifre')
-    ad_soyad = data.get('ad_soyad')
-    rol = data.get('rol', 'operator')
-    firma_adi = data.get('firma_adi')
+    data = request.get_json(silent=True) or request.form
+    kullanici_adi = (data.get('kullanici_adi') or data.get('username') or '').strip()
+    sifre = data.get('sifre') or data.get('password') or ''
+    ad_soyad = (data.get('ad_soyad') or data.get('fullname') or '').strip()
+    rol = data.get('rol') or data.get('role') or 'patron'
+    firma_adi = (data.get('firma_adi') or data.get('company') or 'Fabrika').strip()
+    istasyonlar = data.get('istasyonlar') or data.get('stations') or ''
+    email = (data.get('email') or '').strip() or None
 
     if not kullanici_adi or not sifre or not ad_soyad:
-        return jsonify({'success': False, 'message': 'Eksik bilgi.'}), 400
+        return jsonify({'success': False, 'message': 'Kullanıcı adı, şifre ve ad soyad zorunludur.'}), 400
 
-    ok, res = create_user(kullanici_adi, sifre, ad_soyad, rol, firma_adi)
+    ok, res = create_user(
+        kullanici_adi=kullanici_adi,
+        sifre=sifre,
+        ad_soyad=ad_soyad,
+        rol=rol,
+        firma_adi=firma_adi,
+        istasyonlar=istasyonlar,
+        email=email
+    )
     if ok:
-        return jsonify({'success': True, 'user': res})
-    return jsonify({'success': False, 'message': res}), 400
+        return jsonify({'success': True, 'message': 'Kullanıcı başarıyla eklendi.', 'user': res})
+    return jsonify({'success': False, 'message': str(res)}), 400
 
 
 @auth_bp.route('/api/users/<int:user_id>', methods=['DELETE', 'POST'])

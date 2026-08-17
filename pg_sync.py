@@ -207,18 +207,10 @@ def senkronize_et(db_mgr: DatabaseManager, engine, istasyon_adi: str) -> int:
                     for pw in pg_workers:
                         local_w = sqlite_session.get(Worker, pw.id)
                         if not local_w:
-                            # sicil_no çakışmasını engelle
-                            existing_sicil = sqlite_session.scalars(select(Worker).where(Worker.sicil_no == pw.sicil_no)).first()
-                            if existing_sicil:
-                                continue
                             w_data = {col.name: getattr(pw, col.name) for col in pw.__table__.columns}
                             sqlite_session.add(Worker(**w_data))
                     sqlite_session.commit()
                 except Exception as ex_w:
-                    try:
-                        sqlite_session.rollback()
-                    except Exception:
-                        pass
                     logger.debug(f"[PG] Worker SQLite çekme uyarısı: {ex_w}")
 
                 # Alarmlar
