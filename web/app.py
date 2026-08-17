@@ -388,7 +388,8 @@ def api_is_local_camera(cam_id):
     """Bu kamera ID'si yerel makineye ait mi? Sadece istasyon adı eşleşmesine göre karar verilir."""
     try:
         from core.database.models import Camera
-        with db_manager.get_session() as sess:
+        from web.services.camera_service import _get_camera_session
+        with _get_camera_session() as sess:
             cam = sess.get(Camera, cam_id)
             if not cam:
                 return jsonify({'is_local': False})
