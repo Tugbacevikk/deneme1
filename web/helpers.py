@@ -17,6 +17,27 @@ from core.database.connection import db_manager
 logger = logging.getLogger(__name__)
 
 
+def get_local_system_ips() -> set:
+    """Sistemin tüm yerel IP adreslerini güvenle tespit eder."""
+    ips = {'127.0.0.1', 'localhost', '0.0.0.0'}
+    try:
+        import socket
+        hostname = socket.gethostname()
+        for ip in socket.gethostbyname_ex(hostname)[2]:
+            ips.add(ip)
+    except Exception:
+        pass
+    try:
+        import psutil, socket
+        for iface, addrs in psutil.net_if_addrs().items():
+            for addr in addrs:
+                if addr.family == socket.AF_INET:
+                    ips.add(addr.address)
+    except Exception:
+        pass
+    return ips
+
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

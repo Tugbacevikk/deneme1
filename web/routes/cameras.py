@@ -92,19 +92,8 @@ def api_proxy_feed(cam_id):
             cam_station   = (cam.istasyon_adi or '').strip().lower()
             cam_ip        = (cam.ip_adresi or '').strip()
 
-            import socket
-            hostname = socket.gethostname()
-            local_ips = {'127.0.0.1', 'localhost', '0.0.0.0'}
-            try:
-                local_ips.add(socket.gethostbyname(hostname))
-            except Exception:
-                pass
-            try:
-                for info in socket.getaddrinfo(hostname, None):
-                    local_ips.add(info[4][0])
-            except Exception:
-                pass
-
+            from web.helpers import get_local_system_ips
+            local_ips = get_local_system_ips()
             is_this_local = bool((local_station and cam_station and cam_station == local_station) or (cam_ip in local_ips))
 
             if is_this_local:
