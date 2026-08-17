@@ -334,10 +334,10 @@ class CameraProcessor:
                 try:
                     if system == 'Windows':
                         if isinstance(target, int):
-                            cap = cv2.VideoCapture(target, cv2.CAP_ANY)
+                            cap = cv2.VideoCapture(target, cv2.CAP_DSHOW)
                             if not (cap and cap.isOpened()):
                                 if cap: cap.release()
-                                cap = cv2.VideoCapture(target, cv2.CAP_DSHOW)
+                                cap = cv2.VideoCapture(target, cv2.CAP_ANY)
                         else:
                             cap = cv2.VideoCapture(str(target))
                     else:
