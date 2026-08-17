@@ -59,6 +59,18 @@ def api_cameras_list():
         return jsonify({'success': False, 'cameras': []})
 
 
+@cameras_bp.route('/api/cameras/stations')
+@login_required
+def api_cameras_stations():
+    from web.services.worker_service import get_all_stations
+    stations = get_all_stations()
+    return jsonify({'success': True, 'stations': stations})
+
+
+
+
+
+
 @cameras_bp.route('/api/proxy_feed/<int:cam_id>')
 @login_required
 def api_proxy_feed(cam_id):

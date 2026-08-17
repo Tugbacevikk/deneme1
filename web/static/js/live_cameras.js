@@ -182,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     data.stations.forEach(s => {
                         sel.innerHTML += `<option value="${s}">${s}</option>`;
                     });
+                    sel.innerHTML += '<option value="__new__">+ Yeni İstasyon Gir...</option>';
                 }
             }).catch(() => {});
     }
