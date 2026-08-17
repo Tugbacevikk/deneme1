@@ -583,6 +583,9 @@ if (btnMailSend) {
         }
 
         btnMailSend.disabled = true;
+        const origBtnHtml = btnMailSend.innerHTML;
+        btnMailSend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
+
         const elStart = document.getElementById('filter-start') ? document.getElementById('filter-start').value : '';
         const elEnd = document.getElementById('filter-end') ? document.getElementById('filter-end').value : '';
         const elStation = document.getElementById('filter-station') ? document.getElementById('filter-station').value : '';
@@ -597,16 +600,24 @@ if (btnMailSend) {
             if (result && Array.isArray(result.results)) {
                 const successCount = result.results.filter(r => r.success).length;
                 const failCount = result.results.length - successCount;
-                showToast(`${successCount} adrese gönderildi${failCount > 0 ? `, ${failCount} adrese gönderilemedi` : ''}`, failCount > 0 ? 'error' : 'success');
+                if (successCount > 0 && failCount === 0) {
+                    showToast('E-posta başarıyla iletildi.', 'success');
+                } else if (successCount > 0 && failCount > 0) {
+                    showToast(`${successCount} adrese iletildi, ${failCount} adrese iletilemedi.`, 'warning');
+                } else {
+                    const firstMsg = result.results[0] ? result.results[0].message : 'E-posta iletilemedi.';
+                    showToast(firstMsg, 'error');
+                }
                 if (result.success) closeMailPanel();
             } else {
-                showToast(result.message || 'E-posta gönderildi', result.success ? 'success' : 'error');
+                showToast(result.message || (result.success ? 'E-posta başarıyla iletildi.' : 'E-posta iletilemedi.'), result.success ? 'success' : 'error');
                 if (result.success) closeMailPanel();
             }
         } catch (e) {
             showToast('Sunucu bağlantı hatası', 'error');
         } finally {
             btnMailSend.disabled = false;
+            btnMailSend.innerHTML = origBtnHtml;
         }
     });
 }
