@@ -1437,7 +1437,9 @@ class CameraProcessor:
 
     def get_status(self) -> dict:
         with self._status_lock:
-            return dict(self._status)
+            st = dict(self._status)
+            st['fps'] = getattr(self, '_fps', 0.0) if (self.running or getattr(self, 'is_running', False)) else 0.0
+            return st
 
     def get_current_status(self) -> dict:
         return self.get_status()
