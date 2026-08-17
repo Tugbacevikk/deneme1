@@ -1338,7 +1338,7 @@ class CameraProcessor:
             conf_val *= 100.0
         conf_fixed = round(conf_val, 1)
 
-        fps_val = max(30.0, round(float(fps or 0), 1)) if self.running else 0.0
+        fps_val = round(float(fps or 0.0), 1) if self.running else 0.0
 
         return {
             'durum': durum,
