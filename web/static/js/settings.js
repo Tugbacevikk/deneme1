@@ -381,10 +381,13 @@ function saveEditUser() {
 async function approveUser(id) {
     const ok = await showConfirm('Bu kullanıcı başvurusunu onaylamak istediğinizden emin misiniz?', { title: 'Başvuru Onayı', okText: 'Onayla' });
     if (!ok) return;
+
+    const selectedStations = Array.from(document.querySelectorAll(`input[name="pending-st-cb-${id}"]:checked`)).map(cb => cb.value);
+
     fetch(`/api/users/${id}/approve`, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ stations: selectedStations })
     })
         .then(r => r.json())
         .then(data => {
@@ -400,16 +403,17 @@ async function approveUser(id) {
                         badge.style.display = 'none';
                     }
                 }
-                if (typeof loadPendingNotifications === 'function') {
-                    loadPendingNotifications();
-                }
-                loadUsers();
+                setTimeout(() => window.location.reload(), 800);
             } else {
                 showToast(data.message || 'Hata oluştu', 'error');
             }
         })
-        .catch(() => showToast('Bağlantı hatası', 'error'));
+        .catch((err) => {
+            console.error('Approve error:', err);
+            showToast('Bağlantı hatası', 'error');
+        });
 }
+
 
 async function rejectUser(id) {
     const ok = await showConfirm('Bu kullanıcı başvurusunu reddetmek istediğinizden emin misiniz?', { title: 'Başvuru Reddi', okText: 'Reddet' });

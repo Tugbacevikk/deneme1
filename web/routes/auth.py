@@ -169,23 +169,24 @@ def api_patrons_assign_worker():
 @auth_bp.route('/api/users/<int:user_id>/approve', methods=['POST'])
 @admin_required
 def api_users_approve(user_id):
-    # Form veya JSON üzerinden atanan çalışanları oku
-    raw_workers = request.form.getlist('workers') or (request.json.get('workers') if request.is_json else [])
-    worker_ids = [int(w_id) for w_id in raw_workers if str(w_id).isdigit()]
+    data = request.get_json(silent=True) or {}
+    raw_workers = data.get('workers') or request.form.getlist('workers') or []
+    raw_stations = data.get('stations') or request.form.getlist('stations') or []
     
-    ok, msg = approve_user(user_id, worker_ids)
+    ok, msg = approve_user(user_id, worker_ids=raw_workers, station_names=raw_stations)
     if not ok:
         if request.is_json or 'application/json' in request.headers.get('Accept', ''):
-            return jsonify({'success': False, 'message': msg}), 404
+            return jsonify({'success': False, 'message': msg}), 400
         flash(msg, 'danger')
-        return redirect(url_for('settings.settings'))
+        return redirect(url_for('settings.user_management'))
 
     from web.services.user_service import get_pending_count
     if request.is_json or 'application/json' in request.headers.get('Accept', ''):
         return jsonify({'success': True, 'message': msg, 'pending_count': get_pending_count()})
     
     flash(msg, 'success')
-    return redirect(url_for('settings.settings'))
+    return redirect(url_for('settings.user_management'))
+
 
 
 @auth_bp.route('/api/users/<int:user_id>/reject', methods=['POST'])

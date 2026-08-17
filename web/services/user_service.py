@@ -98,8 +98,8 @@ def get_pending_users():
         return [u.to_dict() for u in users]
 
 
-def approve_user(user_id, worker_ids):
-    """Kullanıcıyı onaylar ve seçilen çalışanların istasyonlarını atar."""
+def approve_user(user_id, worker_ids=None, station_names=None):
+    """Kullanıcıyı onaylar ve seçilen çalışanları veya istasyonları atar."""
     with db_manager.get_session() as session:
         user = session.get(User, user_id)
         if not user:
@@ -107,16 +107,32 @@ def approve_user(user_id, worker_ids):
         
         user.durum = 'onaylandi'
         stations = set()
-        for w_id in worker_ids:
-            worker = session.get(Worker, w_id)
-            if worker:
-                worker.patron_id = user_id
-                if worker.istasyon_adi and worker.istasyon_adi.strip():
-                    stations.add(worker.istasyon_adi.strip())
         
-        user.istasyonlar = ", ".join(stations) if stations else None
+        if worker_ids:
+            for w_id in worker_ids:
+                if isinstance(w_id, int) or (isinstance(w_id, str) and w_id.isdigit()):
+                    worker = session.get(Worker, int(w_id))
+                    if worker:
+                        worker.patron_id = user_id
+                        if worker.istasyon_adi and worker.istasyon_adi.strip():
+                            stations.add(worker.istasyon_adi.strip())
+                elif isinstance(w_id, str) and w_id.strip():
+                    stations.add(w_id.strip())
+
+        if station_names:
+            for st in station_names:
+                if st and isinstance(st, str) and st.strip():
+                    stations.add(st.strip())
+        
+        if stations:
+            workers_on_stations = session.scalars(select(Worker).where(Worker.istasyon_adi.in_(list(stations)))).all()
+            for w in workers_on_stations:
+                w.patron_id = user_id
+
+        user.istasyonlar = ", ".join(sorted(list(stations))) if stations else "Tüm Fabrika"
         session.commit()
-        return True, f"Kullanıcı onaylandı. {len(worker_ids)} çalışan ve {len(stations)} istasyon atandı."
+        return True, f"Kullanıcı onaylandı. {len(stations)} istasyon atandı."
+
 
 
 def reject_user(user_id):
