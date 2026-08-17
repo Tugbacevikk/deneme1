@@ -93,27 +93,28 @@ def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, 
 
 def delete_user(user_id):
     """Kullanıcıyı siler (hem merkezi PG hem yerel SQLite'tan siler)."""
+    k_adi = None
     with _get_user_session() as sess:
         user = sess.get(User, user_id)
-        if not user:
-            # ID uyuşmazlığı varsa kullanıcı adına göre dene
-            return False, "Kullanıcı bulunamadı."
-        k_adi = user.kullanici_adi
-        if user.rol in ('admin', 'super_admin'):
-            return False, "Admin hesapları silinemez."
-        sess.delete(user)
-        sess.commit()
+        if user:
+            k_adi = user.kullanici_adi
+            if user.rol in ('admin', 'super_admin'):
+                return False, "Admin hesapları silinemez."
+            sess.delete(user)
+            sess.commit()
 
     try:
         with db_manager.get_session() as loc_sess:
-            loc_user = loc_sess.scalars(select(User).where(User.kullanici_adi == k_adi)).first()
+            loc_user = loc_sess.get(User, user_id)
+            if not loc_user and k_adi:
+                loc_user = loc_sess.scalars(select(User).where(User.kullanici_adi == k_adi)).first()
             if loc_user and loc_user.rol not in ('admin', 'super_admin'):
                 loc_sess.delete(loc_user)
                 loc_sess.commit()
     except Exception:
         pass
 
-    return True, "Kullanıcı silindi."
+    return True, "Kullanıcı başarıyla silindi."
 
 
 def assign_worker_to_patron(worker_id, patron_id):

@@ -269,7 +269,8 @@ def api_users_update(user_id):
 @auth_bp.route('/api/users/mail_recipients', methods=['GET'])
 @login_required
 def api_users_with_email():
-    with db_manager.get_session() as db_session:
+    from web.services.user_service import _get_user_session
+    with _get_user_session() as db_session:
         stmt = select(User).where(
             User.durum == 'onaylandi',
             User.email != None,
@@ -280,7 +281,7 @@ def api_users_with_email():
             {
                 'id': u.id,
                 'ad_soyad': u.ad_soyad,
-                'email': u.email,
+                'email': u.email.strip(),
                 'rol': u.rol
             }
             for u in users if u.email and u.email.strip()
