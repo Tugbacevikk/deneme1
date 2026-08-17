@@ -72,20 +72,21 @@ def pg_baglan(cfg: dict = None):
         env_db   = os.getenv('POSTGRES_DB')
         env_port = os.getenv('POSTGRES_PORT')
 
-        host = cfg.get('host') or cfg.get('postgres_host')
+        host = cfg.get('host') or cfg.get('postgres_host') or cfg.get('pg_host')
         if not host or host == '127.0.0.1':
             host = env_host or host or '127.0.0.1'
 
-        port = int(cfg.get('port') or cfg.get('postgres_port') or env_port or 5432)
-        dbname = cfg.get('dbname') or cfg.get('postgres_db') or cfg.get('db') or env_db or 'fabrika_takip'
+        port = int(cfg.get('port') or cfg.get('postgres_port') or cfg.get('pg_port') or env_port or 5432)
+        dbname = cfg.get('dbname') or cfg.get('postgres_db') or cfg.get('pg_dbname') or cfg.get('db') or env_db or 'fabrika_takip'
 
-        user = cfg.get('kullanici') or cfg.get('user') or cfg.get('postgres_user')
+        user = cfg.get('kullanici') or cfg.get('user') or cfg.get('postgres_user') or cfg.get('pg_user')
         if not user or user == 'postgres':
             user = env_user or user or 'postgres'
 
-        password = cfg.get('sifre') if cfg.get('sifre') is not None else cfg.get('password')
+        password = cfg.get('sifre') if cfg.get('sifre') is not None else (cfg.get('password') or cfg.get('pg_password') or cfg.get('postgres_password'))
         if password is None or password == '':
-            password = env_pass or cfg.get('postgres_password', '')
+            password = env_pass or ''
+
 
         pg_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
         try:
