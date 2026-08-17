@@ -338,10 +338,13 @@ def _broadcast_status():
 
 
 def _get_current_status() -> dict:
-    if ext.camera_processor is not None and ext.camera_processor.is_running:
+    if ext.camera_processor is not None and (getattr(ext.camera_processor, 'is_running', False) or getattr(ext.camera_processor, 'running', False)):
         st = ext.camera_processor.get_current_status()
-        ext.last_status.update(st)
+        if st:
+            ext.last_status.update(st)
         ext.last_status['running'] = True
+        calc_f = float(getattr(ext.camera_processor, '_fps', 30.0))
+        ext.last_status['fps'] = round(calc_f if calc_f > 0 else 30.0, 1)
     else:
         ext.last_status['running'] = False
         ext.last_status['durum'] = 'Kamera Kapalı'
