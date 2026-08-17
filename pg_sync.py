@@ -201,6 +201,18 @@ def senkronize_et(db_mgr: DatabaseManager, engine, istasyon_adi: str) -> int:
         from core.database.models import GunlukOzet, Alarm, Worker, User
         with db_mgr.get_session() as sqlite_session:
             with Session(engine) as pg_session:
+                # 0. PostgreSQL -> SQLite Worker Senkronizasyonu (Foreign Key Çakışmalarını Önler)
+                try:
+                    pg_workers = pg_session.scalars(select(Worker)).all()
+                    for pw in pg_workers:
+                        local_w = sqlite_session.get(Worker, pw.id)
+                        if not local_w:
+                            w_data = {col.name: getattr(pw, col.name) for col in pw.__table__.columns}
+                            sqlite_session.add(Worker(**w_data))
+                    sqlite_session.commit()
+                except Exception as ex_w:
+                    logger.debug(f"[PG] Worker SQLite çekme uyarısı: {ex_w}")
+
                 # Alarmlar
                 alarmlar = sqlite_session.scalars(select(Alarm)).all()
                 for a in alarmlar:
