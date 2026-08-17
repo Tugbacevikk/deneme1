@@ -475,7 +475,7 @@ function loadPendingNotifications() {
                 const isUnread = n.okundu === 0;
                 const alarmTuru = n.alarm_turu || '';
                 const isReg = alarmTuru === 'Kayıt Başvurusu';
-                const redirectUrl = isReg ? '/settings' : '/alarms';
+                const redirectUrl = isReg ? '/user_management' : '/alarms';
                 const iconClass = isReg
                     ? 'fa-user-plus text-warning'
                     : alarmTuru === 'Şifre Değişikliği'
