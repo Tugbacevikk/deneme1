@@ -233,6 +233,58 @@ def get_user_by_id(user_id):
     return None
 
 
+def update_user_admin(user_id, ad_soyad, rol, istasyonlar=None, email=None, sifre=None):
+    """Admin tarafından kullanıcı yetki ve profili güncellenir (PG + SQLite uyumlu)."""
+    with _get_user_session() as sess:
+        user = sess.get(User, user_id)
+        if not user:
+            try:
+                with db_manager.get_session() as loc_sess:
+                    user_loc = loc_sess.get(User, user_id)
+                    if user_loc:
+                        user_loc.ad_soyad = ad_soyad
+                        user_loc.rol = rol
+                        user_loc.istasyonlar = istasyonlar
+                        if email is not None:
+                            user_loc.email = email.strip() if email else ''
+                        if sifre and sifre.strip():
+                            user_loc.sifre_hash = generate_password_hash(sifre)
+                        loc_sess.commit()
+                        return True, "Kullanıcı bilgileri başarıyla güncellendi."
+            except Exception:
+                pass
+            return False, "Kullanıcı bulunamadı."
+        
+        k_adi = user.kullanici_adi
+        user.ad_soyad = ad_soyad
+        user.rol = rol
+        user.istasyonlar = istasyonlar
+        if email is not None:
+            user.email = email.strip() if email else ''
+        if sifre and sifre.strip():
+            user.sifre_hash = generate_password_hash(sifre)
+
+        try:
+            with db_manager.get_session() as loc_sess:
+                loc_u = loc_sess.scalars(
+                    select(User).where(or_(User.id == user_id, User.kullanici_adi == k_adi))
+                ).first()
+                if loc_u:
+                    loc_u.ad_soyad = ad_soyad
+                    loc_u.rol = rol
+                    loc_u.istasyonlar = istasyonlar
+                    if email is not None:
+                        loc_u.email = email.strip() if email else ''
+                    if sifre and sifre.strip():
+                        loc_u.sifre_hash = user.sifre_hash
+                    loc_sess.commit()
+        except Exception:
+            pass
+
+        sess.commit()
+        return True, "Kullanıcı bilgileri başarıyla güncellendi."
+
+
 def get_pending_count():
     """durum='bekliyor' olan User sayısını döndürür."""
     with _get_user_session() as sess:

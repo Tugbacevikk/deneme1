@@ -248,6 +248,7 @@ def api_users_pending_notifications():
 @auth_bp.route('/api/users/<int:user_id>/update', methods=['POST', 'PUT'])
 @admin_required
 def api_users_update(user_id):
+    from web.services.user_service import update_user_admin
     data = request.get_json() or request.form
     ad_soyad = data.get('ad_soyad') or data.get('fullname')
     rol = data.get('rol') or data.get('role')
@@ -258,27 +259,10 @@ def api_users_update(user_id):
     if not ad_soyad or not rol:
         return jsonify({'success': False, 'message': 'Ad Soyad ve Rol alanları zorunludur.'}), 400
 
-    try:
-        with db_manager.get_session() as db_session:
-            user = db_session.get(User, user_id)
-            if not user:
-                return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı.'}), 404
-            
-            if user.durum != 'onaylandi':
-                return jsonify({'success': False, 'message': 'Yalnızca onaylanmış kullanıcıların bilgileri düzenlenebilir.'}), 400
-            
-            user.ad_soyad = ad_soyad
-            user.rol = rol
-            user.istasyonlar = istasyonlar
-            if email is not None:
-                user.email = email.strip()
-            if sifre and sifre.strip():
-                user.sifre_hash = generate_password_hash(sifre)
-            
-            db_session.commit()
-            return jsonify({'success': True, 'message': 'Kullanıcı bilgileri başarıyla güncellendi.'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+    ok, msg = update_user_admin(user_id, ad_soyad=ad_soyad, rol=rol, istasyonlar=istasyonlar, email=email, sifre=sifre)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 404
 
 
 @auth_bp.route('/api/users/with_email', methods=['GET'])
