@@ -31,9 +31,15 @@
                     <select class="form-select" id="s-station-name" name="station_name">
                         <option value="">— İstasyon Seçin —</option>
                         {% set cur_station = config.get('station_name', '') if config else '' %}
-                        {% for n in range(1, 11) %}
-                        <option value="Istasyon-{{ n }}" {% if cur_station == 'Istasyon-' ~ n %}selected{% endif %}>İstasyon-{{ n }}</option>
-                        {% endfor %}
+                        {% if all_stations %}
+                            {% for st_name in all_stations %}
+                            <option value="{{ st_name }}" {% if cur_station == st_name %}selected{% endif %}>{{ st_name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            {% for n in range(1, 11) %}
+                            <option value="Istasyon-{{ n }}" {% if cur_station == 'Istasyon-' ~ n %}selected{% endif %}>İstasyon-{{ n }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
                     <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">Bu seçim kaydedildikten sonra tüm raporlarda ve kayıtlarda bu bilgisayar seçilen istasyon adıyla görünür.</small>
                 </div>

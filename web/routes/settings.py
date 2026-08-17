@@ -17,6 +17,7 @@ CONFIG_PATH = BASE_DIR / 'config.yaml'
 @login_required
 def settings():
     import psutil, platform
+    from web.services.worker_service import get_all_stations
     db_path = BASE_DIR / 'isci_takip.db'
     db_size_str = '—'
     if db_path.exists():
@@ -29,7 +30,8 @@ def settings():
         'db_size': db_size_str,
         'last_update': 'Aktif (Canlı)'
     }
-    return render_template('settings.html', system_info=sys_info)
+    all_stations = get_all_stations()
+    return render_template('settings.html', system_info=sys_info, all_stations=all_stations)
 
 
 @settings_bp.route('/user_management')
@@ -38,11 +40,13 @@ def settings():
 @login_required
 def user_management():
     from web.services.user_service import get_pending_users, get_all_users
-    from web.services.worker_service import get_all_workers
+    from web.services.worker_service import get_all_workers, get_all_stations
     pending_users = get_pending_users()
     users = get_all_users()
     all_workers = get_all_workers()
-    return render_template('user_management.html', pending_users=pending_users, users=users, all_workers=all_workers)
+    all_stations = get_all_stations()
+    return render_template('user_management.html', pending_users=pending_users, users=users, all_workers=all_workers, all_stations=all_stations)
+
 
 
 

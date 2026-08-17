@@ -21,6 +21,27 @@ def get_all_workers(aktif_only=False):
         return [w.to_dict() for w in workers]
 
 
+def get_all_stations():
+    """Sistemdeki mevcut tüm benzersiz istasyon adlarını dinamik olarak döndürür."""
+    with db_manager.get_session() as session:
+        from core.database.models import Camera
+        stmt_c = select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None))
+        stmt_w = select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None))
+        cam_st = session.scalars(stmt_c).all()
+        w_st = session.scalars(stmt_w).all()
+        all_st = set()
+        for s in list(cam_st) + list(w_st):
+            if s and str(s).strip():
+                all_st.add(str(s).strip())
+        if not all_st:
+            all_st = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}
+        import re
+        def natural_key(text):
+            return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', text)]
+        return sorted(list(all_st), key=natural_key)
+
+
+
 def create_worker(ad, soyad, sicil_no=None, departman=None, istasyon_adi=None, fotograf_yolu=None, patron_id=None):
     """Yeni çalışan kaydeder."""
     with db_manager.get_session() as session:

@@ -270,11 +270,19 @@
             <div class="form-group">
                 <label class="form-label"><i class="fa-solid fa-industry" style="color:var(--accent);"></i> Yetkili Olacağı İstasyonlar</label>
                 <div id="edit-stations-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
-                    {% for n in range(1, 10) %}
-                    <label id="edit-st-lbl-{{ n }}" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; padding:5px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-card); white-space:nowrap;">
-                        <input type="checkbox" name="edit-station-cb" value="Istasyon-{{ n }}" style="accent-color:var(--accent);"> İstasyon-{{ n }}
-                    </label>
-                    {% endfor %}
+                    {% if all_stations %}
+                        {% for st_name in all_stations %}
+                        <label id="edit-st-lbl-{{ loop.index }}" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; padding:5px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-card); white-space:nowrap;">
+                            <input type="checkbox" name="edit-station-cb" value="{{ st_name }}" style="accent-color:var(--accent);"> {{ st_name }}
+                        </label>
+                        {% endfor %}
+                    {% else %}
+                        {% for n in range(1, 11) %}
+                        <label id="edit-st-lbl-{{ n }}" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; padding:5px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-card); white-space:nowrap;">
+                            <input type="checkbox" name="edit-station-cb" value="Istasyon-{{ n }}" style="accent-color:var(--accent);"> İstasyon-{{ n }}
+                        </label>
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
