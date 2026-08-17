@@ -2,33 +2,44 @@
 worker_service.py - Çalışan / İşçi Yönetim Servisi
 """
 import logging
-from sqlalchemy import select, func
-from core.database.models import Worker
+from sqlalchemy import select, func, or_
+from core.database.models import Worker, Camera
 from core.database.connection import db_manager
 
 logger = logging.getLogger(__name__)
 
 
+def _get_worker_session():
+    """Merkezi PostgreSQL var ise PostgreSQL Session, yoksa yerel SQLite Session döndürür."""
+    try:
+        from pg_sync import pg_baglan
+        from sqlalchemy.orm import Session
+        engine = pg_baglan()
+        if engine:
+            return Session(engine)
+    except Exception:
+        pass
+    return db_manager.get_session()
+
+
 def get_all_workers(aktif_only=False):
     """Tüm çalışanları döndürür."""
-    with db_manager.get_session() as session:
+    with _get_worker_session() as sess:
         stmt = select(Worker)
         if aktif_only:
-            from sqlalchemy import or_
             stmt = stmt.where(or_(Worker.aktif == 1, Worker.aktif.is_(None)))
         stmt = stmt.order_by(Worker.ad.asc(), Worker.soyad.asc())
-        workers = session.scalars(stmt).all()
+        workers = sess.scalars(stmt).all()
         return [w.to_dict() for w in workers]
 
 
 def get_all_stations():
     """Sistemdeki mevcut tüm benzersiz istasyon adlarını dinamik olarak döndürür."""
-    with db_manager.get_session() as session:
-        from core.database.models import Camera
+    with _get_worker_session() as sess:
         stmt_c = select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None))
         stmt_w = select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None))
-        cam_st = session.scalars(stmt_c).all()
-        w_st = session.scalars(stmt_w).all()
+        cam_st = sess.scalars(stmt_c).all()
+        w_st = sess.scalars(stmt_w).all()
         all_st = set()
         for s in list(cam_st) + list(w_st):
             if s and str(s).strip():
@@ -41,102 +52,133 @@ def get_all_stations():
         return sorted(list(all_st), key=natural_key)
 
 
+def get_worker_by_id(worker_id):
+    """ID'ye göre çalışan döndürür."""
+    with _get_worker_session() as sess:
+        w = sess.get(Worker, worker_id)
+        return w.to_dict() if w else None
+
 
 def create_worker(ad, soyad, sicil_no=None, departman=None, istasyon_adi=None, fotograf_yolu=None, patron_id=None):
-    """Yeni çalışan kaydeder."""
-    with db_manager.get_session() as session:
+    """Yeni çalışan kaydeder (hem merkezi PG hem yerel SQLite'a ekler)."""
+    with _get_worker_session() as sess:
         if sicil_no:
-            existing = session.scalars(select(Worker).where(Worker.sicil_no == sicil_no)).first()
+            existing = sess.scalars(select(Worker).where(Worker.sicil_no == sicil_no)).first()
             if existing:
                 return False, "Bu sicil numarası zaten kullanımda."
 
         if istasyon_adi:
-            existing_station = session.scalars(
+            existing_station = sess.scalars(
                 select(Worker).where(
                     func.lower(Worker.istasyon_adi) == istasyon_adi.strip().lower(),
                     Worker.aktif == 1
                 )
             ).first()
             if existing_station:
-                ad_soyad = f"{existing_station.ad} {existing_station.soyad}"
-                return False, (
-                    f"Bu istasyonda zaten aktif bir çalışan var: {ad_soyad}. "
-                    "Önce onu pasif yapın veya farklı bir istasyon seçin."
-                )
+                return False, f"'{istasyon_adi.strip()}' istasyonuna zaten '{existing_station.ad} {existing_station.soyad}' atanmış."
 
         new_worker = Worker(
             ad=ad,
             soyad=soyad,
             sicil_no=sicil_no,
             departman=departman,
-            istasyon_adi=istasyon_adi,
+            istasyon_adi=istasyon_adi.strip() if istasyon_adi else None,
             fotograf_yolu=fotograf_yolu,
-            patron_id=patron_id
+            patron_id=patron_id,
+            aktif=1
         )
-        session.add(new_worker)
-        session.commit()
-        session.refresh(new_worker)
-        return True, new_worker.to_dict()
+        sess.add(new_worker)
+        sess.commit()
+        sess.refresh(new_worker)
+        res_dict = new_worker.to_dict()
+
+    try:
+        with db_manager.get_session() as loc_sess:
+            if sicil_no:
+                loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_no)).first()
+                if not loc_w:
+                    w_loc = Worker(
+                        ad=ad, soyad=soyad, sicil_no=sicil_no, departman=departman,
+                        istasyon_adi=istasyon_adi.strip() if istasyon_adi else None,
+                        fotograf_yolu=fotograf_yolu, patron_id=patron_id, aktif=1
+                    )
+                    loc_sess.add(w_loc)
+                    loc_sess.commit()
+    except Exception:
+        pass
+
+    return True, res_dict
 
 
-def delete_worker(worker_id):
-    """Çalışanı siler veya pasife alır."""
-    with db_manager.get_session() as session:
-        worker = session.get(Worker, worker_id)
-        if not worker:
-            return False, "Çalışan bulunamadı."
-        session.delete(worker)
-        session.commit()
-        return True, "Çalışan silindi."
-
-
-def update_worker(worker_id, data):
+def update_worker(worker_id, **kwargs):
     """Çalışan bilgilerini günceller."""
-    with db_manager.get_session() as session:
-        worker = session.get(Worker, worker_id)
+    with _get_worker_session() as sess:
+        worker = sess.get(Worker, worker_id)
         if not worker:
             return False, "Çalışan bulunamadı."
 
-        istasyon_adi = data.get('istasyon_adi')
-        if istasyon_adi:
-            existing_station = session.scalars(
+        sicil_no = kwargs.get('sicil_no')
+        if sicil_no and sicil_no != worker.sicil_no:
+            existing = sess.scalars(
+                select(Worker).where(Worker.sicil_no == sicil_no, Worker.id != worker_id)
+            ).first()
+            if existing:
+                return False, "Bu sicil numarası başka bir çalışana ait."
+
+        istasyon_adi = kwargs.get('istasyon_adi')
+        if istasyon_adi and istasyon_adi.strip().lower() != (worker.istasyon_adi or "").strip().lower():
+            existing_station = sess.scalars(
                 select(Worker).where(
                     func.lower(Worker.istasyon_adi) == istasyon_adi.strip().lower(),
-                    Worker.aktif == 1,
-                    Worker.id != worker_id
+                    Worker.id != worker_id,
+                    Worker.aktif == 1
                 )
             ).first()
             if existing_station:
-                ad_soyad = f"{existing_station.ad} {existing_station.soyad}"
-                return False, (
-                    f"Bu istasyonda zaten aktif bir çalışan var: {ad_soyad}. "
-                    "Önce onu pasif yapın veya farklı bir istasyon seçin."
-                )
+                return False, f"'{istasyon_adi.strip()}' istasyonuna zaten '{existing_station.ad} {existing_station.soyad}' atanmış."
 
-        for key in ['ad', 'soyad', 'sicil_no', 'departman', 'istasyon_adi', 'fotograf_yolu', 'patron_id', 'aktif']:
-            if key in data and data[key] is not None:
-                setattr(worker, key, data[key])
+        for key, value in kwargs.items():
+            if hasattr(worker, key) and value is not None:
+                if key == 'istasyon_adi' and isinstance(value, str):
+                    value = value.strip()
+                setattr(worker, key, value)
 
-        session.commit()
-        return True, worker.to_dict()
+        sess.commit()
+        sicil_check = worker.sicil_no
+
+    try:
+        with db_manager.get_session() as loc_sess:
+            loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_check)).first()
+            if loc_w:
+                for key, value in kwargs.items():
+                    if hasattr(loc_w, key) and value is not None:
+                        if key == 'istasyon_adi' and isinstance(value, str):
+                            value = value.strip()
+                        setattr(loc_w, key, value)
+                loc_sess.commit()
+    except Exception:
+        pass
+
+    return True, "Çalışan güncellendi."
 
 
-def toggle_worker_aktif(worker_id):
-    """Çalışanı aktif ↔ pasif arasında geçiş yapar.
-    Pasife alınırken istasyon ataması da temizlenir."""
-    with db_manager.get_session() as session:
-        worker = session.get(Worker, worker_id)
+def delete_worker(worker_id):
+    """Çalışanı pasife alır (soft-delete)."""
+    with _get_worker_session() as sess:
+        worker = sess.get(Worker, worker_id)
         if not worker:
             return False, "Çalışan bulunamadı."
+        worker.aktif = 0
+        sess.commit()
+        sicil_check = worker.sicil_no
 
-        yeni_durum = 0 if worker.aktif == 1 else 1
+    try:
+        with db_manager.get_session() as loc_sess:
+            loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_check)).first()
+            if loc_w:
+                loc_w.aktif = 0
+                loc_sess.commit()
+    except Exception:
+        pass
 
-        worker.aktif = yeni_durum
-        # Pasife alınırken istasyonu serbest bırak
-        if yeni_durum == 0:
-            worker.istasyon_adi = None
-
-        session.commit()
-        durum_label = "aktif" if yeni_durum == 1 else "pasif"
-        return True, f"{worker.ad} {worker.soyad} artık {durum_label}."
-
+    return True, "Çalışan silindi."
