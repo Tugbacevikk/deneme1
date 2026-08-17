@@ -106,11 +106,7 @@ def pg_baglan(cfg: dict = None):
             engine = create_engine(
                 pg_url,
                 connect_args={"connect_timeout": 5},
-                pool_pre_ping=True,
-                pool_size=20,
-                max_overflow=20,
-                pool_timeout=10,
-                pool_recycle=300,
+                poolclass=NullPool,
                 isolation_level="AUTOCOMMIT",
                 use_native_hstore=False,
                 echo=False
