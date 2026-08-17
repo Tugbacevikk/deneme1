@@ -217,6 +217,22 @@ def reject_user(user_id):
     return True, "Kullanıcı reddedildi."
 
 
+def get_user_by_id(user_id):
+    """Kullanıcıyı ID ile arar (PostgreSQL + yerel SQLite uyumlu)."""
+    with _get_user_session() as sess:
+        u = sess.get(User, user_id)
+        if u:
+            return u.to_dict()
+    try:
+        with db_manager.get_session() as loc_sess:
+            u = loc_sess.get(User, user_id)
+            if u:
+                return u.to_dict()
+    except Exception:
+        pass
+    return None
+
+
 def get_pending_count():
     """durum='bekliyor' olan User sayısını döndürür."""
     with _get_user_session() as sess:
@@ -224,15 +240,35 @@ def get_pending_count():
 
 
 def change_own_password(user_id, current_password, new_password):
-    """Kullanıcının kendi şifresini değiştirir."""
+    """Kullanıcının kendi şifresini değiştirir (PG + SQLite uyumlu)."""
     from werkzeug.security import check_password_hash
     with _get_user_session() as sess:
         user = sess.get(User, user_id)
         if not user:
+            try:
+                with db_manager.get_session() as loc_sess:
+                    user_loc = loc_sess.get(User, user_id)
+                    if user_loc:
+                        if not check_password_hash(user_loc.sifre_hash, current_password):
+                            return False, "Mevcut şifre hatalı."
+                        user_loc.sifre_hash = generate_password_hash(new_password)
+                        loc_sess.commit()
+                        return True, "Şifreniz başarıyla güncellendi."
+            except Exception:
+                pass
             return False, "Kullanıcı bulunamadı."
         if not check_password_hash(user.sifre_hash, current_password):
             return False, "Mevcut şifre hatalı."
         user.sifre_hash = generate_password_hash(new_password)
+        try:
+            with db_manager.get_session() as loc_sess:
+                loc_u = loc_sess.scalars(select(User).where(User.id == user_id)).first()
+                if loc_u:
+                    loc_u.sifre_hash = user.sifre_hash
+                    loc_sess.commit()
+        except Exception:
+            pass
+
         new_alarm = Alarm(
             istasyon_adi="Sistem",
             alarm_turu="Şifre Değişikliği",
@@ -257,7 +293,24 @@ def update_own_email(user_id: int, new_email: str):
             return False, "Bu e-posta adresi başka bir hesap tarafından kullanılıyor."
         user = sess.get(User, user_id)
         if not user:
+            try:
+                with db_manager.get_session() as loc_sess:
+                    loc_u = loc_sess.get(User, user_id)
+                    if loc_u:
+                        loc_u.email = new_email.strip()
+                        loc_sess.commit()
+                        return True, "E-posta adresi güncellendi."
+            except Exception:
+                pass
             return False, "Kullanıcı bulunamadı."
         user.email = new_email.strip()
+        try:
+            with db_manager.get_session() as loc_sess:
+                loc_u = loc_sess.scalars(select(User).where(User.id == user_id)).first()
+                if loc_u:
+                    loc_u.email = new_email.strip()
+                    loc_sess.commit()
+        except Exception:
+            pass
         sess.commit()
     return True, "E-posta adresi güncellendi."

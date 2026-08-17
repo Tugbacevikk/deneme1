@@ -307,13 +307,20 @@ def api_users_with_email():
 @auth_bp.route('/profile', methods=['GET'])
 @login_required
 def profile():
+    from web.services.user_service import get_user_by_id
     user_id = session.get('user_id')
-    with db_manager.get_session() as db_session:
-        user = db_session.get(User, user_id)
-        if not user:
-            flash('Kullanıcı bulunamadı.', 'danger')
-            return redirect(url_for('auth.login'))
-        user_data = user.to_dict()
+    user_data = get_user_by_id(user_id)
+    if not user_data:
+        # Fallback to session data if user lookup is temporarily unavailable
+        user_data = {
+            'id': user_id,
+            'kullanici_adi': session.get('username') or session.get('kullanici_adi') or 'Kullanıcı',
+            'ad_soyad': session.get('full_name') or session.get('ad_soyad') or session.get('username') or 'Kullanıcı',
+            'rol': session.get('role') or session.get('rol') or 'patron',
+            'email': session.get('email', ''),
+            'firma_adi': session.get('firma_adi', 'Fabrika'),
+            'istasyonlar': session.get('istasyonlar', 'Tüm Fabrika')
+        }
     return render_template('profile.html', user=user_data)
 
 
