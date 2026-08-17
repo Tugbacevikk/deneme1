@@ -56,8 +56,17 @@ def get_alarms(limit=50, unread_only=False, stations=None):
         stmt = select(Alarm).where(Alarm.alarm_turu != 'HAREKETSİZLİK')
         if unread_only:
             stmt = stmt.where(Alarm.okundu == 0)
-        if stations is not None:
-            stmt = stmt.where(Alarm.istasyon_adi.in_(stations))
+        if stations:
+            has_all = any(
+                s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar']
+                for s in stations
+            )
+            if not has_all:
+                stmt = stmt.where(or_(
+                    Alarm.istasyon_adi.in_(stations),
+                    Alarm.istasyon_adi.in_(['Sistem', 'Genel', 'System', 'General']),
+                    Alarm.istasyon_adi.is_(None)
+                ))
         stmt = stmt.order_by(Alarm.id.desc()).limit(limit)
         alarms = session.scalars(stmt).all()
         return [a.to_dict() for a in alarms]
@@ -70,8 +79,17 @@ def get_unread_count(stations=None):
             Alarm.okundu == 0,
             Alarm.alarm_turu != 'HAREKETSİZLİK'
         )
-        if stations is not None:
-            stmt = stmt.where(Alarm.istasyon_adi.in_(stations))
+        if stations:
+            has_all = any(
+                s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar']
+                for s in stations
+            )
+            if not has_all:
+                stmt = stmt.where(or_(
+                    Alarm.istasyon_adi.in_(stations),
+                    Alarm.istasyon_adi.in_(['Sistem', 'Genel', 'System', 'General']),
+                    Alarm.istasyon_adi.is_(None)
+                ))
         count = session.scalar(stmt) or 0
         return count
 

@@ -25,11 +25,11 @@ def workers_page():
         if not has_all_access:
             workers = [
                 w for w in workers
-                if w.get('patron_id') == patron_id
-                or (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+                if (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+                or (w.get('patron_id') == patron_id and w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
             ]
         
-    all_stations = get_all_system_stations()
+    all_stations = patron_stations if (not is_super and patron_stations) else get_all_system_stations()
     return render_template('workers.html', workers=workers, stations=all_stations)
 
 
@@ -48,8 +48,8 @@ def api_workers_list():
         if not has_all_access:
             workers = [
                 w for w in workers
-                if w.get('patron_id') == patron_id
-                or (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+                if (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+                or (w.get('patron_id') == patron_id and w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
             ]
         
     return jsonify({'success': True, 'workers': workers})

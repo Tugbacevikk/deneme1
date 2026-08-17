@@ -32,7 +32,12 @@ from web.helpers import login_required, get_all_system_stations
 @reports_bp.route('/reports')
 @login_required
 def reports():
-    stations = get_all_system_stations()
+    patron_id, is_super, patron_stations = get_current_patron_access()
+    has_all_access = is_super or not patron_stations or any(
+        s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar', 'tüm fabrika / hepsi', 'atanmadı']
+        for s in patron_stations
+    )
+    stations = get_all_system_stations() if has_all_access else patron_stations
     return render_template('reports.html', stations=stations)
 
 
