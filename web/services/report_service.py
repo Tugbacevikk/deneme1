@@ -286,8 +286,8 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
                 func.count(model_cls.id).label('toplam_kayit'),
                 func.sum(case((model_cls.durum.like('AKT%'), 1), else_=0)).label('aktif_kayit'),
                 func.sum(case((model_cls.durum.like('%KAYNAK%'), 1), else_=0)).label('kaynak_kayit'),
-                func.sum(case((model_cls.durum.like('%NAKT%'), 1), else_=0)).label('inaktif_kayit'),
                 func.sum(case((model_cls.durum.like('%TELEFON%'), 1), else_=0)).label('telefon_kayit'),
+                func.sum(case((and_(model_cls.durum.like('%NAKT%'), ~model_cls.durum.like('%TELEFON%')), 1), else_=0)).label('inaktif_kayit'),
                 func.min(model_cls.zaman).label('ilk_gorulme'),
                 func.max(model_cls.zaman).label('son_gorulme')
             )
@@ -310,11 +310,12 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
                             func.count(DurumKaydi.id).label('toplam_kayit'),
                             func.sum(case((DurumKaydi.durum.like('AKT%'), 1), else_=0)).label('aktif_kayit'),
                             func.sum(case((DurumKaydi.durum.like('%KAYNAK%'), 1), else_=0)).label('kaynak_kayit'),
-                            func.sum(case((DurumKaydi.durum.like('%NAKT%'), 1), else_=0)).label('inaktif_kayit'),
                             func.sum(case((DurumKaydi.durum.like('%TELEFON%'), 1), else_=0)).label('telefon_kayit'),
+                            func.sum(case((and_(DurumKaydi.durum.like('%NAKT%'), ~DurumKaydi.durum.like('%TELEFON%')), 1), else_=0)).label('inaktif_kayit'),
                             func.min(DurumKaydi.zaman).label('ilk_gorulme'),
                             func.max(DurumKaydi.zaman).label('son_gorulme')
                         )
+
                         if filters_l:
                             stmt_l = stmt_l.where(and_(*filters_l))
                         stmt_l = stmt_l.group_by(tarih_col_l, ist_col_l).order_by(desc('tarih'), desc('toplam_kayit'))

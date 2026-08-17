@@ -304,6 +304,14 @@ def generate_frames():
 def _broadcast_status():
     """Her saniye durum güncellemesi ve yeni okunmamış alarmları canlı yayınlar."""
     last_alarm_id = 0
+    try:
+        from web.services.alarm_service import get_alarms
+        init_a = get_alarms(limit=1)
+        if init_a and isinstance(init_a, list) and len(init_a) > 0:
+            last_alarm_id = init_a[0].get('id', 0)
+    except Exception:
+        last_alarm_id = 0
+
     while True:
         try:
             st = _get_current_status()
@@ -316,9 +324,7 @@ def _broadcast_status():
                 if latest and isinstance(latest, list) and len(latest) > 0:
                     top_a = latest[0]
                     curr_id = top_a.get('id', 0)
-                    if last_alarm_id == 0:
-                        last_alarm_id = curr_id
-                    elif curr_id > last_alarm_id:
+                    if curr_id > last_alarm_id:
                         last_alarm_id = curr_id
                         socketio.emit('new_alarm', top_a)
                         socketio.emit('alarm_update', {'unread_count': get_unread_count()})
@@ -327,6 +333,7 @@ def _broadcast_status():
         except Exception:
             pass
         time.sleep(1.0)
+
 
 
 
