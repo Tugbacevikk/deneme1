@@ -221,14 +221,12 @@ def _get_reports_db_context(config=None):
                 except Exception as query_exc:
                     logger.warning(f"PostgreSQL sorgu hatası ({query_exc}), yerel SQLite veritabanına geçiliyor.")
                     session.close()
-                    pg_baglantiyi_kapat(engine)
                     with db_manager.get_session() as fallback_session:
                         yield fallback_session, DurumKaydi
                     return
                 finally:
                     try:
                         session.close()
-                        pg_baglantiyi_kapat(engine)
                     except Exception:
                         pass
                 return
