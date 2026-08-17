@@ -266,7 +266,7 @@ function openWorkerDetailModal(workerId, workerName, rowDate, stationName) {
     let start = document.getElementById('filter-start').value;
     let end   = document.getElementById('filter-end').value;
 
-    if (rowDate) {
+    if (!start && !end && rowDate) {
         start = rowDate;
         end   = rowDate;
     }
