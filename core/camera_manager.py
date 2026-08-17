@@ -525,21 +525,7 @@ class CameraProcessor:
         self.running = False
         self.is_running = False
 
-        t_main = getattr(self, '_thread', None)
-        t_ai   = getattr(self, '_ai_thread', None)
-
-        if t_main is not None and t_main.is_alive() and threading.current_thread() != t_main:
-            try:
-                t_main.join(timeout=1.0)
-            except Exception:
-                pass
-
-        if t_ai is not None and t_ai.is_alive() and threading.current_thread() != t_ai:
-            try:
-                t_ai.join(timeout=1.0)
-            except Exception:
-                pass
-
+        # Öncesinde cap'i kapat ki cap.read() bloku anında çözülsün
         if self.cap is not None:
             try:
                 self.cap.release()
@@ -547,13 +533,29 @@ class CameraProcessor:
                 pass
             self.cap = None
 
+        t_main = getattr(self, '_thread', None)
+        t_ai   = getattr(self, '_ai_thread', None)
+
+        if t_main is not None and t_main.is_alive() and threading.current_thread() != t_main:
+            try:
+                t_main.join(timeout=2.0)
+            except Exception:
+                pass
+
+        if t_ai is not None and t_ai.is_alive() and threading.current_thread() != t_ai:
+            try:
+                t_ai.join(timeout=2.0)
+            except Exception:
+                pass
+
         self._thread = None
         self._ai_thread = None
         with self._frame_lock:
             self._latest_raw_frame = None
             self._current_frame = None
+            self._current_jpeg = None
 
-        time.sleep(0.2)
+        time.sleep(0.1)
         self._update_status({'running': False, 'durum': 'Kamera Kapalı', 'fps': 0.0})
 
 
