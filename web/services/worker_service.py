@@ -182,3 +182,28 @@ def delete_worker(worker_id):
         pass
 
     return True, "Çalışan silindi."
+
+
+def toggle_worker_aktif(worker_id):
+    """Çalışanın aktiflik durumunu (1/0) değiştirir."""
+    with _get_worker_session() as sess:
+        worker = sess.get(Worker, worker_id)
+        if not worker:
+            return False, "Çalışan bulunamadı."
+        worker.aktif = 0 if worker.aktif == 1 else 1
+        new_status = worker.aktif
+        sess.commit()
+        sicil_check = worker.sicil_no
+
+    try:
+        with db_manager.get_session() as loc_sess:
+            loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_check)).first()
+            if loc_w:
+                loc_w.aktif = new_status
+                loc_sess.commit()
+    except Exception:
+        pass
+
+    msg = "Çalışan aktif yapıldı." if new_status == 1 else "Çalışan pasif yapıldı."
+    return True, msg
+
