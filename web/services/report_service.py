@@ -270,7 +270,8 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
 
             station_worker_map = {}
             try:
-                with db_manager.get_session() as local_sess:
+                from web.services.worker_service import _get_worker_session
+                with _get_worker_session() as local_sess:
                     # Aktif ve pasif TÜM çalışanları istasyona göre haritala (Aktifler öncelikli)
                     w_all = local_sess.scalars(select(Worker).order_by(Worker.aktif.desc(), Worker.id.desc())).all()
                     for w in w_all:
@@ -430,6 +431,46 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
                     'ilk_gorulme': ilk_str,
                     'son_gorulme': son_str
                 })
+
+            seen_stations = {r.get('istasyon_adi') for r in workers_data if r.get('istasyon_adi')}
+            curr_date = start or datetime.date.today().isoformat()
+            for st_key, w_tuple in station_worker_map.items():
+                if istasyon and istasyon.lower() != st_key.lower():
+                    continue
+                if worker and worker.lower() not in w_tuple[1].lower():
+                    continue
+                if st_key not in seen_stations:
+                    workers_data.append({
+                        'tarih': curr_date,
+                        'tarih_fmt': _format_date_tr(curr_date),
+                        'istasyon_adi': st_key,
+                        'worker_id': w_tuple[0],
+                        'worker_adi': w_tuple[1],
+                        'toplam_kayit': 0,
+                        'toplam_sure_sec': 0,
+                        'toplam_sure_min': 0.0,
+                        'aktif_kayit': 0,
+                        'aktif_sure_sec': 0,
+                        'aktif_sure_min': 0.0,
+                        'aktif_sure_fmt': '0 dk',
+                        'aktif_saat': 0.0,
+                        'kaynak_kayit': 0,
+                        'kaynak_sure_sec': 0,
+                        'kaynak_sure_min': 0.0,
+                        'kaynak_sure_fmt': '0 dk',
+                        'kaynak_saat': 0.0,
+                        'inaktif_kayit': 0,
+                        'inaktif_sure_sec': 0,
+                        'inaktif_sure_min': 0.0,
+                        'inaktif_sure_fmt': '0 dk',
+                        'inaktif_saat': 0.0,
+                        'telefon_sure_sec': 0,
+                        'telefon_sure_fmt': '0 dk',
+                        'aktif_oran': 0.0,
+                        'verimlilik_orani': 0.0,
+                        'ilk_gorulme': '—',
+                        'son_gorulme': '—'
+                    })
     except Exception as e:
         logger.error(f"get_worker_stats_rows hatası: {e}")
     return workers_data
