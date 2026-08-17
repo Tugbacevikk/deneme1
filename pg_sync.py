@@ -6,6 +6,7 @@ import threading
 from typing import Optional
 
 from sqlalchemy import create_engine, select, update, delete, UniqueConstraint, String, Integer
+from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
