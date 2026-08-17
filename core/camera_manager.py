@@ -207,6 +207,8 @@ class CameraProcessor:
         self.cfg.update(new_config)
         self.config.update(new_config)
         self._update_hostname()
+        self._last_worker_check_time = 0.0
+        self._cached_assigned_worker = (None, None)
         self._update_status({'istasyon': self._hostname, 'station': self._hostname})
         logger.info(f"Kamera {self.camera_id} konfigürasyonu canlı güncellendi. İstasyon: {self._hostname}")
 
@@ -344,6 +346,10 @@ class CameraProcessor:
                                 cap = cv2.VideoCapture(str(target))
 
                     if cap and cap.isOpened():
+                        try:
+                            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                        except Exception:
+                            pass
                         # Kare okuma doğrulaması yap (Linux V4L2 metadata cihaz çakışmalarını önler)
                         ret_test, frame_test = cap.read()
                         if ret_test and frame_test is not None and frame_test.size > 0:
