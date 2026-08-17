@@ -1158,19 +1158,20 @@ class CameraProcessor:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.60, t_color, 2, cv2.LINE_AA)
                     panel_y += 42
 
-            if annotated_frame.shape[1] > 640:
-                target_w = 640
-                target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
-                encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-            else:
-                encode_frame = annotated_frame
+            if frame_count % 2 == 0 or getattr(self, '_current_jpeg', None) is None:
+                if annotated_frame.shape[1] > 640:
+                    target_w = 640
+                    target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
+                    encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+                else:
+                    encode_frame = annotated_frame
 
-            _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
-            jpeg_bytes = jpeg_buf.tobytes()
+                _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+                jpeg_bytes = jpeg_buf.tobytes()
 
-            with self._frame_lock:
-                self._current_frame = annotated_frame
-                self._current_jpeg = jpeg_bytes
+                with self._frame_lock:
+                    self._current_frame = annotated_frame
+                    self._current_jpeg = jpeg_bytes
 
             status_payload = self._build_status(
                 genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
