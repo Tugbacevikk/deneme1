@@ -19,4 +19,11 @@ station_name: Istasyon-1
 welding_conf: 0.25
 welding_imgsz: 320
 camera_fps: 60
+merkezi_db:
+  host: 192.168.30.168
+  port: 5432
+  dbname: fabrika_takip
+  kullanici: takip_user
+  sifre: admin123
+
 

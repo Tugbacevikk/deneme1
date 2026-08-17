@@ -233,7 +233,7 @@ _DEFAULT_CONFIG = {
     'save_interval': 1,
     'merkezi_db': {
         'aktif': os.getenv('POSTGRES_ENABLED', 'true').lower() in ('true', '1'),
-        'host': os.getenv('POSTGRES_HOST', '192.168.30.222'),
+        'host': os.getenv('POSTGRES_HOST', '192.168.30.168'),
         'port': int(os.getenv('POSTGRES_PORT', 5432)),
         'dbname': os.getenv('POSTGRES_DB', 'fabrika_takip'),
         'kullanici': os.getenv('POSTGRES_USER', 'takip_user'),
