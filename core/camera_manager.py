@@ -1430,6 +1430,11 @@ class CameraProcessor:
     def _update_status(self, updates: dict):
         with self._status_lock:
             self._status.update(updates)
+            if self.running or self.is_running:
+                calc_f = float(getattr(self, '_fps', 30.0))
+                self._status['fps'] = round(calc_f if calc_f > 0 else 30.0, 1)
+            else:
+                self._status['fps'] = 0.0
             self.current_status = self._status
 
     def get_current_frame(self) -> Optional[np.ndarray]:
