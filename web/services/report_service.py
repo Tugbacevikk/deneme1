@@ -179,30 +179,43 @@ def _build_orm_filters(start: str, end: str, istasyon: str, worker: str = '', on
     if patron_id is not None:
         stations = []
         patron_worker_ids = []
+        patron_worker_names = []
         try:
-            with db_manager.get_session() as local_session:
-                u = local_session.get(User, patron_id)
+            from web.services.user_service import _get_user_session
+            from web.services.worker_service import _get_worker_session
+            with _get_user_session() as user_session:
+                u = user_session.get(User, patron_id)
                 if u and u.istasyonlar:
                     stations = [s.strip() for s in u.istasyonlar.split(',') if s.strip()]
 
-                cond_w = []
+            with _get_worker_session() as w_session:
+                cond_w = [Worker.patron_id == patron_id]
                 if stations:
                     cond_w.append(Worker.istasyon_adi.in_(stations))
-
-                patron_worker_ids = local_session.scalars(select(Worker.id).where(or_(*cond_w))).all() if cond_w else []
+                workers_found = w_session.scalars(select(Worker).where(or_(*cond_w))).all()
+                for w in workers_found:
+                    patron_worker_ids.append(w.id)
+                    patron_worker_names.append(f"{w.ad} {w.soyad}".strip())
         except Exception:
             pass
 
-        patron_conds = []
-        if stations:
-            patron_conds.append(model_cls.istasyon_adi.in_(stations))
-        if patron_worker_ids:
-            patron_conds.append(model_cls.worker_id.in_(patron_worker_ids))
+        has_all_access = not stations or any(
+            s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar', 'tüm fabrika / hepsi', 'atanmadı']
+            for s in stations
+        )
 
-        if patron_conds:
-            filters.append(or_(*patron_conds))
-        else:
-            filters.append(model_cls.worker_id == -1)
+        if not has_all_access:
+            patron_conds = []
+            if stations:
+                patron_conds.append(model_cls.istasyon_adi.in_(stations))
+            if patron_worker_ids:
+                patron_conds.append(model_cls.worker_id.in_(patron_worker_ids))
+            if patron_worker_names:
+                for wn in patron_worker_names:
+                    patron_conds.append(model_cls.worker_adi.ilike(f"%{wn}%"))
+
+            if patron_conds:
+                filters.append(or_(*patron_conds))
 
     return filters
 

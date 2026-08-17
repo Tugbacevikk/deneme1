@@ -90,12 +90,20 @@ def api_reports_summary():
                     stmt_alarm = stmt_alarm.where(and_(*alarm_filters))
                 toplam_alarm = local_session.scalar(stmt_alarm) or 0
                 
-                stmt_workers = select(func.count(Worker.id)).where(Worker.aktif == 1)
-                if not is_super and patron_stations:
-                    stmt_workers = stmt_workers.where(Worker.istasyon_adi.in_(patron_stations))
-                elif not is_super:
-                    stmt_workers = stmt_workers.where(Worker.id == -1)
-                toplam_calisan = local_session.scalar(stmt_workers) or 0
+                from web.services.worker_service import _get_worker_session
+                with _get_worker_session() as w_session:
+                    stmt_workers = select(func.count(Worker.id)).where(or_(Worker.aktif == 1, Worker.aktif.is_(None)))
+                    if not is_super:
+                        has_all = not patron_stations or any(
+                            s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar', 'tüm fabrika / hepsi', 'atanmadı']
+                            for s in patron_stations
+                        )
+                        if not has_all:
+                            stmt_workers = stmt_workers.where(or_(
+                                Worker.patron_id == patron_id,
+                                Worker.istasyon_adi.in_(patron_stations)
+                            ))
+                    toplam_calisan = w_session.scalar(stmt_workers) or 0
 
         aktif_sure_dk = round((aktif_cnt * save_interval) / 60.0, 1)
         kaynak_sure_dk = round((kaynak_cnt * save_interval) / 60.0, 1)
