@@ -1039,10 +1039,10 @@ class CameraProcessor:
             now = time.time()
             elapsed = now - fps_timer
             if elapsed >= 1.0:
-                fps = frame_count / elapsed
+                self._fps = round(frame_count / elapsed, 1)
                 frame_count = 0
                 fps_timer = now
-                self._update_status({'fps': round(fps, 1)})
+                self._update_status({'fps': self._fps})
 
             annotated_frame = frame.copy()
 
@@ -1348,7 +1348,7 @@ class CameraProcessor:
                             logger.warning(f"Alarm kayıt ORM hatası: {e}")
 
                 status_payload = self._build_status(
-                    genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
+                    genel_durum, genel_renk, getattr(self, '_fps', 0.0), ai_data.get('kisi_cnt', 0),
                     worker_name, ai_data.get('worker_confidence', 0.0), phone_detected_in_roi
                 )
                 self._update_status(status_payload)
