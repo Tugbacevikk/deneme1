@@ -951,7 +951,7 @@ class CameraProcessor:
             return
 
         frame_count = 0
-        fps = 0.0
+        self._fps = 30.0
         fps_timer = time.time()
         last_save_time = time.time()
         save_interval = int(self.cfg.get('save_interval', 5))
@@ -1042,7 +1042,7 @@ class CameraProcessor:
             # Tam Donanım FPS Hesabı
             now = time.time()
             elapsed = now - fps_timer
-            if elapsed >= 1.0:
+            if elapsed >= 0.3:
                 self._fps = round(frame_count / elapsed, 1)
                 frame_count = 0
                 fps_timer = now
