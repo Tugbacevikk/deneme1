@@ -18,16 +18,19 @@ def workers_page():
     
     workers = get_all_workers()
     if not is_super:
-        # patron_id ile atanmış VEYA patron'un yetkili istasyonlarında çalışan herkesi göster
-        workers = [
-            w for w in workers
-            if w.get('patron_id') == patron_id
-            or (patron_stations and w.get('istasyon_adi') in patron_stations)
-        ]
+        has_all_access = not patron_stations or any(
+            s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar', 'tüm fabrika / hepsi', 'atanmadı']
+            for s in patron_stations
+        )
+        if not has_all_access:
+            workers = [
+                w for w in workers
+                if w.get('patron_id') == patron_id
+                or (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+            ]
         
     all_stations = get_all_system_stations()
     return render_template('workers.html', workers=workers, stations=all_stations)
-
 
 
 @workers_bp.route('/api/workers', methods=['GET'])
@@ -38,11 +41,16 @@ def api_workers_list():
     
     workers = get_all_workers()
     if not is_super:
-        workers = [
-            w for w in workers
-            if w.get('patron_id') == patron_id
-            or (patron_stations and w.get('istasyon_adi') in patron_stations)
-        ]
+        has_all_access = not patron_stations or any(
+            s.strip().lower() in ['tüm fabrika', 'tum fabrika', 'hepsi', 'tüm istasyonlar', 'tum istasyonlar', 'tüm fabrika / hepsi', 'atanmadı']
+            for s in patron_stations
+        )
+        if not has_all_access:
+            workers = [
+                w for w in workers
+                if w.get('patron_id') == patron_id
+                or (w.get('istasyon_adi') and w.get('istasyon_adi').strip() in patron_stations)
+            ]
         
     return jsonify({'success': True, 'workers': workers})
 
@@ -58,6 +66,12 @@ def api_workers_add():
     departman = data.get('departman')
     istasyon_adi = data.get('istasyon_adi')
     patron_id = data.get('patron_id')
+
+    if not patron_id:
+        user_id = session.get('user_id')
+        role = session.get('role') or session.get('rol')
+        if role not in ('admin', 'super_admin'):
+            patron_id = user_id
 
     if not ad or not soyad:
         return jsonify({'success': False, 'message': 'Ad ve soyad zorunludur.'}), 400

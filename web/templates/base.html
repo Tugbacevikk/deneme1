@@ -93,6 +93,14 @@
             </a>
             {% endif %}
 
+            <a href="/profile" class="nav-item {% if request.path == '/profile' %}active{% endif %}">
+                <span class="nav-icon" style="position:relative;">
+                    <i class="fa-solid fa-key" style="color:var(--accent);"></i>
+                </span>
+                <span class="nav-label">Profil & Şifre Değiştir</span>
+                <span class="nav-indicator"></span>
+            </a>
+
             <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
                 <span class="nav-icon" style="position:relative;">
                     <i class="fa-solid fa-gear"></i>
