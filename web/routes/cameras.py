@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, jsonify, session, Respons
 from sqlalchemy import select
 from core.database.models import Camera
 from core.database.connection import db_manager
+from web.services.camera_service import _get_camera_session
 from web.helpers import (
     get_current_patron_access, is_camera_authorized,
     _get_dark_frame, _get_unauthorized_frame,
@@ -15,7 +16,6 @@ from web.helpers import (
 
 cameras_bp = Blueprint('cameras', __name__)
 logger = logging.getLogger(__name__)
-
 
 import web.extensions as ext
 
@@ -35,7 +35,7 @@ def live_cameras():
     patron_id, is_super, patron_stations = get_current_patron_access()
     try:
         from core.database.models import User
-        with db_manager.get_session() as session_orm:
+        with _get_camera_session() as session_orm:
             users = session_orm.scalars(select(User).where(User.rol == 'patron')).all()
             patrons = [u.to_dict() for u in users]
     except Exception:
@@ -50,7 +50,7 @@ def api_cameras_list():
     patron_id, is_super, stations = get_current_patron_access()
     user_id = session.get('user_id')
     try:
-        with db_manager.get_session() as session_orm:
+        with _get_camera_session() as session_orm:
             all_cams = session_orm.scalars(select(Camera).where(Camera.aktif == 1).order_by(Camera.id.asc())).all()
             allowed_cams = [c for c in all_cams if is_camera_authorized(c, user_id, is_super, stations)]
             return jsonify({'success': True, 'cameras': [c.to_dict() for c in allowed_cams]})
@@ -66,7 +66,7 @@ def api_proxy_feed(cam_id):
     patron_id, is_super, stations = get_current_patron_access()
     user_id = session.get('user_id')
     try:
-        with db_manager.get_session() as session_orm:
+        with _get_camera_session() as session_orm:
             cam = session_orm.get(Camera, cam_id)
             if not cam or not cam.aktif:
                 return Response(_get_dark_frame(), mimetype='image/jpeg')
@@ -132,7 +132,7 @@ def api_cameras_add():
         return jsonify({'success': False, 'message': 'İstasyon adı ve IP adresi gereklidir.'}), 400
 
     try:
-        with db_manager.get_session() as session_orm:
+        with _get_camera_session() as session_orm:
             new_cam = Camera(
                 istasyon_adi=istasyon_adi,
                 ip_adresi=ip_adresi,
@@ -142,7 +142,23 @@ def api_cameras_add():
             )
             session_orm.add(new_cam)
             session_orm.commit()
-            return jsonify({'success': True, 'message': f'"{istasyon_adi}" kamerasını/istasyonunu başarıyla eklendi.', 'camera': new_cam.to_dict()})
+            res_dict = new_cam.to_dict()
+
+        try:
+            with db_manager.get_session() as loc_sess:
+                loc_cam = Camera(
+                    istasyon_adi=istasyon_adi,
+                    ip_adresi=ip_adresi,
+                    patron_id=None,
+                    patron_adi=None,
+                    aktif=1
+                )
+                loc_sess.add(loc_cam)
+                loc_sess.commit()
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'message': f'"{istasyon_adi}" kamerasını/istasyonunu başarıyla eklendi.', 'camera': res_dict})
     except Exception as e:
         logger.error(f"Kamera ekleme hatası: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -152,13 +168,25 @@ def api_cameras_add():
 @admin_required
 def api_cameras_delete(cam_id):
     try:
-        with db_manager.get_session() as session_orm:
+        st_name = None
+        with _get_camera_session() as session_orm:
             cam = session_orm.get(Camera, cam_id)
             if not cam:
                 return jsonify({'success': False, 'message': 'Kamera bulunamadı.'}), 404
+            st_name = cam.istasyon_adi
             session_orm.delete(cam)
             session_orm.commit()
-            return jsonify({'success': True, 'message': 'Kamera başarıyla silindi.'})
+
+        try:
+            with db_manager.get_session() as loc_sess:
+                loc_c = loc_sess.scalars(select(Camera).where(Camera.istasyon_adi == st_name)).first()
+                if loc_c:
+                    loc_sess.delete(loc_c)
+                    loc_sess.commit()
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'message': 'Kamera başarıyla silindi.'})
     except Exception as e:
         logger.error(f"Kamera silme hatası: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
