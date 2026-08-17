@@ -22,8 +22,8 @@ def _get_worker_session():
     return db_manager.get_session()
 
 
-def get_all_workers(aktif_only=False):
-    """Tüm çalışanları döndürür."""
+def get_all_workers(aktif_only=True):
+    """Tüm aktif çalışanları döndürür."""
     with _get_worker_session() as sess:
         stmt = select(Worker)
         if aktif_only:
@@ -163,25 +163,45 @@ def update_worker(worker_id, **kwargs):
 
 
 def delete_worker(worker_id):
-    """Çalışanı pasife alır (soft-delete)."""
+    """Çalışanı veritabanından tamamen siler (PG ve SQLite senkronize)."""
+    sicil_check = None
+    ad_check = None
+    soyad_check = None
     with _get_worker_session() as sess:
         worker = sess.get(Worker, worker_id)
-        if not worker:
+        if worker:
+            sicil_check = worker.sicil_no
+            ad_check = worker.ad
+            soyad_check = worker.soyad
+            try:
+                sess.delete(worker)
+                sess.commit()
+            except Exception:
+                sess.rollback()
+                worker.aktif = 0
+                sess.commit()
+        else:
             return False, "Çalışan bulunamadı."
-        worker.aktif = 0
-        sess.commit()
-        sicil_check = worker.sicil_no
 
     try:
         with db_manager.get_session() as loc_sess:
-            loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_check)).first()
+            loc_w = loc_sess.get(Worker, worker_id)
+            if not loc_w and sicil_check:
+                loc_w = loc_sess.scalars(select(Worker).where(Worker.sicil_no == sicil_check)).first()
+            if not loc_w and ad_check:
+                loc_w = loc_sess.scalars(select(Worker).where(Worker.ad == ad_check, Worker.soyad == soyad_check)).first()
             if loc_w:
-                loc_w.aktif = 0
-                loc_sess.commit()
+                try:
+                    loc_sess.delete(loc_w)
+                    loc_sess.commit()
+                except Exception:
+                    loc_sess.rollback()
+                    loc_w.aktif = 0
+                    loc_sess.commit()
     except Exception:
         pass
 
-    return True, "Çalışan silindi."
+    return True, "Çalışan başarıyla silindi."
 
 
 def toggle_worker_aktif(worker_id):
