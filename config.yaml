@@ -3,7 +3,7 @@ camera_id: 0
 contrast: 1.2
 flip_h: false
 flip_v: false
-istasyon_adi: Istasyon-1
+istasyon_adi: Istasyon-4
 local_retention_days: 14
 pg_retention_days: 60
 roi_x1: 0.08
@@ -15,7 +15,7 @@ smtp_host: smtp.gmail.com
 smtp_password: admin123
 smtp_port: 587
 smtp_user: tcevik2824@gmail.com
-station_name: Istasyon-1
+station_name: Istasyon-4
 welding_conf: 0.25
 welding_imgsz: 320
 camera_fps: 60
