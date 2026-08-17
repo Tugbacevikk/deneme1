@@ -353,11 +353,13 @@ class CameraProcessor:
                                 cap = cv2.VideoCapture(str(target))
 
                     if cap and cap.isOpened():
-                        if system != 'Windows':
-                            try:
-                                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                            except Exception:
-                                pass
+                        try:
+                            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                            cap.set(cv2.CAP_PROP_FPS, 30)
+                        except Exception:
+                            pass
                         ret_test, frame_test = cap.read()
                         if not (ret_test and frame_test is not None and frame_test.size > 0):
                             try:
