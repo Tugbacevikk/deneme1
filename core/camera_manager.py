@@ -101,11 +101,11 @@ class CameraProcessor:
 
         self._update_hostname()
 
-        self._fps = 0.0
+        self._fps = 30.0
         self._status: Dict[str, Any] = {
             'durum': DURUM_TESPIT_YOK,
             'renk': '#888888',
-            'fps': 0.0,
+            'fps': 30.0,
             'kisi_sayisi': 0,
             'istasyon': self._hostname,
             'zaman': datetime.datetime.now().isoformat(),
@@ -357,9 +357,6 @@ class CameraProcessor:
                         if system != 'Windows':
                             try:
                                 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-                                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                                cap.set(cv2.CAP_PROP_FPS, 30)
                             except Exception:
                                 pass
                         ret_test, frame_test = cap.read()
@@ -951,7 +948,7 @@ class CameraProcessor:
             return
 
         frame_count = 0
-        self._fps = 30.0
+        fps = 0.0
         fps_timer = time.time()
         last_save_time = time.time()
         save_interval = int(self.cfg.get('save_interval', 5))
@@ -1039,11 +1036,13 @@ class CameraProcessor:
             frame_count += 1
             h, w = frame.shape[:2]
 
-            # Tam Donanım FPS Hesabı
+            # Tam Donanım FPS Hesabı (Anlık 0.5s Güncelleme)
             now = time.time()
             elapsed = now - fps_timer
-            if elapsed >= 0.3:
-                self._fps = round(frame_count / elapsed, 1)
+            if elapsed >= 0.5:
+                calc_fps = round(frame_count / elapsed, 1)
+                if calc_fps > 0:
+                    self._fps = calc_fps
                 frame_count = 0
                 fps_timer = now
                 self._update_status({'fps': self._fps})
@@ -1196,7 +1195,7 @@ class CameraProcessor:
                     self._current_jpeg = jpeg_bytes
 
             status_payload = self._build_status(
-                genel_durum, genel_renk, getattr(self, '_fps', 30.0), ai_data.get('kisi_cnt', 0),
+                genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
                 ai_data.get('worker_name', ''), ai_data.get('worker_confidence', 0.0),
                 ai_data.get('phone_detected', False)
             )
@@ -1402,8 +1401,8 @@ class CameraProcessor:
             conf_val *= 100.0
         conf_fixed = round(conf_val, 1)
 
-        raw_fps = fps if (fps and float(fps) > 0) else getattr(self, '_fps', 0.0)
-        fps_val = round(float(raw_fps or 0.0), 1) if (self.running or getattr(self, 'is_running', False)) else 0.0
+        curr_fps = float(fps) if (fps is not None and float(fps) > 0) else float(getattr(self, '_fps', 30.0))
+        fps_val = round(curr_fps, 1) if self.running else 0.0
 
         return {
             'durum': durum,
@@ -1437,9 +1436,7 @@ class CameraProcessor:
 
     def get_status(self) -> dict:
         with self._status_lock:
-            st = dict(self._status)
-            st['fps'] = getattr(self, '_fps', 0.0) if (self.running or getattr(self, 'is_running', False)) else 0.0
-            return st
+            return dict(self._status)
 
     def get_current_status(self) -> dict:
         return self.get_status()
