@@ -46,12 +46,24 @@ def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str
     msg.attach(part)
 
     try:
-        with smtplib.SMTP(host, port) as server:
-            server.starttls()
-            server.login(user, password)
-            server.send_message(msg)
-        return True, "Rapor e-posta ile gönderildi."
+        if int(port) == 465:
+            with smtplib.SMTP_SSL(host, int(port), timeout=12) as server:
+                if user and password:
+                    server.login(user, password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(host, int(port), timeout=12) as server:
+                server.starttls()
+                if user and password:
+                    server.login(user, password)
+                server.send_message(msg)
+        return True, "Rapor e-posta ile başarıyla gönderildi."
+    except smtplib.SMTPAuthenticationError:
+        return False, "E-posta giriş hatası! Gmail kullanıyorsanız şifre yerine 16 haneli 'Uygulama Şifresi' (App Password) girilmesi gereklidir."
     except smtplib.SMTPRecipientsRefused:
-        return False, "Bu e-posta adresi sunucu tarafından reddedildi, adresi kontrol edin."
+        return False, "Bu e-posta adresi sunucu tarafından reddedildi."
     except Exception as e:
-        return False, f"E-posta gönderilemedi: {e}"
+        err_msg = str(e)
+        if "Network is unreachable" in err_msg or "101" in err_msg or "Timed out" in err_msg or "110" in err_msg:
+            return False, "Raspberry Pi yerel fabrika ağında internet erişimi olmadığı için Gmail sunucusuna bağlanamıyor. Cihazın internet bağlantısını kontrol edin."
+        return False, f"E-posta gönderilemedi: {err_msg}"
