@@ -160,16 +160,32 @@ class CameraProcessor:
         self._last_worker_check_time = now_t
         w_id = None
         w_name = f"{self._hostname} Çalışanı"
+
+        session_context = None
         try:
-            with self.db_manager.get_session() as session:
+            from pg_sync import pg_baglan
+            from sqlalchemy.orm import Session
+            engine = pg_baglan()
+            if engine:
+                session_context = Session(engine)
+        except Exception:
+            session_context = None
+
+        if session_context is None:
+            session_context = self.db_manager.get_session()
+
+        try:
+            with session_context as session:
+                from sqlalchemy import func
+                target_st = (self._hostname or "").strip().lower()
                 stmt = select(Worker).where(
-                    Worker.istasyon_adi == self._hostname,
+                    func.lower(Worker.istasyon_adi) == target_st,
                     Worker.aktif == 1
                 ).order_by(Worker.id.desc())
                 w = session.scalars(stmt).first()
                 if not w:
                     stmt_any = select(Worker).where(
-                        Worker.istasyon_adi == self._hostname
+                        func.lower(Worker.istasyon_adi) == target_st
                     ).order_by(Worker.id.desc())
                     w = session.scalars(stmt_any).first()
                 if w:
@@ -180,6 +196,7 @@ class CameraProcessor:
 
         self._cached_assigned_worker = (w_id, w_name)
         return w_id, w_name
+
 
 
 
