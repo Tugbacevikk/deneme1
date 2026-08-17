@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Kullanıcı Yönetimi{% endblock %}
+{% block page_title %}Kullanıcı Yönetimi{% endblock %}
+{% block page_title_sub %}Patron Yetkilendirme & Üye Onayları{% endblock %}
+
+{% block content %}
+<div class="settings-container" style="max-width: 1200px; margin: 0 auto; padding: 20px 0;">
+
+    <!-- ═══════════════════════════════════════════════════════
+         BÖLÜM 1: Yeni Kayıt Başvuruları & Onaylar
+    ════════════════════════════════════════════════════════ -->
+    <div class="card" style="margin-bottom:24px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-header-left" style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-user-clock card-header-icon" style="color:var(--accent); font-size:20px;"></i>
+                <h2 class="card-title" style="margin:0; font-size:18px;">Üye Kayıt Onayları</h2>
+            </div>
+            {% if pending_users and pending_users|length > 0 %}
+            <span class="badge" style="background:#e11d48; color:#fff; padding:4px 10px; border-radius:12px; font-weight:700; font-size:12px;">
+                {{ pending_users|length }} Bekleyen Başvuru
+            </span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="section-desc" style="margin-bottom:16px; color:var(--text-secondary); font-size:13px;">
+                Sisteme kayıt olmak isteyen patronların ve yöneticilerin başvurularını inceleyip, yetkilerini ve izleyebilecekleri istasyonları belirleyerek onaylayabilirsiniz.
+            </p>
+
+            <div id="pending-users-list">
+                {% if pending_users and pending_users|length > 0 %}
+                    {% for pu in pending_users %}
+                    <div class="pending-user-card" id="pending-card-{{ pu.id }}" style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-bottom:12px; display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <div style="font-weight:700; font-size:15px; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-user-tag" style="color:var(--accent);"></i> {{ pu.ad_soyad or pu.kullanici_adi }}
+                                    <span style="font-size:12px; font-weight:400; color:var(--text-muted);">(kullanıcı adı: <strong>{{ pu.kullanici_adi }}</strong>)</span>
+                                </div>
+                                <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+                                    <i class="fa-solid fa-building"></i> Firma / Birim: <strong>{{ pu.firma_adi or 'Belirtilmedi' }}</strong> |
+                                    <i class="fa-solid fa-envelope"></i> E-posta: <strong>{{ pu.eposta or 'Belirtilmedi' }}</strong>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-success" style="padding:6px 14px; font-size:13px;" onclick="approveUser({{ pu.id }})">
+                                    <i class="fa-solid fa-user-check"></i> Onayla & Yetkilendir
+                                </button>
+                                <button class="btn btn-danger" style="padding:6px 14px; font-size:13px; background:#e11d48; border-color:#e11d48; color:#fff;" onclick="rejectUser({{ pu.id }})">
+                                    <i class="fa-solid fa-user-xmark"></i> Reddet
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Seçilebilir İstasyonlar -->
+                        <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:10px;">
+                            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px;">
+                                <i class="fa-solid fa-industry" style="color:var(--accent);"></i> Bu Kullanıcının Görebileceği İstasyonlar:
+                            </label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                {% if all_workers %}
+                                    {% for w in all_workers %}
+                                        {% if w.istasyon_adi and w.istasyon_adi.strip() %}
+                                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; background:var(--bg-secondary); padding:4px 10px; border-radius:16px; border:1px solid var(--border-color); cursor:pointer;">
+                                            <input type="checkbox" name="pending-st-cb-{{ pu.id }}" value="{{ w.istasyon_adi }}" checked style="accent-color:var(--accent);">
+                                            {{ w.ad }} {{ w.soyad }} — <strong style="color:var(--accent);">{{ w.istasyon_adi }}</strong>
+                                        </label>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="font-size:12px; color:var(--text-muted);">Sistemde kayıtlı istasyon bulunamadı.</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align:center; padding:30px 15px; background:var(--bg-secondary); border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                        <i class="fa-solid fa-circle-check" style="font-size:32px; color:#10B981; margin-bottom:8px; display:block;"></i>
+                        <span style="font-size:14px; color:var(--text-secondary); font-weight:500;">Bekleyen kullanıcı kayıt isteği bulunmamaktadır.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         BÖLÜM 2: Yeni Kullanıcı / Patron Hesabı Oluştur
+    ════════════════════════════════════════════════════════ -->
+    <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">
+            <div class="card-header-left" style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-user-plus card-header-icon" style="color:var(--accent); font-size:20px;"></i>
+                <h2 class="card-title" style="margin:0; font-size:18px;">Yeni Kullanıcı / Patron Ekle</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="form-add-user" onsubmit="addUserSubmit(event)">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Kullanıcı Adı *</label>
+                        <input type="text" class="form-input" id="u-username" placeholder="Örn: kadir" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Ad Soyad *</label>
+                        <input type="text" class="form-input" id="u-fullname" placeholder="Örn: Kadir Kaya" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Şifre *</label>
+                        <input type="password" class="form-input" id="u-password" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Rol / Yetki Türü *</label>
+                        <select class="form-select" id="u-role">
+                            <option value="patron">Patron</option>
+                            <option value="operator">Operatör</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0; grid-column: 1 / -1;">
+                        <label class="form-label"><i class="fa-solid fa-industry" style="color:var(--accent);"></i> İzleyebileceği İstasyonlar & Çalışanlar</label>
+                        <div id="u-stations-checkboxes" style="display:flex; flex-wrap:wrap; gap:10px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
+                            {% if all_workers %}
+                                {% for w in all_workers %}
+                                    {% if w.istasyon_adi and w.istasyon_adi.strip() %}
+                                    <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; background:var(--bg-card); padding:6px 12px; border-radius:20px; border:1px solid var(--border-color);">
+                                        <input type="checkbox" name="u-station-cb" value="{{ w.istasyon_adi }}" style="accent-color:var(--accent);">
+                                        {{ w.ad }} {{ w.soyad }} — <strong style="color:var(--accent);">{{ w.istasyon_adi }}</strong>
+                                    </label>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span style="font-size:12px; color:var(--text-muted);">Sistemde kayıtlı işçi bulunamadı.</span>
+                            {% endif %}
+                        </div>
+                        <input type="hidden" id="u-stations">
+                        <small style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">Kullanıcının görebileceği ve yönetebileceği istasyonları seçin.</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px; padding:12px; font-weight:700;">
+                    <i class="fa-solid fa-user-check"></i> Hesabı Kaydet ve Yetkilendir
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         BÖLÜM 3: Kayıtlı Kullanıcı & Patron Listesi
+    ════════════════════════════════════════════════════════ -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-header-left" style="display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-users-gear card-header-icon" style="color:var(--accent); font-size:20px;"></i>
+                <h2 class="card-title" style="margin:0; font-size:18px;">Kayıtlı Kullanıcı ve Patron Hesapları</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="data-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>Kullanıcı Adı</th>
+                            <th>Ad Soyad</th>
+                            <th>Firma / Birim</th>
+                            <th>Atanan İstasyonlar</th>
+                            <th>Rol / Yetki</th>
+                            <th>Durum</th>
+                            <th style="text-align:right;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-tbody">
+                        {% if users %}
+                            {% for u in users %}
+                            <tr>
+                                <td style="font-weight:700;">{{ u.kullanici_adi }}</td>
+                                <td>{{ u.ad_soyad or '—' }}</td>
+                                <td>{{ u.firma_adi or '—' }}</td>
+                                <td>
+                                    <span class="badge badge--outline" style="font-size:11px;">
+                                        <i class="fa-solid fa-industry"></i> {{ u.istasyonlar or 'Tüm Fabrika' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ 'aktif' if u.rol in ['admin', 'super_admin'] else ('inaktif' if u.rol == 'patron' else 'tolerans') }}">
+                                        {{ 'Süper Admin' if u.rol in ['admin', 'super_admin'] else ('Patron' if u.rol == 'patron' else 'Operatör') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if u.durum == 'bekliyor' %}
+                                        <span class="status-badge yok" style="background:#FEF3C7; color:#D97706; border:1px solid #FDE68A;">Bekliyor</span>
+                                    {% elif u.durum == 'reddedildi' %}
+                                        <span class="status-badge inaktif">Reddedildi</span>
+                                    {% else %}
+                                        <span class="status-badge aktif">Onaylandı</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align:right;">
+                                    {% if u.rol not in ['admin', 'super_admin'] %}
+                                        <button class="btn btn-outline" style="padding:4px 10px; font-size:12px; margin-right:4px;"
+                                                onclick="openEditUserModal({{ u.id }}, '{{ u.kullanici_adi }}', '{{ u.ad_soyad or '' }}', '{{ u.rol or 'patron' }}', '{{ u.eposta or '' }}', '{{ u.istasyonlar or '' }}')">
+                                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                        </button>
+                                        <button class="btn btn-danger" style="padding:4px 10px; font-size:12px; background:#e11d48; border-color:#e11d48; color:#fff;"
+                                                onclick="deleteUser(this)"
+                                                data-id="{{ u.id }}"
+                                                data-name="{{ u.kullanici_adi }}">
+                                            <i class="fa-solid fa-trash"></i> Sil
+                                        </button>
+                                    {% else %}
+                                    <span style="font-size:11px; color:var(--text-muted);">Sistem Yöneticisi</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">
+                                Kayıtlı kullanıcı bulunamadı.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Kullanıcı / Patron Düzenle
+════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-edit-user" style="display:none;" onclick="closeEditUserModal(event)">
+    <div class="modal" style="max-width:540px; width:95%;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fa-solid fa-user-pen"></i> Kullanıcı Yetkilerini Düzenle</h2>
+            <button class="modal-close" onclick="closeEditUserModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-user-id">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Kullanıcı Adı</label>
+                    <input type="text" class="form-input" id="edit-username" disabled style="opacity:0.6;">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Ad Soyad *</label>
+                    <input type="text" class="form-input" id="edit-fullname" placeholder="Örn: Kadir Kaya">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Rol / Yetki *</label>
+                    <select class="form-select" id="edit-role">
+                        <option value="patron">Patron</option>
+                        <option value="admin">Süper Admin</option>
+                        <option value="operator">Operatör</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">E-posta</label>
+                    <input type="email" class="form-input" id="edit-email" placeholder="Örn: kullanici@sirket.com">
+                </div>
+                <div class="form-group" style="margin:0; grid-column: 1 / -1;">
+                    <label class="form-label">Yeni Şifre <small style="color:var(--text-muted);">(değiştirmek istemiyorsanız boş bırakın)</small></label>
+                    <input type="password" class="form-input" id="edit-password" placeholder="••••••••">
+                </div>
+            </div>
+
+            <!-- İstasyon Checkbox Listesi -->
+            <div class="form-group">
+                <label class="form-label"><i class="fa-solid fa-industry" style="color:var(--accent);"></i> Yetkili Olacağı İstasyonlar</label>
+                <div id="edit-stations-checkboxes" style="display:flex; flex-wrap:wrap; gap:8px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:12px;">
+                    {% for n in range(1, 10) %}
+                    <label id="edit-st-lbl-{{ n }}" style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; padding:5px 12px; border-radius:20px; border:1px solid var(--border-color); background:var(--bg-card); white-space:nowrap;">
+                        <input type="checkbox" name="edit-station-cb" value="Istasyon-{{ n }}" style="accent-color:var(--accent);"> İstasyon-{{ n }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn btn-secondary" onclick="closeEditUserModal()">İptal</button>
+            <button class="btn btn-success" onclick="saveEditUser()" id="btn-save-edit-user">
+                <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

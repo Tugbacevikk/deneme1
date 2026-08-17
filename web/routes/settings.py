@@ -16,11 +16,34 @@ CONFIG_PATH = BASE_DIR / 'config.yaml'
 @settings_bp.route('/settings')
 @login_required
 def settings():
-    from web.services.user_service import get_pending_users
+    import psutil, platform
+    db_path = BASE_DIR / 'isci_takip.db'
+    db_size_str = '—'
+    if db_path.exists():
+        size_mb = db_path.stat().st_size / (1024 * 1024)
+        db_size_str = f"{size_mb:.1f} MB"
+
+    sys_info = {
+        'python_version': platform.python_version(),
+        'platform': f"{platform.system()} {platform.release()}",
+        'db_size': db_size_str,
+        'last_update': 'Aktif (Canlı)'
+    }
+    return render_template('settings.html', system_info=sys_info)
+
+
+@settings_bp.route('/user_management')
+@settings_bp.route('/users_management')
+@settings_bp.route('/user-management')
+@login_required
+def user_management():
+    from web.services.user_service import get_pending_users, get_all_users
     from web.services.worker_service import get_all_workers
     pending_users = get_pending_users()
+    users = get_all_users()
     all_workers = get_all_workers()
-    return render_template('settings.html', pending_users=pending_users, all_workers=all_workers)
+    return render_template('user_management.html', pending_users=pending_users, users=users, all_workers=all_workers)
+
 
 
 @settings_bp.route('/api/system/info', methods=['GET'])
