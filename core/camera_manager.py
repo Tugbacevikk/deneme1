@@ -406,7 +406,16 @@ class CameraProcessor:
                         pass
                 try:
                     from pygrabber.dshow_graph import FilterGraph
-                    return [{'id': idx, 'name': dname, 'active': True} for idx, dname in enumerate(FilterGraph().get_input_devices())]
+                    raw_devs = FilterGraph().get_input_devices()
+                    res = []
+                    for idx, dname in enumerate(raw_devs):
+                        name_str = str(dname)
+                        if idx == 0:
+                            display_name = f"Kamera 0: {name_str} (Dahili PC Kamera)"
+                        else:
+                            display_name = f"Kamera {idx}: {name_str} (Harici USB Kamera)"
+                        res.append({'id': idx, 'name': display_name, 'active': True})
+                    return res
                 finally:
                     if co_inited:
                         try:
@@ -426,11 +435,11 @@ class CameraProcessor:
                     idx_str = d.replace('/dev/video', '')
                     if idx_str.isdigit():
                         cam_id = int(idx_str)
-                        # Raspberry Pi V4L2 sanal ISP ve donanım kodlayıcı/çözücü düğümlerini (video20 - video35) hariç tut
                         if 20 <= cam_id <= 35:
                             continue
                         if cam_id % 2 == 0 or cam_id == 0:
-                            devices.append({'id': cam_id, 'name': f"Kamera {cam_id} ({d})", 'active': True})
+                            lbl = "Dahili Kamera" if cam_id == 0 else "Harici USB Kamera"
+                            devices.append({'id': cam_id, 'name': f"Kamera {cam_id} ({lbl})", 'active': True})
                 return devices
 
         except Exception as e:
@@ -454,12 +463,14 @@ class CameraProcessor:
                 if cap and cap.isOpened():
                     ret, _ = cap.read()
                     if ret:
-                        available.append({'id': i, 'name': f"Kamera {i}", 'active': True})
+                        lbl = "Dahili PC Kamera" if i == 0 else "Harici USB Kamera"
+                        available.append({'id': i, 'name': f"Kamera {i} ({lbl})", 'active': True})
                     cap.release()
             except Exception:
                 pass
 
         return available
+
 
     def start_camera(self):
         if self.running or self.is_running:
