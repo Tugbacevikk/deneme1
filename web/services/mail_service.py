@@ -16,23 +16,23 @@ def send_pdf_report(to_email: str, pdf_bytes: bytes, filename: str, subject: str
     if not EMAIL_RE.match(to_email):
         return False, "Geçerli bir e-posta adresi girin (örn: ad@sirket.com)."
 
-    # .env veya config.yaml üzerinden SMTP oku
-    cfg_smtp = {}
+    cfg = {}
     try:
         import web.extensions as ext
-        cfg_smtp = (ext.config or {}).get('smtp', {})
+        cfg = getattr(ext, 'config', {}) or {}
     except Exception:
         pass
 
-    ext_cfg = (ext.config or {}) if 'ext' in locals() and hasattr(ext, 'config') else {}
-    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER') or cfg_smtp.get('host') or cfg_smtp.get('server') or ext_cfg.get('smtp_host', 'smtp.gmail.com')
-    port = int(os.getenv('SMTP_PORT') or cfg_smtp.get('port') or ext_cfg.get('smtp_port', 587))
-    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL') or cfg_smtp.get('user') or cfg_smtp.get('email') or ext_cfg.get('smtp_user', '')
-    password = os.getenv('SMTP_PASSWORD') or cfg_smtp.get('password') or ext_cfg.get('smtp_password', '')
-    sender = os.getenv('SMTP_FROM') or cfg_smtp.get('from') or ext_cfg.get('smtp_from') or user
+    cfg_smtp = cfg.get('smtp') if isinstance(cfg.get('smtp'), dict) else {}
+
+    host = os.getenv('SMTP_HOST') or os.getenv('SMTP_SERVER') or cfg_smtp.get('host') or cfg_smtp.get('server') or cfg.get('smtp_host') or 'smtp.gmail.com'
+    port = int(os.getenv('SMTP_PORT') or cfg_smtp.get('port') or cfg.get('smtp_port') or 587)
+    user = os.getenv('SMTP_USER') or os.getenv('SMTP_EMAIL') or cfg_smtp.get('user') or cfg_smtp.get('email') or cfg.get('smtp_user') or ''
+    password = os.getenv('SMTP_PASSWORD') or cfg_smtp.get('password') or cfg.get('smtp_password') or ''
+    sender = os.getenv('SMTP_FROM') or cfg_smtp.get('from') or cfg.get('smtp_from') or user
 
     if not host or not user or not password:
-        return False, "SMTP ayarları yapılandırılmamış (.env veya config.yaml dosyasını kontrol edin)."
+        return False, "SMTP ayarları yapılandırılmamış (Ayarlar sayfasından e-posta ve şifrenizi girin)."
 
 
     msg = MIMEMultipart()
