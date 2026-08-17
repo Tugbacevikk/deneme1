@@ -29,6 +29,13 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
 
     if istasyon and istasyon.startswith('VIDEO:'):
         pass
+    elif istasyon:
+        w_conds = [model_cls.worker_id.is_(None), model_cls.worker_adi.like(f"{istasyon}%"), model_cls.worker_adi.in_(['Bilinmeyen Çalışan', 'Atanmamış Çalışan'])]
+        if worker_id and str(worker_id).isdigit() and int(worker_id) > 0:
+            w_conds.append(model_cls.worker_id == int(worker_id))
+        if worker_name:
+            w_conds.append(model_cls.worker_adi == worker_name)
+        filters.append(or_(*w_conds))
     elif worker_id and str(worker_id).isdigit() and int(worker_id) > 0:
         filters.append(or_(
             model_cls.worker_id == int(worker_id),
