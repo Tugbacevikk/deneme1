@@ -4,16 +4,19 @@ contrast: 1.2
 flip_h: false
 flip_v: false
 istasyon_adi: Istasyon-1
+local_retention_days: 14
+pg_retention_days: 60
 roi_x1: 0.08
 roi_x2: 0.84
 roi_y1: 0
 roi_y2: 0.98
 saturation: 1.15
+smtp_host: smtp.gmail.com
+smtp_password: admin123
+smtp_port: 587
+smtp_user: tcevik2824@gmail.com
 station_name: Istasyon-1
-
 welding_conf: 0.25
 welding_imgsz: 320
-pg_retention_days: 60
-local_retention_days: 14
-
+camera_fps: 60
 

@@ -368,7 +368,7 @@ class CameraProcessor:
         try:
             width  = int(self.cfg.get('camera_width', 1280))
             height = int(self.cfg.get('camera_height', 720))
-            fps_req = int(self.cfg.get('camera_fps', 30))
+            fps_req = int(self.cfg.get('camera_fps', 60))
 
             try:
                 self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
