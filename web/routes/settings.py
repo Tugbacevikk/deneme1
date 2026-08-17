@@ -55,15 +55,32 @@ def user_management():
 @login_required
 def api_system_info():
     import psutil, platform
+    import web.extensions as ext
+    db_path = BASE_DIR / 'isci_takip.db'
+    db_size_str = '—'
+    if db_path.exists():
+        size_mb = db_path.stat().st_size / (1024 * 1024)
+        db_size_str = f"{size_mb:.1f} MB"
+
+    cam_running = False
+    if ext.camera_processor is not None and getattr(ext.camera_processor, 'is_running', False):
+        cam_running = True
+
+    cpu_val = psutil.cpu_percent()
+    ram_val = psutil.virtual_memory().percent
+
     return jsonify({
         'success': True,
-        'system': {
-            'os': platform.system(),
-            'release': platform.release(),
-            'cpu_usage': psutil.cpu_percent(),
-            'ram_usage': psutil.virtual_memory().percent
-        }
+        'python_version': platform.python_version(),
+        'platform': f"{platform.system()} {platform.release()}",
+        'db_size': db_size_str,
+        'face_lib': 'YOLOv8 (ARM CM5 Hızlandırmalı)',
+        'camera_status': 'Aktif (Çalışıyor)' if cam_running else 'Kapalı',
+        'last_update': 'Aktif (Canlı)',
+        'cpu_usage': round(cpu_val, 1),
+        'ram_usage': round(ram_val, 1)
     })
+
 
 
 @settings_bp.route('/api/settings/save', methods=['POST'])

@@ -44,32 +44,39 @@ function fetchSystemInfo() {
         .then(r => r.json())
         .then(data => {
             if (!data) return;
-            if (document.getElementById('si-python')) document.getElementById('si-python').textContent = data.python_version || '—';
-            if (document.getElementById('si-platform')) document.getElementById('si-platform').textContent = data.platform || '—';
-            if (document.getElementById('si-db-size')) document.getElementById('si-db-size').textContent = data.db_size || '—';
+            const pyEl = document.getElementById('si-python');
+            if (pyEl) pyEl.textContent = data.python_version || '—';
+
+            const pltEl = document.getElementById('si-platform');
+            if (pltEl) pltEl.textContent = data.platform || (data.system ? `${data.system.os} ${data.system.release}` : '—');
+
+            const dbEl = document.getElementById('si-db-size');
+            if (dbEl) dbEl.textContent = data.db_size || '—';
 
             const faceElem = document.getElementById('si-face-lib');
             if (faceElem) {
-                faceElem.innerHTML = `<span class="badge badge--success">${data.face_lib || 'YuNet + SFace'}</span>`;
+                faceElem.innerHTML = `<span class="badge" style="background:#D1FAE5; color:#065F46; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:700;">${data.face_lib || 'YOLOv8 (ARM CM5 Hızlandırmalı)'}</span>`;
             }
 
             const camElem = document.getElementById('si-camera-status');
             if (camElem) {
-                const isActive = data.camera_status === 'Aktif';
+                const isActive = data.camera_status && data.camera_status.includes('Aktif');
                 camElem.innerHTML = `<span class="badge ${isActive ? 'badge--success' : 'badge--outline'}">${data.camera_status || 'Kapalı'}</span>`;
             }
 
-            if (document.getElementById('si-last-update')) document.getElementById('si-last-update').textContent = data.last_update || '—';
+            const upEl = document.getElementById('si-last-update');
+            if (upEl) upEl.textContent = data.last_update || 'Aktif (Canlı)';
 
             // CPU
-            const cpuVal = data.cpu_usage !== undefined ? data.cpu_usage : 0;
+            const sysObj = data.system || {};
+            const cpuVal = data.cpu_usage !== undefined ? data.cpu_usage : (sysObj.cpu_usage !== undefined ? sysObj.cpu_usage : 0);
             const cpuBar = document.getElementById('si-cpu-bar');
             if (cpuBar) cpuBar.style.width = cpuVal + '%';
             const cpuText = document.getElementById('si-cpu-text');
             if (cpuText) cpuText.textContent = cpuVal + '%';
 
             // RAM
-            const ramVal = data.ram_usage !== undefined ? data.ram_usage : 0;
+            const ramVal = data.ram_usage !== undefined ? data.ram_usage : (sysObj.ram_usage !== undefined ? sysObj.ram_usage : 0);
             const ramBar = document.getElementById('si-ram-bar');
             if (ramBar) ramBar.style.width = ramVal + '%';
             const ramText = document.getElementById('si-ram-text');
@@ -77,6 +84,7 @@ function fetchSystemInfo() {
         })
         .catch(err => console.error('System info fetch error:', err));
 }
+
 
 const btnRefreshSys = document.getElementById('btn-refresh-sysinfo');
 if (btnRefreshSys) {
