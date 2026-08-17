@@ -1,10 +1,18 @@
+auto_start_camera: true
 brightness: 10
+camera_fps: 60
 camera_id: 0
 contrast: 1.2
 flip_h: false
 flip_v: false
-istasyon_adi: Istasyon-4
+istasyon_adi: Istasyon-3
 local_retention_days: 14
+merkezi_db:
+  dbname: fabrika_takip
+  host: 192.168.30.168
+  kullanici: takip_user
+  port: 5432
+  sifre: admin123
 pg_retention_days: 60
 roi_x1: 0.08
 roi_x2: 0.84
@@ -15,16 +23,6 @@ smtp_host: smtp.gmail.com
 smtp_password: admin123
 smtp_port: 587
 smtp_user: tcevik2824@gmail.com
-station_name: Istasyon-4
+station_name: Istasyon-3
 welding_conf: 0.25
 welding_imgsz: 320
-camera_fps: 60
-auto_start_camera: true
-merkezi_db:
-  host: 192.168.30.168
-  port: 5432
-  dbname: fabrika_takip
-  kullanici: takip_user
-  sifre: admin123
-
-
