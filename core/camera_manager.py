@@ -1196,7 +1196,7 @@ class CameraProcessor:
                     self._current_jpeg = jpeg_bytes
 
             status_payload = self._build_status(
-                genel_durum, genel_renk, fps, ai_data.get('kisi_cnt', 0),
+                genel_durum, genel_renk, getattr(self, '_fps', 30.0), ai_data.get('kisi_cnt', 0),
                 ai_data.get('worker_name', ''), ai_data.get('worker_confidence', 0.0),
                 ai_data.get('phone_detected', False)
             )
