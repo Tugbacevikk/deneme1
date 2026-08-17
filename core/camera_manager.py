@@ -348,6 +348,9 @@ class CameraProcessor:
                     if cap and cap.isOpened():
                         try:
                             cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+                            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+                            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+                            cap.set(cv2.CAP_PROP_FPS, 60)
                         except Exception:
                             pass
                         # Kare okuma doğrulaması yap (Linux V4L2 metadata cihaz çakışmalarını önler)
