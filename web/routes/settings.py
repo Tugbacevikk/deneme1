@@ -166,7 +166,15 @@ def api_settings_test_smtp():
             server.login(user, password)
         return jsonify({'success': True, 'message': 'SMTP E-posta sunucu bağlantısı başarılı!'})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'SMTP Bağlantı Hatası: {e}'}), 400
+        err_str = str(e)
+        if '535' in err_str or 'BadCredentials' in err_str or 'Username and Password not accepted' in err_str:
+            user_msg = "SMTP Giriş Başarısız: E-posta adresi veya 16 haneli Gmail Uygulama Şifresi hatalı. Lütfen kontrol edin."
+        elif '101' in err_str or 'Network is unreachable' in err_str or 'timed out' in err_str or 'timeout' in err_str:
+            user_msg = "E-posta Sunucusuna Erişilemedi: İnternet bağlantınızı veya SMTP port ayarlarınızı (587) kontrol edin."
+        else:
+            user_msg = f"SMTP Bağlantı Hatası: Lütfen e-posta adresinizi ve şifrenizi kontrol edin."
+        return jsonify({'success': False, 'message': user_msg}), 400
+
 
 
 @settings_bp.route('/api/settings/cleanup_db', methods=['POST'])
