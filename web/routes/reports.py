@@ -436,6 +436,13 @@ def api_reports_worker_detail():
 
             if istasyon and istasyon.startswith('VIDEO:'):
                 pass
+            elif istasyon:
+                w_conds = [model_cls.worker_id.is_(None), model_cls.worker_adi.like(f"{istasyon}%"), model_cls.worker_adi.in_(['Bilinmeyen Çalışan', 'Atanmamış Çalışan'])]
+                if w_id_target and str(w_id_target).isdigit() and int(w_id_target) > 0:
+                    w_conds.append(model_cls.worker_id == int(w_id_target))
+                if full_name:
+                    w_conds.append(model_cls.worker_adi == full_name)
+                filters_k.append(or_(*w_conds))
             elif w_id_target and str(w_id_target).isdigit() and int(w_id_target) > 0:
                 filters_k.append(or_(
                     model_cls.worker_id == int(w_id_target),
