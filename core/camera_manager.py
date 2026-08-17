@@ -1401,7 +1401,8 @@ class CameraProcessor:
             conf_val *= 100.0
         conf_fixed = round(conf_val, 1)
 
-        if self.running:
+        is_active = bool(getattr(self, 'is_running', False) or getattr(self, 'running', False))
+        if is_active:
             calc_f = float(getattr(self, '_fps', 30.0))
             fps_val = round(calc_f if calc_f > 0 else 30.0, 1)
         else:
