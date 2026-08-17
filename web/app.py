@@ -393,10 +393,24 @@ def api_is_local_camera(cam_id):
             cam = sess.get(Camera, cam_id)
             if not cam:
                 return jsonify({'is_local': False})
-            # Yalnızca istasyon adı eşleşmesi — IP adresi birden fazla ağ kartında çakışabilir
             local_station = (ext.config.get('station_name') or ext.config.get('istasyon_adi') or '').strip().lower()
             cam_station   = (cam.istasyon_adi or '').strip().lower()
-            is_local = bool(local_station and cam_station and cam_station == local_station)
+            cam_ip        = (cam.ip_adresi or '').strip()
+
+            import socket
+            hostname = socket.gethostname()
+            local_ips = {'127.0.0.1', 'localhost', '0.0.0.0'}
+            try:
+                local_ips.add(socket.gethostbyname(hostname))
+            except Exception:
+                pass
+            try:
+                for info in socket.getaddrinfo(hostname, None):
+                    local_ips.add(info[4][0])
+            except Exception:
+                pass
+
+            is_local = bool((local_station and cam_station and cam_station == local_station) or (cam_ip in local_ips))
             return jsonify({'is_local': is_local, 'cam_id': cam_id, 'ip': cam.ip_adresi, 'station': cam.istasyon_adi})
     except Exception as e:
         logger.error(f"is_local_camera hatası: {e}")
