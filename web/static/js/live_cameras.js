@@ -125,21 +125,31 @@ function renderCameraGrid(cameras) {
 function toggleZoomCard(id) {
     const card = document.getElementById(`cam-card-${id}`);
     if (!card) return;
-    const feedWrap = document.getElementById(`feed-wrap-${id}`) || card.querySelector('div[style*="height"]') || card.querySelector('div');
+    const feedWrap = document.getElementById(`feed-wrap-${id}`);
+    const btn = card.querySelector('button[onclick*="toggleZoomCard"]');
+    
     if (card.classList.contains('zoomed')) {
         card.classList.remove('zoomed');
-        card.style.position = 'static';
-        card.style.zIndex = '1';
+        card.style.position = '';
+        card.style.top = '';
+        card.style.left = '';
+        card.style.width = '';
+        card.style.height = '';
+        card.style.zIndex = '';
+        card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
         if (feedWrap) feedWrap.style.height = '240px';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-expand"></i>';
     } else {
         card.classList.add('zoomed');
         card.style.position = 'fixed';
-        card.style.top = '20px';
-        card.style.left = '20px';
-        card.style.width = 'calc(100% - 40px)';
-        card.style.height = 'calc(100% - 40px)';
-        card.style.zIndex = '10000';
-        if (feedWrap) feedWrap.style.height = 'calc(100% - 100px)';
+        card.style.top = '15px';
+        card.style.left = '15px';
+        card.style.width = 'calc(100vw - 30px)';
+        card.style.height = 'calc(100vh - 30px)';
+        card.style.zIndex = '99999';
+        card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)';
+        if (feedWrap) feedWrap.style.height = 'calc(100vh - 120px)';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-compress"></i>';
     }
 }
 
