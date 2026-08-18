@@ -620,8 +620,10 @@ def api_start_camera():
     video_path = data.get('video_path')
     cam_id_raw = data.get('camera_id')
 
-    if source_type == 'video' and video_path:
-        target_source = video_path
+    if source_type == 'video':
+        if not video_path or not str(video_path).strip():
+            return jsonify({'success': False, 'error': 'Lütfen analiz için bir video dosyası seçin.'}), 400
+        target_source = str(video_path).strip()
     else:
         if cam_id_raw is None or cam_id_raw == '':
             target_source = config.get('camera_id', 0)

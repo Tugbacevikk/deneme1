@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchAlarmBadge();
     fetchQuickAlarms();
     loadCameraSelect();
+    loadUploadedVideos();
     pollCameraStatus();
     setInterval(pollCameraStatus, 2000);
 
