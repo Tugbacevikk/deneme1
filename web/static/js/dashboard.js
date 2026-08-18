@@ -212,6 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (groupCam) groupCam.style.display = 'flex';
             if (groupVid) groupVid.style.display = 'none';
+
+            // Kamera yayını sıfırla
+            const feed = document.getElementById('camera-feed');
+            if (feed) { feed.src = ''; feed.style.display = 'none'; }
+            const ov = document.getElementById('camera-overlay');
+            if (ov) ov.style.display = 'flex';
+            fetch('/api/camera/stop', { method: 'POST' }).catch(() => {});
         });
 
         tabVid.addEventListener('click', () => {
@@ -224,6 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (groupCam) groupCam.style.display = 'none';
             if (groupVid) groupVid.style.display = 'flex';
+
+            // Video yayını sıfırla ve listeyi çek
+            const feed = document.getElementById('camera-feed');
+            if (feed) { feed.src = ''; feed.style.display = 'none'; }
+            const ov = document.getElementById('camera-overlay');
+            if (ov) ov.style.display = 'flex';
+            fetch('/api/camera/stop', { method: 'POST' }).catch(() => {});
             loadUploadedVideos();
         });
     }

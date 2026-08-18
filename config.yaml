@@ -1,4 +1,4 @@
-auto_start_camera: true
+auto_start_camera: false
 brightness: 10
 camera_fps: 60
 camera_id: 0
