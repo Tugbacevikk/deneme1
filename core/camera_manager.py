@@ -649,13 +649,14 @@ class CameraProcessor:
             phone_detected_raw = False
             phone_boxes_raw = []
             phone_conf_thresh = float(self.cfg.get('phone_conf', 0.25))
+            person_detected_in_det = False
 
-            det_imgsz = int(self.cfg.get('det_imgsz', 224))
-            if self._det_model is not None and (ai_frame_count % 4 == 2 or not hasattr(self, '_last_det_results')):
+            det_imgsz = int(self.cfg.get('det_imgsz', 320))
+            if self._det_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_det_results')):
                 try:
-                    self._last_det_results = self._det_model(raw_frame, conf=phone_conf_thresh, classes=[COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
+                    self._last_det_results = self._det_model(raw_frame, conf=0.20, classes=[0, COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
                 except Exception as e:
-                    logger.debug(f"AI Telefon tespit hatası: {e}")
+                    logger.debug(f"AI Nesne tespit hatası: {e}")
 
             if hasattr(self, '_last_det_results') and self._last_det_results:
                 for det_res in self._last_det_results:
@@ -663,8 +664,17 @@ class CameraProcessor:
                         for box in det_res.boxes:
                             cls_id = int(box.cls[0])
                             conf_val = float(box.conf[0].cpu().numpy()) if hasattr(box.conf[0], 'cpu') else float(box.conf[0])
-                            if cls_id == COCO_CELL_PHONE and conf_val >= phone_conf_thresh:
-                                bx1, by1, bx2, by2 = map(int, box.xyxy[0].cpu().numpy())
+                            bx1, by1, bx2, by2 = map(int, box.xyxy[0].cpu().numpy())
+                            
+                            # COCO Class 0 = Person (İşçi İnsan Tespiti)
+                            if cls_id == 0 and conf_val >= 0.20:
+                                cx = (bx1 + bx2) / 2.0
+                                cy = (by1 + by2) / 2.0
+                                if roi_x1 <= cx <= roi_x2 and roi_y1 <= cy <= roi_y2:
+                                    person_detected_in_det = True
+                            
+                            # COCO Class 67 = Cell Phone (Telefon Tespiti)
+                            elif cls_id == COCO_CELL_PHONE and conf_val >= phone_conf_thresh:
                                 bw = abs(bx2 - bx1)
                                 bh = abs(by2 - by1)
                                 area = bw * bh
@@ -690,7 +700,7 @@ class CameraProcessor:
             welding_boxes_raw = []
             welding_conf_thresh = float(self.cfg.get('welding_conf', 0.25))
 
-            weld_imgsz = int(self.cfg.get('welding_imgsz', 224))
+            weld_imgsz = int(self.cfg.get('welding_imgsz', 256))
 
             if self._welding_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_welding_results')):
                 try:
@@ -719,6 +729,9 @@ class CameraProcessor:
             # 3. Poz & Hareket Tespiti (YOLOv8 Pose - Staggered Pipeline)
             aktif_kisi_var = False
             gorulen_kisi_id = set()
+            if person_detected_in_det:
+                gorulen_kisi_id.add(999)
+
             kisi_sayisi_tespit = 0
             pose_labels = []
 
@@ -735,9 +748,9 @@ class CameraProcessor:
             if roi_pixel_motion >= pixel_motion_thresh:
                 aktif_kisi_var = True
 
-            if self._pose_model is not None and (ai_frame_count % 4 == 0 or not hasattr(self, '_last_pose_results')):
+            if self._pose_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_pose_results')):
                 try:
-                    self._last_pose_results = self._pose_model(raw_frame, imgsz=192, verbose=False)
+                    self._last_pose_results = self._pose_model(raw_frame, imgsz=256, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Poz tespit hatası: {e}")
 
@@ -752,9 +765,9 @@ class CameraProcessor:
 
                     for kisi_idx in range(len(kp_data)):
                         kp = kp_data[kisi_idx].cpu().numpy()
-                        visible_mask = kp[:, 2] > 0.3
+                        visible_mask = kp[:, 2] > 0.15
                         visible_kps = kp[visible_mask, :2]
-                        if len(visible_kps) < 3: continue
+                        if len(visible_kps) < 1: continue
                         skeletons.append(kp)
 
                         gorulen_kisi_id.add(kisi_idx)
