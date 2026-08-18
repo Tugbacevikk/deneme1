@@ -650,7 +650,7 @@ class CameraProcessor:
             phone_boxes_raw = []
             phone_conf_thresh = float(self.cfg.get('phone_conf', 0.25))
 
-            det_imgsz = int(self.cfg.get('det_imgsz', 320))
+            det_imgsz = int(self.cfg.get('det_imgsz', 224))
             if self._det_model is not None and (ai_frame_count % 4 == 2 or not hasattr(self, '_last_det_results')):
                 try:
                     self._last_det_results = self._det_model(raw_frame, conf=phone_conf_thresh, classes=[COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
@@ -690,7 +690,7 @@ class CameraProcessor:
             welding_boxes_raw = []
             welding_conf_thresh = float(self.cfg.get('welding_conf', 0.25))
 
-            weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
+            weld_imgsz = int(self.cfg.get('welding_imgsz', 224))
 
             if self._welding_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_welding_results')):
                 try:
@@ -737,7 +737,7 @@ class CameraProcessor:
 
             if self._pose_model is not None and (ai_frame_count % 4 == 0 or not hasattr(self, '_last_pose_results')):
                 try:
-                    self._last_pose_results = self._pose_model(raw_frame, imgsz=256, verbose=False)
+                    self._last_pose_results = self._pose_model(raw_frame, imgsz=192, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Poz tespit hatası: {e}")
 
@@ -1420,13 +1420,14 @@ class CameraProcessor:
                     except Exception as e:
                         logger.debug(f"SocketIO emit hatası: {e}")
 
-            # Video dosyası oynatılıyorsa gerçek zamanlı (1.0x FPS) kare pacing sağla
+            # Video dosyası oynatılıyorsa yüksek hızlı & akıcı kare pacing sağla (Maks 10ms uyku)
             if getattr(self, 'video_fps', None):
-                target_delay = 1.0 / float(self.video_fps)
+                v_fps = max(30.0, float(self.video_fps))
+                target_delay = 1.0 / v_fps
                 proc_time = time.time() - loop_start
                 sleep_time = target_delay - proc_time
                 if sleep_time > 0:
-                    time.sleep(sleep_time)
+                    time.sleep(min(0.010, sleep_time))
 
         if cap:
             cap.release()
