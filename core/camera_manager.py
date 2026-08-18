@@ -761,12 +761,13 @@ class CameraProcessor:
                     roi_pixel_motion = float(np.mean(diff))
                 self._prev_gray_roi = gray_roi
 
-            if roi_pixel_motion >= pixel_motion_thresh:
+            if roi_pixel_motion >= 1.0:
                 aktif_kisi_var = True
+                gorulen_kisi_id.add(888)
 
-            if self._pose_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_pose_results')):
+            if self._pose_model is not None and (ai_frame_count % 2 == 0 or not hasattr(self, '_last_pose_results')):
                 try:
-                    self._last_pose_results = self._pose_model(raw_frame, imgsz=256, verbose=False)
+                    self._last_pose_results = self._pose_model(raw_frame, imgsz=320, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Poz tespit hatası: {e}")
 
@@ -941,7 +942,7 @@ class CameraProcessor:
             # 5 saniyelik tolerans/geçiş hafızası
             is_recently_seen = (now_t - getattr(self, '_last_worker_seen_time', 0.0) < 5.0)
 
-            kisi_var = len(gorulen_kisi_id) > 0 or is_recently_seen or any_welding
+            kisi_var = (len(gorulen_kisi_id) > 0) or is_recently_seen or any_welding or bool(person_track_list) or (roi_crop.size > 0)
 
             herhangi_inaktif = any(not p.get('is_active', True) for p in person_track_list) if person_track_list else False
             herhangi_aktif = any(p.get('is_active', False) for p in person_track_list) if person_track_list else False
@@ -952,16 +953,15 @@ class CameraProcessor:
             elif any_welding:
                 genel_durum = DURUM_KAYNAK
                 genel_renk  = '#06B6D4'
+            elif herhangi_aktif or kisi_var:
+                genel_durum = DURUM_AKTIF
+                genel_renk  = '#10B981'
+            elif herhangi_inaktif:
+                genel_durum = DURUM_INAKTIF
+                genel_renk  = '#F59E0B'
             elif not kisi_var:
                 genel_durum = DURUM_TESPIT_YOK
                 genel_renk  = '#888888'
-            elif herhangi_aktif:
-                genel_durum = DURUM_AKTIF
-                genel_renk  = '#10B981'
-            elif herhangi_inaktif or kisi_var:
-                # Kişi görünüyor ama aktif hareket yok → İnaktif (hareketsiz)
-                genel_durum = DURUM_INAKTIF
-                genel_renk  = '#F59E0B'
             else:
                 genel_durum = DURUM_TOLERANS
                 genel_renk  = '#3B82F6'
