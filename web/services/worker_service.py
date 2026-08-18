@@ -22,8 +22,8 @@ def _get_worker_session():
     return db_manager.get_session()
 
 
-def get_all_workers(aktif_only=True):
-    """Tüm aktif çalışanları döndürür."""
+def get_all_workers(aktif_only=False):
+    """Tüm çalışanları döndürür (aktif_only=True ise sadece aktifleri getirir)."""
     with _get_worker_session() as sess:
         stmt = select(Worker)
         if aktif_only:
