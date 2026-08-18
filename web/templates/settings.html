@@ -132,11 +132,12 @@
 
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
                     <label class="form-label" style="margin:0; white-space:nowrap;">Temizleme Limiti:</label>
-                    <select class="form-select" id="s-cleanup-days" style="width:180px;">
+                    <select class="form-select" id="s-cleanup-days" style="width:240px;">
+                        <option value="1">1 Günden Eski (Dün ve Öncesi)</option>
                         <option value="15">15 Günden Eski</option>
                         <option value="30" selected>30 Günden Eski (Önerilen)</option>
                         <option value="60">60 Günden Eski</option>
-                        <option value="90">90 Günden Eski</option>
+                        <option value="0" style="color:#EF4444; font-weight:bold;">Tüm Logları Sıfırla (Tümünü Sil)</option>
                     </select>
                 </div>
 

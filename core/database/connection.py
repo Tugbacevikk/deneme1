@@ -112,15 +112,20 @@ class DatabaseManager:
     def cleanup_old_records(self, days: int = 60) -> int:
         """60 günden (veya belirtilen gün sayısından) eski ham DurumKaydi loglarını temizler."""
         import datetime
-        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
-        cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
         try:
             with self.engine.begin() as conn:
-                res = conn.execute(
-                    text("DELETE FROM durum_kayitlari WHERE zaman < :cutoff"),
-                    {"cutoff": cutoff_str}
-                )
-                deleted_count = res.rowcount
+                if days <= 0:
+                    res = conn.execute(text("DELETE FROM durum_kayitlari"))
+                    deleted_count = res.rowcount
+                    conn.execute(text("DELETE FROM alarmlar"))
+                else:
+                    cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
+                    cutoff_str = cutoff_date.strftime("%Y-%m-%d %H:%M:%S")
+                    res = conn.execute(
+                        text("DELETE FROM durum_kayitlari WHERE zaman < :cutoff"),
+                        {"cutoff": cutoff_str}
+                    )
+                    deleted_count = res.rowcount
                 logger.info(f"DB Temizlik: {days} günden eski {deleted_count} adet DurumKaydi temizlendi.")
                 return deleted_count
         except Exception as e:
