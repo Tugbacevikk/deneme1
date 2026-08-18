@@ -3,7 +3,7 @@ worker_service.py - Çalışan / İşçi Yönetim Servisi
 """
 import logging
 from sqlalchemy import select, func, or_
-from core.database.models import Worker, Camera
+from core.database.models import Worker, Camera, DurumKaydi
 from core.database.connection import db_manager
 
 logger = logging.getLogger(__name__)
