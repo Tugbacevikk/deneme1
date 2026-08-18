@@ -76,12 +76,12 @@ function loadUploadedVideos(selectPath = null) {
         .then(data => {
             const select = document.getElementById('select-uploaded-video');
             if (!select) return;
-            const currentVal = select.value;
+            const currentVal = (selectPath === '') ? '' : select.value;
             if (data.videos && data.videos.length) {
                 select.innerHTML = '<option value="">Yüklenen Videolar...</option>' + 
                     data.videos.map(v => `<option value="${v.path}">${v.filename} (${v.size_mb} MB)</option>`).join('');
                 
-                const target = selectPath || currentVal;
+                const target = (selectPath !== null) ? selectPath : currentVal;
                 if (target) {
                     select.value = target;
                     if (!select.value) {
@@ -443,7 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     showToast('Video başarıyla silindi.', 'success');
-                    loadUploadedVideos();
+                    if (select) select.value = '';
+                    loadUploadedVideos('');
+                    setTimeout(() => {
+                        loadUploadedVideos('');
+                    }, 300);
                 } else {
                     showToast(data.error || 'Video silinemedi', 'error');
                 }
