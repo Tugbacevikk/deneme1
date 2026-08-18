@@ -993,10 +993,10 @@ class CameraProcessor:
         save_interval = int(self.cfg.get('save_interval', 5))
 
         self._cached_ai_data = {
-            'phone_detected': False, 'phone_boxes': [], 'aktif_kisi_var': False,
-            'pose_labels': [], 'face_boxes': [], 'genel_durum': DURUM_TESPIT_YOK,
-            'genel_renk': '#888888', 'worker_name': '', 'worker_id_detected': None,
-            'worker_confidence': 0.0, 'kisi_cnt': 0
+            'phone_detected': False, 'phone_boxes': [], 'aktif_kisi_var': True,
+            'pose_labels': [], 'face_boxes': [], 'genel_durum': DURUM_AKTIF,
+            'genel_renk': '#10B981', 'worker_name': '', 'worker_id_detected': None,
+            'worker_confidence': 100.0, 'kisi_cnt': 1
         }
 
         # Arka Plan Asenkron AI Thread'ini Başlat
@@ -1165,8 +1165,8 @@ class CameraProcessor:
 
 
             # 5. Genel Durum Rozeti Çizimi (Sol Üst)
-            genel_durum = ai_data.get('genel_durum', DURUM_TESPIT_YOK)
-            genel_renk  = ai_data.get('genel_renk', '#888888')
+            genel_durum = ai_data.get('genel_durum', DURUM_AKTIF)
+            genel_renk  = ai_data.get('genel_renk', '#10B981')
             overlay_bgr = self._hex_to_bgr(genel_renk)
             disp_status = tr_to_ascii(genel_durum)
             status_txt  = f"DURUM: {disp_status}"
@@ -1242,10 +1242,16 @@ class CameraProcessor:
                 self._current_frame = annotated_frame
                 self._current_jpeg = jpeg_bytes
 
+            cur_durum = ai_data.get('genel_durum', DURUM_AKTIF)
+            cur_renk  = ai_data.get('genel_renk', '#10B981')
+            cur_wname = ai_data.get('worker_name') or getattr(self, '_last_station_worker_name', '')
+            cur_wconf = ai_data.get('worker_confidence', 100.0)
+            cur_phone = ai_data.get('phone_detected', False)
+            cur_kcnt  = ai_data.get('kisi_cnt', 1)
+
             status_payload = self._build_status(
-                genel_durum, genel_renk, curr_fps_val, ai_data.get('kisi_cnt', 0),
-                ai_data.get('worker_name', ''), ai_data.get('worker_confidence', 0.0),
-                ai_data.get('phone_detected', False)
+                cur_durum, cur_renk, curr_fps_val, cur_kcnt,
+                cur_wname, cur_wconf, cur_phone
             )
             self._update_status(status_payload)
             if self.socketio and frame_count % 5 == 0:
