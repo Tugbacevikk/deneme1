@@ -184,11 +184,7 @@ class CameraProcessor:
                 ).order_by(Worker.id.desc())
                 w = session.scalars(stmt).first()
                 if not w:
-                    stmt_any = select(Worker).where(
-                        func.lower(Worker.istasyon_adi) == target_st
-                    ).order_by(Worker.id.desc())
-                    w = session.scalars(stmt_any).first()
-                if not w and self._hostname and self._hostname.startswith('VIDEO:'):
+                    # İstasyona özel çalışan tanımlı değilse sistemdeki aktif çalışana bağla
                     stmt_active = select(Worker).where(Worker.aktif == 1).order_by(Worker.id.asc())
                     w = session.scalars(stmt_active).first()
                     if not w:
@@ -1378,6 +1374,8 @@ class CameraProcessor:
                         with self.db_manager.get_session() as session:
                             for w_item in detected_workers:
                                 w_id = w_item.get('id')
+                                if not w_id or w_id == 0:
+                                    w_id = None
                                 w_name = w_item.get('name') or ''
                                 kayit = DurumKaydi(
                                     istasyon_adi=self._hostname,
@@ -1397,6 +1395,8 @@ class CameraProcessor:
                                 with Session(engine) as pg_session:
                                     for w_item in detected_workers:
                                         w_id = w_item.get('id')
+                                        if not w_id or w_id == 0:
+                                            w_id = None
                                         w_name = w_item.get('name') or ''
                                         pg_kayit = CentralDurumKaydiModel(
                                             istasyon_adi=self._hostname,
