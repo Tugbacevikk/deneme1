@@ -70,8 +70,8 @@ function fetchQuickAlarms() {
         }).catch(() => {});
 }
 
-function loadUploadedVideos() {
-    fetch('/api/video/list?t=' + Date.now())
+function loadUploadedVideos(selectPath = null) {
+    return fetch('/api/video/list?t=' + Date.now())
         .then(r => r.json())
         .then(data => {
             const select = document.getElementById('select-uploaded-video');
@@ -79,6 +79,18 @@ function loadUploadedVideos() {
             if (data.videos && data.videos.length) {
                 select.innerHTML = '<option value="">Yüklenen Videolar...</option>' + 
                     data.videos.map(v => `<option value="${v.path}">${v.filename} (${v.size_mb} MB)</option>`).join('');
+                if (selectPath) {
+                    select.value = selectPath;
+                    if (!select.value && selectPath) {
+                        const fname = String(selectPath).split('/').pop().split('\\').pop();
+                        for (let opt of select.options) {
+                            if (opt.value && opt.value.includes(fname)) {
+                                select.value = opt.value;
+                                break;
+                            }
+                        }
+                    }
+                }
             } else {
                 select.innerHTML = '<option value="">Yüklenen Video Yok</option>';
             }
@@ -237,11 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     showToast('Video başarıyla yüklendi!', 'success');
-                    loadUploadedVideos();
-                    setTimeout(() => {
-                        const select = document.getElementById('select-uploaded-video');
-                        if (select) select.value = data.video_path;
-                    }, 300);
+                    loadUploadedVideos(data.video_path || data.filename);
                 } else {
                     showToast(data.error || data.message || 'Video yüklenemedi', 'error');
                 }

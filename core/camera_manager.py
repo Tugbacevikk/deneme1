@@ -188,6 +188,13 @@ class CameraProcessor:
                         func.lower(Worker.istasyon_adi) == target_st
                     ).order_by(Worker.id.desc())
                     w = session.scalars(stmt_any).first()
+                if not w and self._hostname and self._hostname.startswith('VIDEO:'):
+                    stmt_active = select(Worker).where(Worker.aktif == 1).order_by(Worker.id.asc())
+                    w = session.scalars(stmt_active).first()
+                    if not w:
+                        stmt_all = select(Worker).order_by(Worker.id.asc())
+                        w = session.scalars(stmt_all).first()
+
                 if w:
                     w_id = w.id
                     w_name = f"{w.ad} {w.soyad}".strip()
