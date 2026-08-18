@@ -1223,7 +1223,10 @@ class CameraProcessor:
             # 6. DB Kaydı & SocketIO Yayını (Sıfır Ham SQL - Tam ORM)
             # ----------------------------------------------------------
             current_time = time.time()
-            if current_time - last_save_time >= save_interval:
+            is_video_mode = isinstance(self.camera_id, str) and not str(self.camera_id).isdigit()
+            effective_save_interval = 1.0 if is_video_mode else save_interval
+
+            if (current_time - last_save_time >= effective_save_interval) or (is_video_mode and frame_count % 15 == 0):
                 if last_save_time == 0 or (current_time - last_save_time > 15):
                     elapsed_seconds = save_interval
                 else:

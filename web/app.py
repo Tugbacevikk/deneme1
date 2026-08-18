@@ -616,16 +616,23 @@ def api_start_camera():
         except Exception:
             pass
 
+    is_video_source = isinstance(target_source, str) and not str(target_source).isdigit() and ('.' in str(target_source) or '/' in str(target_source) or '\\' in str(target_source))
+
     cfg = dict(config)
     cfg['camera_id'] = target_source
 
-    local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
-    if local_st and local_st.lower() != 'auto':
-        cfg['station_name'] = local_st
-        cfg['istasyon_adi'] = local_st
-    elif station_override:
-        cfg['station_name'] = station_override
-        cfg['istasyon_adi'] = station_override
+    if is_video_source:
+        vid_name = Path(target_source).name
+        cfg['station_name'] = f"VIDEO: {vid_name}"
+        cfg['istasyon_adi'] = f"VIDEO: {vid_name}"
+    else:
+        local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
+        if local_st and local_st.lower() != 'auto':
+            cfg['station_name'] = local_st
+            cfg['istasyon_adi'] = local_st
+        elif station_override:
+            cfg['station_name'] = station_override
+            cfg['istasyon_adi'] = station_override
 
 
     if ext.camera_processor is None:
