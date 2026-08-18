@@ -76,20 +76,26 @@ function loadUploadedVideos(selectPath = null) {
         .then(data => {
             const select = document.getElementById('select-uploaded-video');
             if (!select) return;
+            const currentVal = select.value;
             if (data.videos && data.videos.length) {
                 select.innerHTML = '<option value="">Yüklenen Videolar...</option>' + 
                     data.videos.map(v => `<option value="${v.path}">${v.filename} (${v.size_mb} MB)</option>`).join('');
-                if (selectPath) {
-                    select.value = selectPath;
-                    if (!select.value && selectPath) {
-                        const fname = String(selectPath).split('/').pop().split('\\').pop();
-                        for (let opt of select.options) {
-                            if (opt.value && opt.value.includes(fname)) {
-                                select.value = opt.value;
+                
+                const target = selectPath || currentVal;
+                if (target) {
+                    select.value = target;
+                    if (!select.value) {
+                        const fname = String(target).split('/').pop().split('\\').pop();
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value && select.options[i].value.includes(fname)) {
+                                select.selectedIndex = i;
                                 break;
                             }
                         }
                     }
+                }
+                if (!select.value && select.options.length > 1) {
+                    select.selectedIndex = select.options.length - 1;
                 }
             } else {
                 select.innerHTML = '<option value="">Yüklenen Video Yok</option>';
@@ -273,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .finally(() => {
                 btnChoose.disabled = false;
                 btnChoose.innerHTML = '<i class="fa-solid fa-upload" style="color:var(--accent);"></i> Video Yükle';
+                this.value = '';
             });
         });
     }
