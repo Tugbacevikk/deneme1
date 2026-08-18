@@ -640,6 +640,7 @@ class CameraProcessor:
 
             roi_x1, roi_y1 = int(w * max(0.0, min(1.0, x1_r))), int(h * max(0.0, min(1.0, y1_r)))
             roi_x2, roi_y2 = int(w * max(0.0, min(1.0, x2_r))), int(h * max(0.0, min(1.0, y2_r)))
+            roi_crop = raw_frame[roi_y1:roi_y2, roi_x1:roi_x2]
 
             # 2. Telefon Tespiti (YOLOv8 Det - Staggered Pipeline)
             phone_detected_raw = False
@@ -719,9 +720,9 @@ class CameraProcessor:
                 try:
                     hsv_roi = cv2.cvtColor(roi_crop, cv2.COLOR_BGR2HSV)
                     v_channel = hsv_roi[:, :, 2]
-                    _, bright_mask = cv2.threshold(v_channel, 230, 255, cv2.THRESH_BINARY)
+                    _, bright_mask = cv2.threshold(v_channel, 210, 255, cv2.THRESH_BINARY)
                     bright_pixels = cv2.countNonZero(bright_mask)
-                    if 10 <= bright_pixels <= 100000:
+                    if bright_pixels >= 100:
                         welding_detected_raw = True
                 except Exception:
                     pass
