@@ -669,8 +669,8 @@ class CameraProcessor:
                             # Kutu ile ROI Alanının Kesişimi Kontrolü
                             intersects_roi = (bx1 < roi_x2 and bx2 > roi_x1 and by1 < roi_y2 and by2 > roi_y1)
 
-                            # COCO Class 0 = Person (İşçi İnsan Tespiti - %10 Hassasiyet)
-                            if cls_id == 0 and conf_val >= 0.10:
+                            # İnsan / İşçi Tespiti (Telefon Haricindeki Herhangi Bir Beden/İnsan Kutusu)
+                            if cls_id != COCO_CELL_PHONE and conf_val >= 0.10:
                                 if intersects_roi:
                                     person_detected_in_det = True
                             
