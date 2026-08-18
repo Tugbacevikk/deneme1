@@ -34,14 +34,16 @@ def get_all_workers(aktif_only=False):
 
 
 def get_all_stations():
-    """Sistemdeki mevcut tüm benzersiz istasyon adlarını dinamik olarak döndürür."""
+    """Sistemdeki mevcut tüm benzersiz istasyon adlarını (video yayınları dahil) dinamik olarak döndürür."""
     with _get_worker_session() as sess:
         stmt_c = select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None))
         stmt_w = select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None))
+        stmt_d = select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None))
         cam_st = sess.scalars(stmt_c).all()
         w_st = sess.scalars(stmt_w).all()
+        d_st = sess.scalars(stmt_d).all()
         all_st = set()
-        for s in list(cam_st) + list(w_st):
+        for s in list(cam_st) + list(w_st) + list(d_st):
             if s and str(s).strip():
                 all_st.add(str(s).strip())
         if not all_st:

@@ -1331,6 +1331,28 @@ class CameraProcessor:
                                     gonderildi=0
                                 )
                                 session.add(kayit)
+
+                        try:
+                            from pg_sync import pg_baglan, CentralDurumKaydiModel
+                            from sqlalchemy.orm import Session
+                            engine = pg_baglan()
+                            if engine:
+                                with Session(engine) as pg_session:
+                                    for w_item in detected_workers:
+                                        w_id = w_item.get('id')
+                                        w_name = w_item.get('name') or ''
+                                        pg_kayit = CentralDurumKaydiModel(
+                                            istasyon_adi=self._hostname,
+                                            zaman=zaman_str,
+                                            durum=genel_durum,
+                                            worker_id=w_id,
+                                            worker_adi=w_name,
+                                            gonderildi=1
+                                        )
+                                        pg_session.add(pg_kayit)
+                                    pg_session.commit()
+                        except Exception:
+                            pass
                     except Exception as e:
                         logger.warning(f"Durum kaydı ORM hatası: {e}")
 

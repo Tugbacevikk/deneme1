@@ -315,8 +315,9 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
             stmt = stmt.group_by(tarih_col, istasyon_col).order_by(desc('tarih'), desc('toplam_kayit'))
             rows = session_orm.execute(stmt).all()
 
-            # Eğer PostgreSQL ortamından 0 kayıt geldiyse yerel SQLite veritabanından çek (Yedekleme garantisi)
-            if not rows and model_cls != DurumKaydi:
+            # Eğer PostgreSQL aktifse bile yerel SQLite'taki video analiz kayıtlarını da birleştir
+            rows = list(rows) if rows else []
+            if model_cls != DurumKaydi:
                 try:
                     with db_manager.get_session() as local_sess:
                         filters_l = _build_orm_filters(start, end, istasyon, worker=worker, patron_id=patron_id, model_cls=DurumKaydi)
@@ -338,11 +339,14 @@ def get_worker_stats_rows(start='', end='', istasyon='', worker='', patron_id=No
                         if filters_l:
                             stmt_l = stmt_l.where(and_(*filters_l))
                         stmt_l = stmt_l.group_by(tarih_col_l, ist_col_l).order_by(desc('tarih'), desc('toplam_kayit'))
-                        rows = local_sess.execute(stmt_l).all()
-                        session_orm = local_sess
-                        model_cls = DurumKaydi
+                        rows_l = local_sess.execute(stmt_l).all()
+                        
+                        existing_keys = {(r.tarih, r.istasyon_adi) for r in rows}
+                        for r_l in rows_l:
+                            if (r_l.tarih, r_l.istasyon_adi) not in existing_keys:
+                                rows.append(r_l)
                 except Exception as ex_l:
-                    logger.debug(f"SQLite yedek sorgu hatası: {ex_l}")
+                    logger.debug(f"SQLite birleştirme hatası: {ex_l}")
 
             for r in rows:
                 st_name = r.istasyon_adi
