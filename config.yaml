@@ -14,10 +14,10 @@ merkezi_db:
   port: 5432
   sifre: admin123
 pg_retention_days: 60
-roi_x1: 0.08
+roi_x1: 0.05
 roi_x2: 0.84
 roi_y1: 0
-roi_y2: 0.98
+roi_y2: 0.99
 saturation: 1.15
 smtp_host: smtp.gmail.com
 smtp_password: admin123

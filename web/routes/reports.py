@@ -592,7 +592,7 @@ def api_reports_worker_detail():
                     else:
                         next_dt = datetime.datetime.strptime(next_str[:19], '%Y-%m-%d %H:%M:%S')
                     gap = int((next_dt - z_dt).total_seconds())
-                    dur_sec = gap if (0 < gap <= 300) else save_interval
+                    dur_sec = int(gap) if 0 < gap <= 15 else save_interval
                 except Exception:
                     dur_sec = save_interval
             else:
@@ -603,10 +603,10 @@ def api_reports_worker_detail():
                 hourly_telefon[h] += dur_sec
             elif 'KAYNAK' in st:
                 hourly_kaynak[h] += dur_sec
-            elif 'İNAKTİF' in st or 'INAKTIF' in st or 'NAKT' in st:
-                hourly_inaktif[h] += dur_sec
             elif st.startswith('AKT'):
                 hourly_aktif[h] += dur_sec
+            else:
+                hourly_inaktif[h] += dur_sec
 
         total_calc = max(toplam_sec, 1)
         aktif_pct = round((aktif_sec / total_calc * 100), 1)
