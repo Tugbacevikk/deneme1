@@ -191,7 +191,7 @@ def api_settings_cleanup_db():
     data = request.get_json() or {}
     days = int(data.get('days', 30))
     deleted_count = db_manager.cleanup_old_records(days=days)
-    return jsonify({'success': True, 'message': f'{days} günden eski {deleted_count} adet ham kayıt başarıyla temizlendi.', 'count': deleted_count})
+    return jsonify({'success': True, 'message': f'{days} günden eski {deleted_count} adet durum ve sistem kaydı başarıyla temizlendi.', 'count': deleted_count})
 
 
 @settings_bp.route('/api/settings/theme', methods=['POST'])
