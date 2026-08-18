@@ -136,6 +136,35 @@ def request_entity_too_large(error):
     return jsonify({'success': False, 'error': 'Yüklenen video dosyası çok büyük! (Maksimum 500 MB yükleyebilirsiniz.)'}), 413
 app.config['SESSION_PERMANENT'] = False
 
+_last_clock_sync_time = 0.0
+
+def _auto_sync_system_clock():
+    """Raspberry Pi veya sunucu saatini merkezi PostgreSQL sunucu saati ile otomatik eşitler."""
+    global _last_clock_sync_time
+    now_t = time.time()
+    if now_t - _last_clock_sync_time < 600:
+        return
+    _last_clock_sync_time = now_t
+    try:
+        from pg_sync import pg_baglan
+        from sqlalchemy import text
+        engine = pg_baglan()
+        if engine:
+            with engine.connect() as conn:
+                res = conn.execute(text("SELECT NOW()")).scalar()
+                if res and hasattr(res, 'strftime'):
+                    import platform, subprocess
+                    if platform.system() != 'Windows':
+                        pg_time_str = res.strftime("%Y-%m-%d %H:%M:%S")
+                        subprocess.run(f"echo ucge123 | sudo -S date -s '{pg_time_str}'", shell=True, capture_output=True)
+                        logger.info(f"Sistem saati otomatik olarak merkezi sunucu saatine ({pg_time_str}) eşitlendi.")
+    except Exception as e:
+        logger.debug(f"Otomatik saat senkronizasyon hatası: {e}")
+
+@app.before_request
+def auto_clock_sync_hook():
+    _auto_sync_system_clock()
+
 from web.extensions import socketio, config, camera_processor, face_recognizer, last_status
 import web.extensions as ext
 
