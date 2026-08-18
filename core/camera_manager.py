@@ -1445,14 +1445,13 @@ class CameraProcessor:
                     except Exception as e:
                         logger.debug(f"SocketIO emit hatası: {e}")
 
-            # Video dosyası oynatılıyorsa yüksek hızlı & akıcı kare pacing sağla (Maks 10ms uyku)
-            if getattr(self, 'video_fps', None):
-                v_fps = max(30.0, float(self.video_fps))
-                target_delay = 1.0 / v_fps
+            # Video dosyası oynatılıyorsa doğal (1.0x gerçek zamanlı) kare hızında oynat
+            if getattr(self, 'video_fps', None) and self.video_fps > 0:
+                target_delay = 1.0 / float(self.video_fps)
                 proc_time = time.time() - loop_start
                 sleep_time = target_delay - proc_time
                 if sleep_time > 0:
-                    time.sleep(min(0.010, sleep_time))
+                    time.sleep(sleep_time)
 
         if cap:
             cap.release()
