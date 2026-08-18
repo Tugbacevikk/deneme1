@@ -694,12 +694,11 @@ class CameraProcessor:
 
 
 
-            # 2.5 Kaynak Tespiti (YOLOv8 Det + Parlak Ark Çakması Tespiti)
+            # 2.5 Kaynak Tespiti (YOLOv8 Det + Video Ark Çakması Tespiti)
             welding_detected_raw = False
             welding_boxes_raw = []
-            welding_conf_thresh = float(self.cfg.get('welding_conf', 0.15))
-
             weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
+            is_video_mode = isinstance(self.camera_id, str) and not str(self.camera_id).isdigit()
 
             if self._welding_model is not None and (ai_frame_count % 2 == 0 or not hasattr(self, '_last_welding_results')):
                 try:
@@ -715,8 +714,8 @@ class CameraProcessor:
                             welding_boxes_raw.append((wx1, wy1, wx2, wy2))
                             welding_detected_raw = True
 
-            # Parlak Kaynak Ark Çakması & Işık Tespiti (Görsel HSV Parlaklık Analizi)
-            if not welding_detected_raw and roi_crop.size > 0:
+            # Sadece video oynatma modunda parlak kaynak ark çakması analizi yap (Fiziksel masa kamerasını koru)
+            if is_video_mode and not welding_detected_raw and roi_crop.size > 0:
                 try:
                     hsv_roi = cv2.cvtColor(roi_crop, cv2.COLOR_BGR2HSV)
                     v_channel = hsv_roi[:, :, 2]
