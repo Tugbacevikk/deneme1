@@ -342,7 +342,16 @@ class CameraProcessor:
 
             for target in clean_candidates:
                 try:
-                    if system == 'Windows':
+                    is_file = isinstance(target, str) and not str(target).isdigit() and ('.' in str(target) or '/' in str(target) or '\\' in str(target))
+                    if is_file:
+                        cap = cv2.VideoCapture(str(target), cv2.CAP_FFMPEG)
+                        if not (cap and cap.isOpened()):
+                            if cap: cap.release()
+                            cap = cv2.VideoCapture(str(target))
+                        if cap and cap.isOpened():
+                            fps_v = cap.get(cv2.CAP_PROP_FPS)
+                            self.video_fps = fps_v if (fps_v and 10 <= fps_v <= 120) else 25.0
+                    elif system == 'Windows':
                         if isinstance(target, int):
                             cap = cv2.VideoCapture(target, cv2.CAP_DSHOW)
                             if not (cap and cap.isOpened()):
@@ -357,12 +366,9 @@ class CameraProcessor:
                                 if cap: cap.release()
                                 cap = cv2.VideoCapture(target, cv2.CAP_ANY)
                         else:
-                            cap = cv2.VideoCapture(str(target), cv2.CAP_V4L2)
-                            if not (cap and cap.isOpened()):
-                                if cap: cap.release()
-                                cap = cv2.VideoCapture(str(target))
+                            cap = cv2.VideoCapture(str(target))
 
-                    if cap and cap.isOpened():
+                    if cap and cap.isOpened() and not is_file:
                         if system != 'Windows':
                             try:
                                 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -1199,15 +1205,15 @@ class CameraProcessor:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.60, t_color, 2, cv2.LINE_AA)
                     panel_y += 42
 
-            # Her kareyi anında JPEG olarak kodla (Frame skip kaldırıldı - 30-60 FPS ultra akıcı)
-            if annotated_frame.shape[1] > 640:
-                target_w = 640
-                target_h = int(640 * annotated_frame.shape[0] / annotated_frame.shape[1])
-                encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+            # HD Netliğinde Yüksek Kaliteli Canlı Yayın (1280px HD + %80 JPEG Kalitesi)
+            if annotated_frame.shape[1] > 1280:
+                target_w = 1280
+                target_h = int(1280 * annotated_frame.shape[0] / annotated_frame.shape[1])
+                encode_frame = cv2.resize(annotated_frame, (target_w, target_h), interpolation=cv2.INTER_AREA)
             else:
                 encode_frame = annotated_frame
 
-            _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+            _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
             jpeg_bytes = jpeg_buf.tobytes()
 
             with self._frame_lock:
