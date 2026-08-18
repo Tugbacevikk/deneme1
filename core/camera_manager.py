@@ -654,7 +654,7 @@ class CameraProcessor:
             det_imgsz = int(self.cfg.get('det_imgsz', 320))
             if self._det_model is not None and (ai_frame_count % 2 == 0 or not hasattr(self, '_last_det_results')):
                 try:
-                    self._last_det_results = self._det_model(raw_frame, conf=0.10, classes=[0, COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
+                    self._last_det_results = self._det_model(raw_frame, conf=0.10, imgsz=det_imgsz, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Nesne tespit hatası: {e}")
 
@@ -790,8 +790,13 @@ class CameraProcessor:
                         kisi_takip.setdefault(kisi_idx, {"prev": None, "inactive": 0})
                         durum_dict = kisi_takip[kisi_idx]
 
-                        merkez = kp[0, :2] if kp[0, 2] > 0.3 else visible_kps.mean(axis=0)
-                        kisi_in_roi = (roi_x1 <= merkez[0] <= roi_x2 and roi_y1 <= merkez[1] <= roi_y2)
+                        merkez = kp[0, :2] if kp[0, 2] > 0.15 else visible_kps.mean(axis=0)
+                        px_min, py_min = visible_kps[:, 0].min(), visible_kps[:, 1].min()
+                        px_max, py_max = visible_kps[:, 0].max(), visible_kps[:, 1].max()
+                        kisi_in_roi = bool(
+                            person_detected_in_det or 
+                            (px_min <= (roi_x2 + 80) and px_max >= (roi_x1 - 80) and py_min <= (roi_y2 + 80) and py_max >= (roi_y1 - 80))
+                        )
 
                         top_y = max(25, int(visible_kps[:, 1].min()) - 15)
                         top_x = max(10, int(visible_kps[:, 0].mean()) - 60)
