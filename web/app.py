@@ -500,7 +500,7 @@ UPLOAD_VIDEO_DIR = BASE_DIR / 'web' / 'static' / 'uploads' / 'videos'
 UPLOAD_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 @app.route('/api/video/upload', methods=['POST'])
-@admin_required
+@login_required
 def api_upload_video():
     if 'video' not in request.files:
         return jsonify({'success': False, 'error': 'Video dosyası bulunamadı.'}), 400
@@ -512,17 +512,21 @@ def api_upload_video():
     if ext not in ['.mp4', '.avi', '.mov', '.mkv', '.webm']:
         return jsonify({'success': False, 'error': 'Desteklenmeyen video formatı! (.mp4, .avi, .mov, .mkv, .webm)'}), 400
 
-    # Aynı isimde başka bir videonun önceden yüklenip yüklenmediğini kontrol et (şişmeyi önlemek için)
-    safe_name = secure_filename(file.filename).lower()
+    raw_stem = Path(file.filename).stem
+    safe_stem = secure_filename(raw_stem)
+    if not safe_stem:
+        safe_stem = f"video_{int(time.time())}"
+    safe_filename = f"{safe_stem}{ext}"
+
     if UPLOAD_VIDEO_DIR.exists():
         for f in UPLOAD_VIDEO_DIR.glob('*'):
-            if f.name.lower().endswith(f"_{safe_name}"):
+            if f.name.lower().endswith(f"_{safe_filename.lower()}"):
                 return jsonify({
                     'success': False, 
                     'error': f'"{file.filename}" isimli video zaten sistemde mevcut! Lütfen listeden seçin veya ismini değiştirip tekrar yükleyin.'
                 }), 400
 
-    filename = f"video_{int(time.time())}_{secure_filename(file.filename)}"
+    filename = f"video_{int(time.time())}_{safe_filename}"
     save_path = UPLOAD_VIDEO_DIR / filename
     file.save(str(save_path))
     
@@ -550,7 +554,7 @@ def api_list_videos():
 
 
 @app.route('/api/video/delete', methods=['POST', 'DELETE'])
-@admin_required
+@login_required
 def api_delete_video():
     data = request.get_json() or {}
     filename = data.get('filename') or data.get('video_path')
