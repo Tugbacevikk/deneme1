@@ -572,14 +572,19 @@ def api_upload_video():
 def api_list_videos():
     videos = []
     if UPLOAD_VIDEO_DIR.exists():
-        for f in UPLOAD_VIDEO_DIR.glob('*'):
+        files_sorted = sorted(UPLOAD_VIDEO_DIR.glob('*'), key=lambda x: x.stat().st_mtime, reverse=True)
+        for f in files_sorted:
             if f.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv', '.webm']:
                 videos.append({
                     'filename': f.name,
                     'path': str(f.resolve()),
                     'size_mb': round(f.stat().st_size / (1024 * 1024), 2)
                 })
-    return jsonify({'videos': videos})
+    res = jsonify({'videos': videos})
+    res.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    res.headers['Pragma'] = 'no-cache'
+    res.headers['Expires'] = '0'
+    return res
 
 
 @app.route('/api/video/delete', methods=['POST', 'DELETE'])

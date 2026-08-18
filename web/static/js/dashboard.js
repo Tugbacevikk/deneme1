@@ -95,7 +95,7 @@ function loadUploadedVideos(selectPath = null) {
                     }
                 }
                 if (!select.value && select.options.length > 1) {
-                    select.selectedIndex = select.options.length - 1;
+                    select.selectedIndex = 1;
                 }
             } else {
                 select.innerHTML = '<option value="">Yüklenen Video Yok</option>';
@@ -271,6 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     showToast('Video başarıyla yüklendi!', 'success');
                     loadUploadedVideos(data.video_path || data.filename);
+                    setTimeout(() => {
+                        loadUploadedVideos(data.video_path || data.filename);
+                    }, 400);
                 } else {
                     showToast(data.error || data.message || 'Video yüklenemedi', 'error');
                 }
