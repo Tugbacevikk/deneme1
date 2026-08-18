@@ -319,18 +319,21 @@ class CameraProcessor:
 
         for attempt in range(max_attempts):
             candidates = []
-            if system == 'Windows':
+            is_video_file = isinstance(cam_id, str) and not str(cam_id).isdigit() and ('.' in str(cam_id) or '/' in str(cam_id) or '\\' in str(cam_id))
+            if is_video_file:
+                candidates = [str(cam_id)]
+            elif system == 'Windows':
                 if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
                     c_idx = int(cam_id)
                     candidates = [c_idx, 0, 1, 2]
                 else:
-                    candidates = [str(cam_id), 0, 1]
+                    candidates = [str(cam_id)]
             else:
                 if isinstance(cam_id, int) or (isinstance(cam_id, str) and str(cam_id).isdigit()):
                     c_idx = int(cam_id)
                     candidates = [c_idx, 0, 1, 2, "/dev/video0", "/dev/video1"]
                 else:
-                    candidates = [str(cam_id), 0, 1, "/dev/video0"]
+                    candidates = [str(cam_id)]
 
             # Tekrarları temizle, sırayı koru
             seen_c = set()
@@ -344,10 +347,14 @@ class CameraProcessor:
                 try:
                     is_file = isinstance(target, str) and not str(target).isdigit() and ('.' in str(target) or '/' in str(target) or '\\' in str(target))
                     if is_file:
-                        cap = cv2.VideoCapture(str(target), cv2.CAP_FFMPEG)
+                        target_path = Path(target)
+                        if not target_path.exists():
+                            logger.error(f"Video dosyası diskte bulunamadı: {target}")
+                            continue
+                        cap = cv2.VideoCapture(str(target_path.resolve()))
                         if not (cap and cap.isOpened()):
                             if cap: cap.release()
-                            cap = cv2.VideoCapture(str(target))
+                            cap = cv2.VideoCapture(str(target_path.resolve()), cv2.CAP_FFMPEG)
                         if cap and cap.isOpened():
                             fps_v = cap.get(cv2.CAP_PROP_FPS)
                             self.video_fps = fps_v if (fps_v and 10 <= fps_v <= 120) else 25.0

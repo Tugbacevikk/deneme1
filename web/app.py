@@ -292,13 +292,13 @@ def generate_frames():
                     # Görüntü henüz kodlanmadıysa ham frame alıp dene
                     raw_frame = ext.camera_processor.get_current_frame()
                     if raw_frame is not None:
-                        if raw_frame.shape[1] > 640:
-                            target_w = 640
-                            target_h = int(640 * raw_frame.shape[0] / raw_frame.shape[1])
-                            encode_frame = cv2.resize(raw_frame, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+                        if raw_frame.shape[1] > 1280:
+                            target_w = 1280
+                            target_h = int(1280 * raw_frame.shape[0] / raw_frame.shape[1])
+                            encode_frame = cv2.resize(raw_frame, (target_w, target_h), interpolation=cv2.INTER_AREA)
                         else:
                             encode_frame = raw_frame
-                        _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                        _, jpeg_buf = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
                         jpeg_bytes = jpeg_buf.tobytes()
 
                 if jpeg_bytes is not None:
