@@ -652,9 +652,9 @@ class CameraProcessor:
             person_detected_in_det = False
 
             det_imgsz = int(self.cfg.get('det_imgsz', 320))
-            if self._det_model is not None and (ai_frame_count % 3 == 0 or not hasattr(self, '_last_det_results')):
+            if self._det_model is not None and (ai_frame_count % 2 == 0 or not hasattr(self, '_last_det_results')):
                 try:
-                    self._last_det_results = self._det_model(raw_frame, conf=0.20, classes=[0, COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
+                    self._last_det_results = self._det_model(raw_frame, conf=0.10, classes=[0, COCO_CELL_PHONE], imgsz=det_imgsz, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Nesne tespit hatası: {e}")
 
@@ -666,23 +666,25 @@ class CameraProcessor:
                             conf_val = float(box.conf[0].cpu().numpy()) if hasattr(box.conf[0], 'cpu') else float(box.conf[0])
                             bx1, by1, bx2, by2 = map(int, box.xyxy[0].cpu().numpy())
                             
-                            # COCO Class 0 = Person (İşçi İnsan Tespiti)
-                            if cls_id == 0 and conf_val >= 0.20:
-                                cx = (bx1 + bx2) / 2.0
-                                cy = (by1 + by2) / 2.0
-                                if roi_x1 <= cx <= roi_x2 and roi_y1 <= cy <= roi_y2:
+                            # Kutu ile ROI Alanının Kesişimi Kontrolü
+                            intersects_roi = (bx1 < roi_x2 and bx2 > roi_x1 and by1 < roi_y2 and by2 > roi_y1)
+
+                            # COCO Class 0 = Person (İşçi İnsan Tespiti - %10 Hassasiyet)
+                            if cls_id == 0 and conf_val >= 0.10:
+                                if intersects_roi:
                                     person_detected_in_det = True
                             
                             # COCO Class 67 = Cell Phone (Telefon Tespiti)
                             elif cls_id == COCO_CELL_PHONE and conf_val >= phone_conf_thresh:
-                                bw = abs(bx2 - bx1)
-                                bh = abs(by2 - by1)
-                                area = bw * bh
-                                if 15 <= bw <= 450 and 20 <= bh <= 550 and 300 <= area <= 150000:
-                                    aspect_ratio = bh / float(bw) if bw > 0 else 0
-                                    if 0.30 <= aspect_ratio <= 4.0:
-                                        phone_boxes_raw.append((bx1, by1, bx2, by2))
-                                        phone_detected_raw = True
+                                if intersects_roi:
+                                    bw = abs(bx2 - bx1)
+                                    bh = abs(by2 - by1)
+                                    area = bw * bh
+                                    if 15 <= bw <= 450 and 20 <= bh <= 550 and 300 <= area <= 150000:
+                                        aspect_ratio = bh / float(bw) if bw > 0 else 0
+                                        if 0.30 <= aspect_ratio <= 4.0:
+                                            phone_boxes_raw.append((bx1, by1, bx2, by2))
+                                            phone_detected_raw = True
 
             now_t = time.time()
             if phone_detected_raw:
