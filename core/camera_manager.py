@@ -931,15 +931,6 @@ class CameraProcessor:
             any_phone = any(p.get('has_phone', False) for p in person_track_list) or phone_detected_in_roi
             any_welding = welding_detected_in_roi or any(p.get('is_welding', False) for p in person_track_list)
 
-            now_t = time.time()
-            if len(gorulen_kisi_id) > 0 or any_welding:
-                self._last_worker_seen_time = now_t
-
-            # 5 saniyelik tolerans/geçiş hafızası
-            is_recently_seen = (now_t - getattr(self, '_last_worker_seen_time', 0.0) < 5.0)
-
-            kisi_var = (len(gorulen_kisi_id) > 0) or is_recently_seen or any_welding or bool(person_track_list) or (roi_crop.size > 0)
-
             herhangi_inaktif = any(not p.get('is_active', True) for p in person_track_list) if person_track_list else False
             herhangi_aktif = any(p.get('is_active', False) for p in person_track_list) if person_track_list else False
 
@@ -949,18 +940,12 @@ class CameraProcessor:
             elif any_welding:
                 genel_durum = DURUM_KAYNAK
                 genel_renk  = '#06B6D4'
-            elif herhangi_aktif or kisi_var:
-                genel_durum = DURUM_AKTIF
-                genel_renk  = '#10B981'
-            elif herhangi_inaktif:
+            elif herhangi_inaktif and not herhangi_aktif and not aktif_kisi_var:
                 genel_durum = DURUM_INAKTIF
                 genel_renk  = '#F59E0B'
-            elif not kisi_var:
-                genel_durum = DURUM_TESPIT_YOK
-                genel_renk  = '#888888'
             else:
-                genel_durum = DURUM_TOLERANS
-                genel_renk  = '#3B82F6'
+                genel_durum = DURUM_AKTIF
+                genel_renk  = '#10B981'
 
             max_inact_cnt = max([d.get("inactive", 0) for d in kisi_takip.values()], default=0)
             inact_sec = min(round(max_inact_cnt / 30.0, 1), limit_sec)
