@@ -694,15 +694,14 @@ class CameraProcessor:
 
 
 
-            # 2.5 Kaynak Tespiti (YOLOv8 Det + Video Ark Çakması Tespiti)
+            # 2.5 Kaynak Tespiti (YOLOv8 Det - Hassas Yapay Zeka Tespiti)
             welding_detected_raw = False
             welding_boxes_raw = []
             weld_imgsz = int(self.cfg.get('welding_imgsz', 320))
-            is_video_mode = isinstance(self.camera_id, str) and not str(self.camera_id).isdigit()
 
             if self._welding_model is not None and (ai_frame_count % 2 == 0 or not hasattr(self, '_last_welding_results')):
                 try:
-                    self._last_welding_results = self._welding_model(raw_frame, conf=0.15, imgsz=weld_imgsz, verbose=False)
+                    self._last_welding_results = self._welding_model(raw_frame, conf=0.025, imgsz=weld_imgsz, verbose=False)
                 except Exception as e:
                     logger.debug(f"AI Kaynak tespit hatası: {e}")
 
@@ -713,18 +712,6 @@ class CameraProcessor:
                             wx1, wy1, wx2, wy2 = map(int, box.xyxy[0].cpu().numpy())
                             welding_boxes_raw.append((wx1, wy1, wx2, wy2))
                             welding_detected_raw = True
-
-            # Sadece video oynatma modunda parlak kaynak ark çakması analizi yap (Fiziksel masa kamerasını koru)
-            if is_video_mode and not welding_detected_raw and roi_crop.size > 0:
-                try:
-                    hsv_roi = cv2.cvtColor(roi_crop, cv2.COLOR_BGR2HSV)
-                    v_channel = hsv_roi[:, :, 2]
-                    _, bright_mask = cv2.threshold(v_channel, 210, 255, cv2.THRESH_BINARY)
-                    bright_pixels = cv2.countNonZero(bright_mask)
-                    if bright_pixels >= 100:
-                        welding_detected_raw = True
-                except Exception:
-                    pass
 
             # 4.0 Saniyelik kaynak hassasiyet hafızası (ark çakmaları arasındaki kısa duraksamaları yumuşatmak için)
             now_w_t = time.time()
