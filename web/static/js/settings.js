@@ -545,6 +545,22 @@ async function executeDBCleanup() {
     });
 }
 
+async function shutdownSystem() {
+    const ok = await showConfirm('Raspberry Pi cihazını güvenli bir şekilde KAPATMAK istediğinizden emin misiniz? Kapanma bitip (yeşil ışık söndükten) sonra fişi çekebilirsiniz.', { title: 'Güvenli Kapat', okText: 'Evet, Kapat' });
+    if (!ok) return;
+
+    fetch('/api/system/shutdown', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+            } else {
+                showToast(data.message || 'Kapatma hatası', 'error');
+            }
+        })
+        .catch(() => showToast('Kapatma komutu gönderildi. Cihaz kapanıyor...', 'info'));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
 });

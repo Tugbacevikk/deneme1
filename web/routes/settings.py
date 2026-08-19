@@ -209,3 +209,23 @@ def api_settings_theme():
     theme = data.get('theme', 'dark')
     session['theme'] = theme
     return jsonify({'success': True, 'theme': theme})
+
+
+@settings_bp.route('/api/system/shutdown', methods=['POST'])
+@admin_required
+def api_system_shutdown():
+    import sys, subprocess
+    try:
+        if sys.platform.startswith('linux'):
+            try:
+                subprocess.Popen(['sudo', 'systemctl', 'poweroff'])
+            except Exception:
+                try:
+                    subprocess.Popen(['sudo', 'shutdown', '-h', 'now'])
+                except Exception:
+                    subprocess.Popen(['sudo', 'poweroff'])
+            return jsonify({'success': True, 'message': 'Raspberry Pi sistemi güvenli bir şekilde kapatılıyor. Yeşil ışık söndükten sonra fişi çekebilirsiniz.'})
+        else:
+            return jsonify({'success': False, 'message': 'Sadece Raspberry Pi (Linux) üzerinde çalışır.'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Kapatma hatası: {e}'}), 500
