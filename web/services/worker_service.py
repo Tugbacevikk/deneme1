@@ -34,7 +34,7 @@ def get_all_workers(aktif_only=False):
 
 
 def get_all_stations():
-    """Sistemdeki mevcut tüm benzersiz istasyon adlarını (video yayınları dahil) dinamik olarak döndürür."""
+    """Sistemdeki mevcut tüm benzersiz gerçek istasyon adlarını dinamik olarak döndürür (video adları hariç)."""
     with _get_worker_session() as sess:
         stmt_c = select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None))
         stmt_w = select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None))
@@ -45,7 +45,9 @@ def get_all_stations():
         all_st = set()
         for s in list(cam_st) + list(w_st) + list(d_st):
             if s and str(s).strip():
-                all_st.add(str(s).strip())
+                val = str(s).strip()
+                if not val.startswith("VIDEO:") and not val.lower().endswith((".mp4", ".avi", ".mkv", ".mov")):
+                    all_st.add(val)
         if not all_st:
             all_st = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4'}
         import re
