@@ -110,10 +110,11 @@ def api_reports_summary():
                             ))
                     toplam_calisan = w_session.scalar(stmt_workers) or 0
 
-        aktif_sure_dk = round((aktif_cnt * save_interval) / 60.0, 1)
-        kaynak_sure_dk = round((kaynak_cnt * save_interval) / 60.0, 1)
-        inaktif_sure_dk = round((inaktif_cnt * save_interval) / 60.0, 1)
-        toplam_sure_dk = aktif_sure_dk + kaynak_sure_dk + inaktif_sure_dk
+        calc_res = _calculate_worker_durations(session_orm, start_date=start, end_date=end, istasyon=istasyon, worker_name=worker, save_interval=save_interval, model_cls=model_cls)
+        aktif_sure_dk = round(calc_res['aktif_sec'] / 60.0, 1)
+        kaynak_sure_dk = round(calc_res['kaynak_sec'] / 60.0, 1)
+        inaktif_sure_dk = round((calc_res['inaktif_sec'] + calc_res['telefon_sec']) / 60.0, 1)
+        toplam_sure_dk = round(calc_res['toplam_sec'] / 60.0, 1)
         verimlilik = round(((aktif_sure_dk + kaynak_sure_dk) / toplam_sure_dk * 100), 1) if toplam_sure_dk > 0 else 0.0
 
         return jsonify({

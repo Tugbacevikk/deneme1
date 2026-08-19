@@ -91,9 +91,9 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
                 next_dt = z_dt
 
             gap = (next_dt - z_dt).total_seconds()
-            dur = int(gap) if 0 < gap <= 15 else save_interval
+            dur = float(gap) if 0.0 < gap <= 15.0 else float(save_interval)
         else:
-            dur = save_interval
+            dur = float(save_interval)
 
         if cat == 'KAYNAK':
             kaynak_sec += dur
@@ -107,11 +107,11 @@ def _calculate_worker_durations(session_orm, worker_id=None, worker_name='', sta
     toplam_sec = aktif_sec + kaynak_sec + inaktif_sec + telefon_sec
 
     return {
-        'aktif_sec': aktif_sec,
-        'kaynak_sec': kaynak_sec,
-        'inaktif_sec': inaktif_sec,
-        'telefon_sec': telefon_sec,
-        'toplam_sec': toplam_sec,
+        'aktif_sec': round(aktif_sec, 1),
+        'kaynak_sec': round(kaynak_sec, 1),
+        'inaktif_sec': round(inaktif_sec, 1),
+        'telefon_sec': round(telefon_sec, 1),
+        'toplam_sec': round(toplam_sec, 1),
         'kayitlar_count': num_kayitlar
     }
 
