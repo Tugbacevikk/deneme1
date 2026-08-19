@@ -677,11 +677,9 @@ class CameraProcessor:
                                     bw = abs(bx2 - bx1)
                                     bh = abs(by2 - by1)
                                     area = bw * bh
-                                    if 15 <= bw <= 450 and 20 <= bh <= 550 and 300 <= area <= 150000:
-                                        aspect_ratio = bh / float(bw) if bw > 0 else 0
-                                        if 0.30 <= aspect_ratio <= 4.0:
-                                            phone_boxes_raw.append((bx1, by1, bx2, by2))
-                                            phone_detected_raw = True
+                                    if bw >= 10 and bh >= 15 and area >= 150:
+                                        phone_boxes_raw.append((bx1, by1, bx2, by2))
+                                        phone_detected_raw = True
 
             now_t = time.time()
             if phone_detected_raw:
