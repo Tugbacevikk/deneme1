@@ -215,7 +215,7 @@ def get_all_system_stations() -> List[str]:
         if not s:
             return
         st = str(s).strip()
-        if not st or st.startswith('VIDEO:') or st.startswith('LAPTOP-') or st.startswith('DESKTOP-'):
+        if not st or st.upper().startswith('VIDEO:') or st.lower().startswith('video_') or st.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')) or st == 'Video Analiz' or st.startswith('LAPTOP-') or st.startswith('DESKTOP-'):
             return
         st_low = st.lower()
         if st_low not in lower_seen:

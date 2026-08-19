@@ -34,24 +34,15 @@ def get_all_workers(aktif_only=False):
 
 
 def get_all_stations():
-    """Sistemdeki tüm benzersiz istasyon adlarını döndürür."""
-    with _get_worker_session() as sess:
-        stmt_c = select(Camera.istasyon_adi).where(Camera.istasyon_adi.isnot(None))
-        stmt_w = select(Worker.istasyon_adi).where(Worker.istasyon_adi.isnot(None))
-        stmt_d = select(DurumKaydi.istasyon_adi).where(DurumKaydi.istasyon_adi.isnot(None))
-        cam_st = sess.scalars(stmt_c).all()
-        w_st = sess.scalars(stmt_w).all()
-        d_st = sess.scalars(stmt_d).all()
-        all_st = set()
-        for s in list(cam_st) + list(w_st) + list(d_st):
-            if s and str(s).strip():
-                all_st.add(str(s).strip())
-        if not all_st:
-            all_st = {'Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4', 'Video Analiz'}
-        import re
-        def natural_key(text):
-            return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', text)]
-        return sorted(list(all_st), key=natural_key)
+    """Sistemdeki tüm benzersiz GERÇEK fabrika istasyon adlarını döndürür (video adları filtrelenmiştir)."""
+    from web.helpers import get_all_system_stations
+    stations = get_all_system_stations()
+    if not stations:
+        stations = ['Istasyon-1', 'Istasyon-2', 'Istasyon-3', 'Istasyon-4']
+    import re
+    def natural_key(text):
+        return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', text)]
+    return sorted(list(stations), key=natural_key)
 
 
 def get_worker_by_id(worker_id):
