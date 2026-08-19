@@ -658,9 +658,8 @@ def api_start_camera():
     cfg['camera_id'] = target_source
 
     if is_video_source:
-        vid_name = Path(target_source).name
-        cfg['station_name'] = f"VIDEO: {vid_name}"
-        cfg['istasyon_adi'] = f"VIDEO: {vid_name}"
+        cfg['station_name'] = "Video Analiz"
+        cfg['istasyon_adi'] = "Video Analiz"
     else:
         local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
         if local_st and local_st.lower() != 'auto':
