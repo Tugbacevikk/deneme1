@@ -56,15 +56,22 @@ def create_user(kullanici_adi, sifre, ad_soyad, rol='operator', firma_adi=None, 
             durum=durum
         )
         sess.add(new_user)
-        if durum == 'bekliyor':
-            new_alarm = Alarm(
-                istasyon_adi="Sistem",
-                alarm_turu="Kayıt Başvurusu",
-                aciklama=f"Yeni patron başvurdu: {ad_soyad} ({kullanici_adi}) onay bekliyor.",
-                okundu=0
-            )
-            sess.add(new_alarm)
         sess.commit()
+        
+        if durum == 'bekliyor':
+            try:
+                new_alarm = Alarm(
+                    istasyon_adi="Sistem",
+                    alarm_turu="Kayıt Başvurusu",
+                    aciklama=f"Yeni patron başvurdu: {ad_soyad} ({kullanici_adi}) onay bekliyor.",
+                    okundu=0
+                )
+                sess.add(new_alarm)
+                sess.commit()
+            except Exception as alarm_err:
+                sess.rollback()
+                logger.warning(f"Kayıt başvurusu alarm bildirimi oluşturulamadı: {alarm_err}")
+                
         sess.refresh(new_user)
         result_dict = new_user.to_dict()
 
