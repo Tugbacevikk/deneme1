@@ -39,16 +39,21 @@
                     <i class="fa-solid fa-industry"></i> İstasyon
                 </label>
                 <select class="form-select form-input--sm" id="filter-station">
-                    <option value="">Tüm İstasyonlar</option>
-                    {% if stations %}
-                        {% for st in stations %}
+                    <option value="">Tüm İstasyonlar & Videolar</option>
+                    {% if stations_grouped and stations_grouped.stations %}
+                    <optgroup label="🏭 Fabrika İstasyonları">
+                        {% for st in stations_grouped.stations %}
                             <option value="{{ st }}">{{ st }}</option>
                         {% endfor %}
-                    {% else %}
-                        <option value="Istasyon-1">Istasyon-1</option>
-                        <option value="Istasyon-2">Istasyon-2</option>
-                        <option value="Istasyon-3">Istasyon-3</option>
-                        <option value="Istasyon-4">Istasyon-4</option>
+                    </optgroup>
+                    {% endif %}
+
+                    {% if stations_grouped and stations_grouped.videos %}
+                    <optgroup label="🎥 Yüklenen Videolar">
+                        {% for v in stations_grouped.videos %}
+                            <option value="{{ v }}">{{ v.replace('VIDEO: ', '') }}</option>
+                        {% endfor %}
+                    </optgroup>
                     {% endif %}
                 </select>
             </div>
