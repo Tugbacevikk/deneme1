@@ -328,15 +328,19 @@ def change_own_password(user_id, current_password, new_password):
                     loc_sess.commit()
         except Exception:
             pass
-
-        new_alarm = Alarm(
-            istasyon_adi="Sistem",
-            alarm_turu="Şifre Değişikliği",
-            aciklama=f"{user.ad_soyad} ({user.kullanici_adi}) kendi şifresini değiştirdi.",
-            okundu=0
-        )
-        sess.add(new_alarm)
         sess.commit()
+        try:
+            with db_manager.get_session() as alm_sess:
+                new_alarm = Alarm(
+                    istasyon_adi="Sistem",
+                    alarm_turu="Şifre Değişikliği",
+                    aciklama=f"{user.ad_soyad} ({user.kullanici_adi}) kendi şifresini değiştirdi.",
+                    okundu=0
+                )
+                alm_sess.add(new_alarm)
+                alm_sess.commit()
+        except Exception:
+            pass
         return True, "Şifreniz başarıyla güncellendi."
 
 

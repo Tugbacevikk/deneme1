@@ -11,8 +11,10 @@ from web.services.user_service import get_all_users, get_patrons, create_user, d
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/login', methods=['GET', 'POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return '', 200
     if request.method == 'POST':
         kullanici_adi = (request.form.get('username') or request.form.get('kullanici_adi') or '').strip()
         sifre = (request.form.get('password') or request.form.get('sifre') or '')

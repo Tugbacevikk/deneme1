@@ -4,7 +4,7 @@ alarm_service.py - Alarm ve İhlal Yönetim Servisi
 import os
 import logging
 from contextlib import contextmanager
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from core.database.models import Alarm
 from core.database.connection import db_manager
 
