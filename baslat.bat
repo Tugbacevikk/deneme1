@@ -19,8 +19,9 @@ cd /d "%~dp0"
 start "Flask Sunucusu (Port 5000)" cmd /k "set PYTHONUTF8=1 && set PYTHONIOENCODING=utf-8 && python web/app.py"
 
 cd /d "C:\Users\ADIL CEVIK\Desktop\istakipmobil"
-start "Mobil Uygulama (Port 8080)" cmd /k "set PATH=C:\flutter\bin;%PATH% && flutter run -d chrome --web-port=8080"
+start "Mobil Uygulama (Port 8080)" cmd /k "python -m http.server 8080 --directory build/web"
+start "" http://localhost:8080
 
-echo Hem Web Sunucusu hem Mobil Uygulama ayri pencerelerde baslatildi!
-timeout /t 3 >nul
+echo Hem Web Sunucusu (5000) hem Mobil Uygulama (8080) aninda baslatildi!
+timeout /t 2 >nul
 
