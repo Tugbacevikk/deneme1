@@ -45,6 +45,8 @@ class CentralDurumKaydiModel(CentralBase):
 
 _SHARED_PG_ENGINE = None
 _SHARED_PG_LOCK = threading.Lock()
+_PG_LAST_FAILED_TIME = 0.0
+_PG_FAIL_COOLDOWN = 60.0  # Seconds to wait before retrying a failed PG connection attempt
 
 
 def pg_baglan(cfg: dict = None):
@@ -52,17 +54,27 @@ def pg_baglan(cfg: dict = None):
     Merkezi PostgreSQL veritabanı bağlantısı oluşturur ve SQLAlchemy Engine nesnesi döndürür.
     Tek bir paylaşımlı Engine (Connection Pool) kullanır.
     """
-    global _SHARED_PG_ENGINE
+    global _SHARED_PG_ENGINE, _PG_LAST_FAILED_TIME
+
+    now = time.time()
+    if _SHARED_PG_ENGINE is None and (now - _PG_LAST_FAILED_TIME) < _PG_FAIL_COOLDOWN:
+        return None
+
     if _SHARED_PG_ENGINE is not None:
         try:
             with _SHARED_PG_ENGINE.connect() as conn:
                 return _SHARED_PG_ENGINE
         except Exception:
             _SHARED_PG_ENGINE = None
+            _PG_LAST_FAILED_TIME = time.time()
+            return None
 
     with _SHARED_PG_LOCK:
         if _SHARED_PG_ENGINE is not None:
             return _SHARED_PG_ENGINE
+
+        if (time.time() - _PG_LAST_FAILED_TIME) < _PG_FAIL_COOLDOWN:
+            return None
 
         if cfg is None or not isinstance(cfg, dict) or not cfg:
             try:
@@ -85,7 +97,6 @@ def pg_baglan(cfg: dict = None):
         env_db   = os.getenv('POSTGRES_DB')
         env_port = os.getenv('POSTGRES_PORT')
 
-
         host = cfg.get('host') or cfg.get('postgres_host') or cfg.get('pg_host')
         if not host or host == '127.0.0.1':
             host = env_host or host or '127.0.0.1'
@@ -101,12 +112,11 @@ def pg_baglan(cfg: dict = None):
         if password is None or password == '':
             password = env_pass or ''
 
-
         pg_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
         try:
             engine = create_engine(
                 pg_url,
-                connect_args={"connect_timeout": 5},
+                connect_args={"connect_timeout": 1},
                 poolclass=NullPool,
                 isolation_level="AUTOCOMMIT",
                 use_native_hstore=False,
@@ -118,7 +128,8 @@ def pg_baglan(cfg: dict = None):
             logger.info(f"[PG] Merkezi PostgreSQL'e bağlandı -> {host}:{port}/{dbname}")
             return _SHARED_PG_ENGINE
         except Exception as e:
-            logger.warning(f"[PG] Bağlantı hatası: {e}")
+            _PG_LAST_FAILED_TIME = time.time()
+            logger.warning(f"[PG] Bağlantı hatası (60s cooldown): {e}")
             return None
 
 
