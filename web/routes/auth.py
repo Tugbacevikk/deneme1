@@ -348,3 +348,87 @@ def api_profile_update_email():
     new_email = data.get('email', '').strip()
     ok, msg = update_own_email(user_id, new_email)
     return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
+
+
+@auth_bp.route('/api/login', methods=['POST', 'OPTIONS'])
+def api_login():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    data = request.get_json(silent=True) or request.form
+    kullanici_adi = (data.get('username') or data.get('kullanici_adi') or '').strip()
+    sifre = (data.get('password') or data.get('sifre') or '')
+
+    if not kullanici_adi or not sifre:
+        return jsonify({'success': False, 'error': 'Kullanıcı adı ve şifre zorunludur.'}), 400
+
+    from web.services.user_service import _get_user_session
+    with _get_user_session() as db_session:
+        user = db_session.scalars(select(User).where(User.kullanici_adi.ilike(kullanici_adi))).first()
+        if not user:
+            user = db_session.scalars(select(User).where(User.kullanici_adi == kullanici_adi)).first()
+
+        if user and check_password_hash(user.sifre_hash, sifre):
+            if user.durum == 'bekliyor':
+                return jsonify({'success': False, 'error': 'Hesabınız henüz onaylanmadı. Yönetici onayı bekleniyor.'}), 403
+            elif user.durum == 'reddedildi':
+                return jsonify({'success': False, 'error': 'Başvurunuz reddedildi.'}), 403
+
+            session['user_id'] = user.id
+            session['kullanici_adi'] = user.kullanici_adi
+            session['username'] = user.kullanici_adi
+            session['ad_soyad'] = user.ad_soyad
+            session['full_name'] = user.ad_soyad
+            session['rol'] = user.rol
+            session['role'] = user.rol
+
+            stations = [s.strip() for s in (user.istasyonlar or '').split(',') if s.strip()]
+
+            return jsonify({
+                'success': True,
+                'message': f'Hoş geldiniz, {user.ad_soyad}!',
+                'user': {
+                    'id': user.id,
+                    'kullanici_adi': user.kullanici_adi,
+                    'ad_soyad': user.ad_soyad,
+                    'email': user.email,
+                    'rol': user.rol,
+                    'role': user.rol,
+                    'durum': user.durum,
+                    'firma_adi': user.firma_adi,
+                    'istasyonlar': stations
+                }
+            }), 200
+        else:
+            return jsonify({'success': False, 'error': 'Kullanıcı adı veya şifre hatalı.'}), 401
+
+
+@auth_bp.route('/api/me', methods=['GET'])
+@auth_bp.route('/api/session', methods=['GET'])
+def api_get_current_session():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Oturum açılmamış.'}), 401
+    
+    user_id = session.get('user_id')
+    from web.services.user_service import _get_user_session
+    with _get_user_session() as db_session:
+        u = db_session.get(User, user_id)
+        if not u:
+            return jsonify({'success': False, 'error': 'Kullanıcı bulunamadı.'}), 404
+        
+        stations = [s.strip() for s in (u.istasyonlar or '').split(',') if s.strip()]
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': u.id,
+                'kullanici_adi': u.kullanici_adi,
+                'ad_soyad': u.ad_soyad,
+                'email': u.email,
+                'rol': u.rol,
+                'role': u.rol,
+                'durum': u.durum,
+                'firma_adi': u.firma_adi,
+                'istasyonlar': stations
+            }
+        }), 200
+
