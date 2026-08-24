@@ -51,9 +51,13 @@ def _get_alarm_db_context():
 
 
 def get_alarms(limit=50, unread_only=False, stations=None):
-    """Alarmları getirir (Hareketsizlik hariç, Telefon ve Sistem alarmları)."""
+    """Alarmları getirir (Hareketsizlik ve Video Analiz hariç, Canlı Saha Alarmları)."""
     with _get_alarm_db_context() as session:
-        stmt = select(Alarm).where(Alarm.alarm_turu != 'HAREKETSİZLİK')
+        stmt = select(Alarm).where(
+            Alarm.alarm_turu != 'HAREKETSİZLİK',
+            ~Alarm.istasyon_adi.like('%Video%'),
+            ~Alarm.aciklama.like('%Video%')
+        )
         if unread_only:
             stmt = stmt.where(Alarm.okundu == 0)
         if stations:
@@ -73,11 +77,13 @@ def get_alarms(limit=50, unread_only=False, stations=None):
 
 
 def get_unread_count(stations=None):
-    """Okunmamış alarm sayısını döndürür (Hareketsizlik hariç)."""
+    """Okunmamış alarm sayısını döndürür (Hareketsizlik ve Video Analiz hariç)."""
     with _get_alarm_db_context() as session:
         stmt = select(func.count(Alarm.id)).where(
             Alarm.okundu == 0,
-            Alarm.alarm_turu != 'HAREKETSİZLİK'
+            Alarm.alarm_turu != 'HAREKETSİZLİK',
+            ~Alarm.istasyon_adi.like('%Video%'),
+            ~Alarm.aciklama.like('%Video%')
         )
         if stations:
             has_all = any(
