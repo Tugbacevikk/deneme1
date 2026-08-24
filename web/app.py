@@ -244,12 +244,15 @@ logger.info("Modüler Flask Blueprint'leri başarıyla yüklendi ve kaydedildi."
 from flask import send_from_directory
 
 @app.route('/mobile')
-@app.route('/mobile/<path:path>')
-def serve_flutter_mobile(path='index.html'):
-    flutter_build_dir = Path(r'C:\Users\ADIL CEVIK\Desktop\istakipmobil\build\web')
-    target_file = flutter_build_dir / path
-    if target_file.exists() and target_file.is_file():
-        return send_from_directory(flutter_build_dir, path)
+@app.route('/mobile/')
+@app.route('/mobile/<path:filename>')
+def serve_flutter_mobile(filename='index.html'):
+    flutter_build_dir = r'C:\Users\ADIL CEVIK\Desktop\istakipmobil\build\web'
+    if not filename or filename.strip('/') == '':
+        filename = 'index.html'
+    target = os.path.join(flutter_build_dir, filename)
+    if os.path.exists(target) and os.path.isfile(target):
+        return send_from_directory(flutter_build_dir, filename)
     return send_from_directory(flutter_build_dir, 'index.html')
 
 # ---------------------------------------------------------------------------
