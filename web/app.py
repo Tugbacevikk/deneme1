@@ -247,13 +247,26 @@ from flask import send_from_directory
 @app.route('/mobile/')
 @app.route('/mobile/<path:filename>')
 def serve_flutter_mobile(filename='index.html'):
-    flutter_build_dir = r'C:\Users\ADIL CEVIK\Desktop\istakipmobil\build\web'
+    possible_dirs = [
+        WEB_DIR / 'static' / 'mobile',
+        BASE_DIR / 'static' / 'mobile',
+        Path(r'C:\Users\ADIL CEVIK\Desktop\istakipmobil\build\web'),
+    ]
+    flutter_build_dir = None
+    for p in possible_dirs:
+        if p.exists() and p.is_dir():
+            flutter_build_dir = p
+            break
+            
+    if not flutter_build_dir:
+        return jsonify({'error': 'Mobile app bundle not found on server'}), 404
+        
     if not filename or filename.strip('/') == '':
         filename = 'index.html'
-    target = os.path.join(flutter_build_dir, filename)
-    if os.path.exists(target) and os.path.isfile(target):
-        return send_from_directory(flutter_build_dir, filename)
-    return send_from_directory(flutter_build_dir, 'index.html')
+    target = flutter_build_dir / filename
+    if target.exists() and target.is_file():
+        return send_from_directory(str(flutter_build_dir), filename)
+    return send_from_directory(str(flutter_build_dir), 'index.html')
 
 # ---------------------------------------------------------------------------
 # Veritabanı İlklendirme (Code-First ORM)
