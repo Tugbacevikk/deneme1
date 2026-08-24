@@ -87,14 +87,20 @@ def api_proxy_feed(cam_id):
             if not is_camera_authorized(cam, user_id, is_super, stations):
                 return _get_unauthorized_frame(), 403
 
-            # Yerel İstasyon Tespiti: İstasyon adı veya IP adresi eşleşmesi
+            # Yerel İstasyon Tespiti: İstasyon adı, IP adresi veya loopback (127.0.0.1 / localhost) eşleşmesi
             local_station = (ext.config.get('station_name') or ext.config.get('istasyon_adi') or '').strip().lower()
             cam_station   = (cam.istasyon_adi or '').strip().lower()
-            cam_ip        = (cam.ip_adresi or '').strip()
+            cam_ip        = (cam.ip_adresi or '').strip().lower()
 
             from web.helpers import get_local_system_ips
-            local_ips = get_local_system_ips()
-            is_this_local = bool((local_station and cam_station and cam_station == local_station) or (cam_ip in local_ips))
+            local_ips = [ip.lower() for ip in get_local_system_ips()]
+            is_loopback = cam_ip in ['127.0.0.1', 'localhost', '0.0.0.0', '0', '::1']
+
+            is_this_local = bool(
+                is_loopback or 
+                (cam_ip in local_ips) or 
+                (local_station and cam_station and cam_station == local_station)
+            )
 
             if is_this_local:
                 if ext.camera_processor is None or not getattr(ext.camera_processor, 'is_running', False):
