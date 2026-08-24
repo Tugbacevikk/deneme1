@@ -259,11 +259,13 @@ def serve_flutter_mobile(filename='index.html'):
             break
             
     if not flutter_build_dir:
+        logger.warning(f"[Mobile] None of possible dirs exist: {possible_dirs}")
         return jsonify({'error': 'Mobile app bundle not found on server'}), 404
         
     if not filename or filename.strip('/') == '':
         filename = 'index.html'
     target = flutter_build_dir / filename
+    logger.info(f"[Mobile] Serving filename: '{filename}' from '{flutter_build_dir}' (target exists: {target.exists()})")
     if target.exists() and target.is_file():
         return send_from_directory(str(flutter_build_dir), filename)
     return send_from_directory(str(flutter_build_dir), 'index.html')
@@ -430,6 +432,38 @@ def _get_current_status() -> dict:
         ext.last_status['kisi_sayisi'] = 0
         ext.last_status['person_count'] = 0
         ext.last_status['fps'] = 0.0
+
+    try:
+        from core.database.models import DurumKaydi, Camera
+        with db_manager.get_session() as sess:
+            subq = select(
+                DurumKaydi.istasyon_adi,
+                func.max(DurumKaydi.id).label('max_id')
+            ).group_by(DurumKaydi.istasyon_adi).subquery()
+            
+            latest_records = sess.scalars(
+                select(DurumKaydi).join(subq, DurumKaydi.id == subq.c.max_id)
+            ).all()
+
+            total_kisi = 0
+            calisan_sayisi = 0
+            active_cams = sess.scalars(select(func.count(Camera.id)).where(Camera.aktif == 1)).scalar() or 1
+            
+            for rec in latest_records:
+                cnt = rec.kisi_sayisi or 0
+                total_kisi += cnt
+                if rec.durum and rec.durum.startswith('AKT'):
+                    calisan_sayisi += max(cnt, 1)
+
+            ext.last_status['active_camera_count'] = active_cams
+            ext.last_status['total_active_stations'] = len(latest_records)
+            ext.last_status['calisan_sayisi'] = max(calisan_sayisi, 1 if ext.last_status.get('running') else 0)
+            if total_kisi > 0:
+                ext.last_status['kisi_sayisi'] = total_kisi
+                ext.last_status['person_count'] = total_kisi
+    except Exception as e:
+        logger.debug(f"Çoklu kamera canlı durum hesaplama hatası: {e}")
+
     return ext.last_status
 
 
@@ -487,7 +521,6 @@ def api_is_local_camera(cam_id):
 
 @app.route('/api/camera/status', methods=['GET'])
 @app.route('/api/status', methods=['GET'])
-@login_required
 def api_status():
     return jsonify(_get_current_status())
 
