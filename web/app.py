@@ -241,6 +241,17 @@ app.register_blueprint(reports_bp)
 app.register_blueprint(settings_bp)
 logger.info("Modüler Flask Blueprint'leri başarıyla yüklendi ve kaydedildi.")
 
+from flask import send_from_directory
+
+@app.route('/mobile')
+@app.route('/mobile/<path:path>')
+def serve_flutter_mobile(path='index.html'):
+    flutter_build_dir = Path(r'C:\Users\ADIL CEVIK\Desktop\istakipmobil\build\web')
+    target_file = flutter_build_dir / path
+    if target_file.exists() and target_file.is_file():
+        return send_from_directory(flutter_build_dir, path)
+    return send_from_directory(flutter_build_dir, 'index.html')
+
 # ---------------------------------------------------------------------------
 # Veritabanı İlklendirme (Code-First ORM)
 # ---------------------------------------------------------------------------
