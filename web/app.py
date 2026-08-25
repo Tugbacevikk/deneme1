@@ -561,19 +561,28 @@ def _get_current_status() -> dict:
                     worker_name = 'Tuğba Çevik' if '1' in st_name else 'Kadir Kaya'
 
                 cam_obj = next((c for c in all_cameras if c.istasyon_adi == st_name), None)
-                if is_cam_running and (st_name == active_st):
-                    is_online = True
+                if st_name == active_st:
+                    is_online = is_cam_running
+                    if is_online:
+                        st_status = ext.last_status.get('durum') or 'Çalışıyor'
+                        if ext.last_status.get('worker_name'):
+                            worker_name = ext.last_status.get('worker_name')
                 elif cam_obj and cam_obj.ip_adresi:
                     cam_ip = cam_obj.ip_adresi.strip()
                     if cam_ip in ['127.0.0.1', 'localhost', '0.0.0.0', '192.168.30.168']:
                         is_online = is_cam_running
+                        if is_online:
+                            st_status = ext.last_status.get('durum') or 'Çalışıyor'
                     else:
-                        import socket
+                        import urllib.request, json as _json
                         try:
-                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            sock.settimeout(0.3)
-                            is_online = (sock.connect_ex((cam_ip, 5000)) == 0)
-                            sock.close()
+                            req = urllib.request.urlopen(f"http://{cam_ip}:5000/api/camera/status", timeout=0.6)
+                            c_data = _json.loads(req.read().decode())
+                            is_online = bool(c_data.get('running') is True or c_data.get('camera_status') == 'Kamera Çalışıyor')
+                            if is_online:
+                                st_status = c_data.get('durum') or c_data.get('status') or 'Çalışıyor'
+                                if c_data.get('worker_name'):
+                                    worker_name = c_data.get('worker_name')
                         except Exception:
                             is_online = False
                 elif rec and rec.zaman:
@@ -583,14 +592,13 @@ def _get_current_status() -> dict:
                             rec_dt = datetime.datetime.strptime(rec_time, '%Y-%m-%d %H:%M:%S')
                         else:
                             rec_dt = rec_time
-                        is_online = (now_dt - rec_dt).total_seconds() < 30
+                        is_online = (now_dt - rec_dt).total_seconds() < 10
+                        if is_online and rec and rec.durum:
+                            st_status = rec.durum
                     except Exception:
-                        pass
+                        is_online = False
                 
                 if is_online:
-                    st_status = (rec.durum if (rec and rec.durum) else 'Çalışıyor')
-                    if rec and rec.worker_adi and len(rec.worker_adi.strip()) > 1:
-                        worker_name = rec.worker_adi.strip()
                     calisan_sayisi += 1
                 else:
                     st_status = 'Kamera Kapalı (Çevrimdışı)'
