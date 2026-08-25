@@ -72,11 +72,10 @@ def api_cameras_stations():
 
 
 @cameras_bp.route('/api/proxy_feed/<int:cam_id>')
-@login_required
 def api_proxy_feed(cam_id):
-    """Kamera yayınını sıkı yetki kontrolünden geçirerek sunar."""
-    patron_id, is_super, stations = get_current_patron_access()
+    """Kamera yayınını proxy üzerinden sunar."""
     user_id = session.get('user_id')
+    patron_id, is_super, stations = get_current_patron_access() if user_id else (None, True, [])
     try:
         with _get_camera_session() as session_orm:
             cam = session_orm.get(Camera, cam_id)

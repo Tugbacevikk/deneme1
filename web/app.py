@@ -560,16 +560,30 @@ def _get_current_status() -> dict:
                 else:
                     worker_name = 'Tuğba Çevik' if '1' in st_name else 'Kadir Kaya'
 
+                cam_obj = next((c for c in all_cameras if c.istasyon_adi == st_name), None)
                 if is_cam_running and (st_name == active_st):
                     is_online = True
-                elif is_cam_running and rec and rec.zaman:
+                elif cam_obj and cam_obj.ip_adresi:
+                    cam_ip = cam_obj.ip_adresi.strip()
+                    if cam_ip in ['127.0.0.1', 'localhost', '0.0.0.0', '192.168.30.168']:
+                        is_online = is_cam_running
+                    else:
+                        import socket
+                        try:
+                            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            sock.settimeout(0.3)
+                            is_online = (sock.connect_ex((cam_ip, 5000)) == 0)
+                            sock.close()
+                        except Exception:
+                            is_online = False
+                elif rec and rec.zaman:
                     rec_time = rec.zaman
                     try:
                         if isinstance(rec_time, str):
                             rec_dt = datetime.datetime.strptime(rec_time, '%Y-%m-%d %H:%M:%S')
                         else:
                             rec_dt = rec_time
-                        is_online = (now_dt - rec_dt).total_seconds() < 15
+                        is_online = (now_dt - rec_dt).total_seconds() < 30
                     except Exception:
                         pass
                 
