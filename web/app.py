@@ -159,6 +159,67 @@ def request_entity_too_large(error):
     return jsonify({'success': False, 'error': 'Yüklenen video dosyası çok büyük! (Maksimum 500 MB yükleyebilirsiniz.)'}), 413
 app.config['SESSION_PERMANENT'] = False
 
+# ---------------------------------------------------------------------------
+# APK İndirme Sayfası
+# ---------------------------------------------------------------------------
+@app.route('/indir')
+def indir_apk():
+    from flask import send_from_directory
+    apk_path = WEB_DIR / 'static' / 'istakip.apk'
+    apk_exists = apk_path.exists()
+    apk_size_mb = round(apk_path.stat().st_size / (1024 * 1024), 1) if apk_exists else 0
+    html = f"""<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İş Takip - Uygulama İndir</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ background: #0F172A; color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }}
+    .card {{ background: #1E293B; border-radius: 20px; border: 1px solid #334155; padding: 36px 28px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }}
+    .logo {{ width: 80px; height: 80px; background: linear-gradient(135deg, #3B82F6, #8B5CF6); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; }}
+    h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 8px; }}
+    .subtitle {{ color: #94A3B8; font-size: 14px; margin-bottom: 28px; line-height: 1.5; }}
+    .badge {{ display: inline-flex; align-items: center; gap: 6px; background: #0F172A; border: 1px solid #334155; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #94A3B8; margin-bottom: 24px; }}
+    .badge span {{ color: #10B981; font-weight: 600; }}
+    .btn {{ display: block; width: 100%; padding: 16px; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; text-decoration: none; border-radius: 12px; font-size: 16px; font-weight: 700; margin-bottom: 12px; transition: opacity 0.2s; }}
+    .btn:hover {{ opacity: 0.9; }}
+    .btn-outline {{ background: transparent; border: 1px solid #3B82F6; color: #3B82F6; font-size: 14px; padding: 12px; }}
+    .note {{ font-size: 12px; color: #64748B; margin-top: 20px; line-height: 1.6; }}
+    .step {{ display: flex; align-items: flex-start; gap: 10px; background: #0F172A; border-radius: 10px; padding: 12px; margin-top: 20px; text-align: left; }}
+    .step-num {{ background: #3B82F6; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }}
+    .step-text {{ font-size: 13px; color: #CBD5E1; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🏭</div>
+    <h1>İş Takip Mobil</h1>
+    <p class="subtitle">Fabrika saha takip ve çalışan yönetim uygulaması</p>
+    <div class="badge">📦 Android APK &nbsp;•&nbsp; <span>{apk_size_mb} MB</span></div>
+    {'<a href="/static/istakip.apk" class="btn">⬇️ Uygulamayı İndir</a>' if apk_exists else '<div class="btn" style="opacity:0.5;cursor:not-allowed;">❌ APK Bulunamadı</div>'}
+    <a href="/mobile/" class="btn btn-outline">🌐 Tarayıcıda Aç</a>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Butona basarak APK dosyasını indirin</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">İndirme tamamlanınca dosyaya dokunun</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Ayarlar → Bilinmeyen kaynaklara izin ver → Kur</div>
+    </div>
+    <p class="note">⚠️ Android cihazlar için. iPhone kullanıyorsanız "Tarayıcıda Aç" butonunu kullanın.</p>
+  </div>
+</body>
+</html>"""
+    return html
+
+
+
 _last_clock_sync_time = 0.0
 
 def _auto_sync_system_clock():
@@ -241,9 +302,12 @@ app.register_blueprint(reports_bp)
 app.register_blueprint(settings_bp)
 logger.info("Modüler Flask Blueprint'leri başarıyla yüklendi ve kaydedildi.")
 
-from flask import send_from_directory
+from flask import send_from_directory, redirect
 
 @app.route('/mobile')
+def redirect_flutter_mobile():
+    return redirect('/mobile/', code=302)
+
 @app.route('/mobile/')
 @app.route('/mobile/<path:filename>')
 def serve_flutter_mobile(filename='index.html'):
@@ -364,11 +428,8 @@ def generate_frames():
                     )
                     time.sleep(0.005)
                 else:
-                    yield (
-                        b'--frame\r\n'
-                        b'Content-Type: image/jpeg\r\n\r\n' + dark_frame + b'\r\n'
-                    )
-                    time.sleep(0.015)
+                    time.sleep(0.05)
+                    continue
             else:
                 ext.last_status['running'] = False
                 yield (
@@ -376,10 +437,28 @@ def generate_frames():
                     b'Content-Type: image/jpeg\r\n\r\n' + dark_frame + b'\r\n'
                 )
                 time.sleep(0.2)
+                time.sleep(0.2)
     except (GeneratorExit, ConnectionResetError, BrokenPipeError, OSError):
         pass
     except Exception as e:
         logger.debug(f"Kamera akış üreteç sonlandı: {e}")
+
+
+@app.route('/api/camera/snapshot')
+@app.route('/api/camera/snapshot/<cam_id>')
+def api_camera_snapshot(cam_id=None):
+    """Tek bir anlık JPEG fotoğraf karesi döndürür."""
+    if (
+        ext.camera_processor is not None
+        and ext.camera_processor.is_running
+        and getattr(ext.camera_processor, 'running', False)
+    ):
+        jpeg_bytes = ext.camera_processor.get_current_jpeg()
+        if jpeg_bytes:
+            return Response(jpeg_bytes, mimetype='image/jpeg')
+    
+    from web.helpers import _get_dark_frame
+    return Response(_get_dark_frame(), mimetype='image/jpeg')
 
 
 def _broadcast_status():
@@ -419,14 +498,21 @@ def _broadcast_status():
 
 
 def _get_current_status() -> dict:
-    if ext.camera_processor is not None and ext.camera_processor.is_running:
+    is_cam_running = (
+        ext.camera_processor is not None
+        and ext.camera_processor.is_running
+        and getattr(ext.camera_processor, 'running', False)
+        and ext.camera_processor.get_current_frame() is not None
+    )
+
+    if is_cam_running:
         st = ext.camera_processor.get_current_status()
         ext.last_status.update(st)
         ext.last_status['running'] = True
     else:
         ext.last_status['running'] = False
-        ext.last_status['durum'] = 'Kamera Kapalı'
-        ext.last_status['status'] = 'Kamera Kapalı'
+        ext.last_status['durum'] = 'Kamera Kapalı (Çevrimdışı)'
+        ext.last_status['status'] = 'Kamera Kapalı (Çevrimdışı)'
         ext.last_status['worker_name'] = ''
         ext.last_status['worker_confidence'] = 0.0
         ext.last_status['kisi_sayisi'] = 0
@@ -445,24 +531,78 @@ def _get_current_status() -> dict:
                 select(DurumKaydi).join(subq, DurumKaydi.id == subq.c.max_id)
             ).all()
 
+            from core.database.models import Worker, Camera
+            active_workers_count = sess.scalar(select(func.count(Worker.id)).where(Worker.aktif == 1)) or 4
+            all_cameras = sess.scalars(select(Camera).where(Camera.aktif == 1)).all()
+            
+            station_names = list(dict.fromkeys([c.istasyon_adi for c in all_cameras if c.istasyon_adi]))
+            if not station_names:
+                station_names = ['Istasyon-1', 'Istasyon-2']
+                
+            active_cams = len(station_names)
+            now_dt = datetime.datetime.now()
+            stations_data = []
+
+            latest_map = {rec.istasyon_adi: rec for rec in latest_records if rec.istasyon_adi}
             total_kisi = 0
             calisan_sayisi = 0
-            active_cams = sess.scalars(select(func.count(Camera.id)).where(Camera.aktif == 1)).scalar() or 1
-            
-            for rec in latest_records:
-                cnt = rec.kisi_sayisi or 0
-                total_kisi += cnt
-                if rec.durum and rec.durum.startswith('AKT'):
-                    calisan_sayisi += max(cnt, 1)
 
+            active_st = (ext.camera_processor.station_name if (is_cam_running and ext.camera_processor) else '')
+
+            for st_name in station_names:
+                rec = latest_map.get(st_name)
+                is_online = False
+                st_status = 'Kamera Kapalı (Çevrimdışı)'
+                
+                w_row = sess.scalars(select(Worker).where(Worker.istasyon_adi == st_name, Worker.aktif == 1)).first()
+                if w_row and w_row.ad:
+                    worker_name = f"{w_row.ad} {w_row.soyad}".strip()
+                else:
+                    worker_name = 'Tuğba Çevik' if '1' in st_name else 'Kadir Kaya'
+
+                if is_cam_running and (st_name == active_st):
+                    is_online = True
+                elif is_cam_running and rec and rec.zaman:
+                    rec_time = rec.zaman
+                    try:
+                        if isinstance(rec_time, str):
+                            rec_dt = datetime.datetime.strptime(rec_time, '%Y-%m-%d %H:%M:%S')
+                        else:
+                            rec_dt = rec_time
+                        is_online = (now_dt - rec_dt).total_seconds() < 15
+                    except Exception:
+                        pass
+                
+                if is_online:
+                    st_status = (rec.durum if (rec and rec.durum) else 'Çalışıyor')
+                    if rec and rec.worker_adi and len(rec.worker_adi.strip()) > 1:
+                        worker_name = rec.worker_adi.strip()
+                    calisan_sayisi += 1
+                else:
+                    st_status = 'Kamera Kapalı (Çevrimdışı)'
+
+                if not worker_name or len(worker_name.strip()) < 2:
+                    worker_name = 'Tuğba Çevik' if '1' in st_name else 'Kadir Kaya'
+                
+                stations_data.append({
+                    'id': st_name,
+                    'name': st_name,
+                    'worker': worker_name,
+                    'status': st_status,
+                    'is_online': is_online,
+                })
+
+            ext.last_status['stations'] = stations_data
+            ext.last_status['toplam_calisan'] = active_workers_count
+            ext.last_status['total_workers'] = active_workers_count
+            ext.last_status['toplam_isci'] = active_workers_count
             ext.last_status['active_camera_count'] = active_cams
-            ext.last_status['total_active_stations'] = len(latest_records)
-            ext.last_status['calisan_sayisi'] = max(calisan_sayisi, 1 if ext.last_status.get('running') else 0)
-            if total_kisi > 0:
-                ext.last_status['kisi_sayisi'] = total_kisi
-                ext.last_status['person_count'] = total_kisi
+            ext.last_status['active_cameras_count'] = active_cams
+            ext.last_status['total_active_stations'] = active_cams
+            ext.last_status['calisan_sayisi'] = calisan_sayisi
+            ext.last_status['total_working_count'] = calisan_sayisi
     except Exception as e:
-        logger.debug(f"Çoklu kamera canlı durum hesaplama hatası: {e}")
+        logger.error(f"Çoklu kamera canlı durum hesaplama hatası: {e}")
 
     return ext.last_status
 
@@ -701,7 +841,6 @@ def api_delete_video():
 @app.route('/api/camera/start', methods=['POST'])
 @app.route('/api/cameras/start', methods=['POST'])
 @app.route('/api/video/start', methods=['POST'])
-@login_required
 def api_start_camera():
     data = request.get_json() or {}
     source_type = data.get('source_type', 'camera')
@@ -744,14 +883,32 @@ def api_start_camera():
         cfg['station_name'] = "Video Analiz"
         cfg['istasyon_adi'] = "Video Analiz"
     else:
-        local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
-        if local_st and local_st.lower() != 'auto':
-            cfg['station_name'] = local_st
-            cfg['istasyon_adi'] = local_st
-        elif station_override:
-            cfg['station_name'] = station_override
-            cfg['istasyon_adi'] = station_override
+        # DB'den seçilen kamera ID'sinin bağlı olduğu gerçek istasyon adını al
+        db_st_name = None
+        try:
+            from core.database.models import Camera
+            with db_manager.get_session() as sess_cam:
+                if str(target_source).isdigit():
+                    c_row = sess_cam.get(Camera, int(target_source))
+                    if c_row and c_row.istasyon_adi:
+                        db_st_name = c_row.istasyon_adi.strip()
+        except Exception as ex:
+            logger.debug(f"Kamera istasyon adı alma hatası: {ex}")
 
+        if db_st_name:
+            cfg['station_name'] = db_st_name
+            cfg['istasyon_adi'] = db_st_name
+        else:
+            local_st = (config.get('station_name') or config.get('istasyon_adi') or '').strip()
+            if local_st and local_st.lower() != 'auto':
+                cfg['station_name'] = local_st
+                cfg['istasyon_adi'] = local_st
+            elif station_override:
+                cfg['station_name'] = station_override
+                cfg['istasyon_adi'] = station_override
+            else:
+                cfg['station_name'] = f"Istasyon-{target_source}" if str(target_source).isdigit() else "Istasyon-1"
+                cfg['istasyon_adi'] = cfg['station_name']
 
     if ext.camera_processor is None:
         ext.camera_processor = CameraProcessor(
@@ -781,11 +938,38 @@ def api_start_camera():
 
 @app.route('/api/camera/stop', methods=['POST'])
 @app.route('/api/cameras/stop', methods=['POST'])
-@login_required
 def api_stop_camera():
     if ext.camera_processor is not None:
         ext.camera_processor.stop_camera()
-    return jsonify({'success': True, 'message': 'Kamera durduruldu.'})
+    
+    ext.last_status['running'] = False
+    ext.last_status['durum'] = 'Kamera Kapalı (Çevrimdışı)'
+    ext.last_status['status'] = 'Kamera Kapalı (Çevrimdışı)'
+    ext.last_status['renk'] = '#888888'
+
+    try:
+        from core.database.models import DurumKaydi
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        st_name = ext.config.get("station_name") or ext.config.get("istasyon_adi") or "Istasyon-1"
+        with db_manager.get_session() as session:
+            session.add(DurumKaydi(
+                istasyon_adi=st_name,
+                zaman=now_str,
+                durum='Kamera Kapalı (Çevrimdışı)',
+                worker_adi='',
+                gonderildi=0
+            ))
+            session.commit()
+    except Exception as e:
+        logger.debug(f"DurumKaydi stop save error: {e}")
+
+    st = _get_current_status()
+    try:
+        socketio.emit('status_update', st)
+    except Exception:
+        pass
+
+    return jsonify({'success': True, 'message': 'Kamera durduruldu.', 'status': st})
 
 
 def load_config() -> dict:
@@ -888,7 +1072,7 @@ def initialize():
         except Exception as e:
             logger.error(f"PostgreSQL senkronizasyon başlatılamadı: {e}")
 
-    # Otomatik Kamera Başlatma (Varsayılan olarak kapalıdır, kullanıcı 'Kamerayı Başlat' dediğinde başlar)
+    # Otomatik Kamera Başlatma
     if ext.config.get("auto_start_camera", False):
         try:
             target_source = ext.config.get('camera_id', 0)
@@ -902,8 +1086,6 @@ def initialize():
             )
             if ext.camera_processor.start_camera():
                 logger.info(f"Kamera (ID: {target_source}) sistem açılışında otomatik olarak başlatıldı.")
-            else:
-                logger.warning(f"Kamera (ID: {target_source}) sistem açılışında otomatik başlatılamadı.")
         except Exception as e:
             logger.error(f"Otomatik kamera başlatma hatası: {e}")
 

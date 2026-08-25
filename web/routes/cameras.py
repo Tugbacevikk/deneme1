@@ -92,15 +92,8 @@ def api_proxy_feed(cam_id):
             cam_station   = (cam.istasyon_adi or '').strip().lower()
             cam_ip        = (cam.ip_adresi or '').strip().lower()
 
-            from web.helpers import get_local_system_ips
-            local_ips = [ip.lower() for ip in get_local_system_ips()]
             is_loopback = cam_ip in ['127.0.0.1', 'localhost', '0.0.0.0', '0', '::1']
-
-            is_this_local = bool(
-                is_loopback or 
-                (cam_ip in local_ips) or 
-                (local_station and cam_station and cam_station == local_station)
-            )
+            is_this_local = bool(is_loopback)
 
             if is_this_local:
                 if ext.camera_processor is None or not getattr(ext.camera_processor, 'is_running', False):
@@ -119,7 +112,7 @@ def api_proxy_feed(cam_id):
             if not is_online:
                 return Response(_get_dark_frame(), mimetype='image/jpeg')
 
-            target_url = f"http://{ip}:5000/api/video_feed"
+            target_url = f"http://{ip}:5000/video_feed"
             import urllib.request
 
             def generate_proxy_stream():

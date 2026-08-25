@@ -12,8 +12,6 @@
     * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
 
     This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="/mobile/">
 
   <meta charset="UTF-8">
@@ -71,6 +69,15 @@
     <div style="font-size: 15px; font-weight: 600; color: #E2E8F0;">İş Takip Mobil Yükleniyor...</div>
   </div>
 
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script>
+  <script src="flutter_bootstrap.js?v=3" async></script>
 </body>
 </html>

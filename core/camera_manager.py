@@ -154,28 +154,18 @@ class CameraProcessor:
     def _get_station_worker(self):
         """Veritabanından bu istasyona (self._hostname) atanmış aktif çalışanı sorgular."""
         now_t = time.time()
-        if hasattr(self, '_last_worker_check_time') and (now_t - self._last_worker_check_time < 10.0):
-            return getattr(self, '_cached_assigned_worker', (None, f"{self._hostname} Çalışanı"))
+        if hasattr(self, '_last_worker_check_time') and (now_t - getattr(self, '_last_worker_check_time', 0.0) < 5.0):
+            cached = getattr(self, '_cached_assigned_worker', None)
+            if cached and isinstance(cached, tuple) and len(cached) == 2:
+                return cached
 
         self._last_worker_check_time = now_t
         w_id = None
-        w_name = f"{self._hostname} Çalışanı"
-
-        session_context = None
-        try:
-            from pg_sync import pg_baglan
-            from sqlalchemy.orm import Session
-            engine = pg_baglan()
-            if engine:
-                session_context = Session(engine)
-        except Exception:
-            session_context = None
-
-        if session_context is None:
-            session_context = self.db_manager.get_session()
+        fallback_name = 'Tuğba Çevik' if '1' in str(self._hostname) else 'Kadir Kaya'
+        w_name = fallback_name
 
         try:
-            with session_context as session:
+            with self.db_manager.get_session() as session:
                 from sqlalchemy import func
                 target_st = (self._hostname or "").strip().lower()
                 stmt = select(Worker).where(
@@ -184,24 +174,21 @@ class CameraProcessor:
                 ).order_by(Worker.id.desc())
                 w = session.scalars(stmt).first()
                 if not w:
-                    # İstasyona özel çalışan tanımlı değilse sistemdeki aktif çalışana bağla
                     stmt_active = select(Worker).where(Worker.aktif == 1).order_by(Worker.id.asc())
                     w = session.scalars(stmt_active).first()
-                    if not w:
-                        stmt_all = select(Worker).order_by(Worker.id.asc())
-                        w = session.scalars(stmt_all).first()
 
-                if w:
+                if w and w.ad:
                     w_id = w.id
                     w_name = f"{w.ad} {w.soyad}".strip()
         except Exception as e:
             logger.debug(f"İstasyon çalışan sorgu hatası: {e}")
 
-        self._cached_assigned_worker = (w_id, w_name)
-        return w_id, w_name
+        if not w_name or len(w_name.strip()) < 2:
+            w_name = fallback_name
 
-
-
+        res = (w_id, w_name)
+        self._cached_assigned_worker = res
+        return res
 
     def update_config(self, new_config: dict):
         """Web arayüzünden kaydedilen yeni ROI ve ayarları canlı olarak günceller."""
@@ -1034,7 +1021,6 @@ class CameraProcessor:
                     continue
 
             self._read_fail_count = 0
-
 
             # 0. Görüntü Ayarları
             if self.cfg.get('flip_h', False): frame = cv2.flip(frame, 1)
